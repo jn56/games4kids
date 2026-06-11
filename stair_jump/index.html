@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stair Jump Game</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --border-glow: rgba(139, 92, 246, 0.3);
+            --neon-purple: #a855f7;
+            --neon-cyan: #06b6d4;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-light);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            touch-action: none; /* 停用整個網頁的手勢與滾動 */
+        }
+
+        /* Ambient glowing backgrounds */
+        .ambient-glow {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .game-container {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 30px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                0 0 40px var(--border-glow);
+            width: 100%;
+            max-width: 440px;
+        }
+
+        h1 {
+            font-weight: 800;
+            font-size: 2.2rem;
+            letter-spacing: -0.05em;
+            background: linear-gradient(to right, var(--neon-cyan), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .game-canvas-wrapper {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8),
+                0 0 15px rgba(6, 182, 212, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            width: 100%;
+        }
+
+        canvas {
+            display: block;
+            background-color: #0b0f19;
+            width: 100%;
+            height: auto;
+            touch-action: none; /* 停用 Canvas 上的瀏覽器滾動與縮放 */
+        }
+
+        .instructions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        .key-badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 6px;
+            color: var(--text-light);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            font-family: monospace;
+        }
+        #muteBtn:hover {
+            background: rgba(255, 255, 255, 0.18) !important;
+            border-color: rgba(255, 255, 255, 0.3) !important;
+        }
+        #muteBtn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ambient-glow"></div>
+
+    <div class="game-container">
+        <div class="header-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 400px; margin-bottom: 5px;">
+            <h1 style="margin: 0; font-size: 1.8rem;">Stair Jump</h1>
+            <button id="muteBtn" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #f8fafc; padding: 6px 14px; border-radius: 8px; font-family: 'Outfit', sans-serif; font-size: 0.85rem; cursor: pointer; backdrop-filter: blur(4px); transition: all 0.2s; outline: none;">🔊 聲音: 開</button>
+        </div>
+        <div class="game-canvas-wrapper">
+            <canvas id="gameCanvas" width="400" height="600"></canvas>
+        </div>
+        <div class="instructions">
+            <div>左右移動: <span class="key-badge">←</span>/<span class="key-badge">→</span> 或 <span class="key-badge">A</span>/<span class="key-badge">D</span> <span style="opacity: 0.7;">(觸控: 按住左右兩側)</span></div>
+            <div>跳躍: <span class="key-badge">↑</span> 或 <span class="key-badge">Space</span> <span style="opacity: 0.7;">(觸控: 點擊上方或向上滑動)</span></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game state variables
+        let gameState = 'START'; // START, PLAYING, GAME_OVER
+        let score = 0;
+        let highScore = localStorage.getItem('stair_jump_high_score') || 0;
+        let survivalTime = 0;
+        let startTime = 0;
+
+        // Audio System setup
+        let audioCtx = null;
+        let isMuted = false;
+        let bgmTimeout = null;
+        let bgmStep = 0;
+        let currentBgmLevel = 1;
+
+        const muteBtn = document.getElementById('muteBtn');
+        muteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isMuted = !isMuted;
+            if (isMuted) {
+                muteBtn.innerHTML = '🔇 聲音: 關';
+                muteBtn.style.color = '#ef4444';
+                muteBtn.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                stopBGM();
+            } else {
+                muteBtn.innerHTML = '🔊 聲音: 開';
+                muteBtn.style.color = '#f8fafc';
+                muteBtn.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                initAudio();
+                if (gameState === 'PLAYING') {
+                    startBGM();
+                }
+            }
+        });
+
+        function initAudio() {
+            if (isMuted) return;
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Universal unlock for Web Audio API on mobile/desktop
+        const unlockAudio = () => {
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        };
+        window.addEventListener('click', unlockAudio);
+        window.addEventListener('touchend', unlockAudio);
+
+        function playJumpSound() {
+            if (isMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(160, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(650, audioCtx.currentTime + 0.15);
+            
+            gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime); // Louder SFX
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        }
+
+        function playLandSound() {
+            if (isMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(110, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(55, audioCtx.currentTime + 0.08);
+            
+            gainNode.gain.setValueAtTime(0.35, audioCtx.currentTime); // Louder SFX
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.08);
+        }
+
+        function playGameOverSound() {
+            if (isMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const notes = [280, 220, 180, 130];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                osc.type = 'sawtooth';
+                osc.frequency.value = freq;
+                
+                gainNode.gain.setValueAtTime(0.18, now + idx * 0.1); // Louder SFX
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.1 + 0.12);
+                
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                osc.start(now + idx * 0.1);
+                osc.stop(now + idx * 0.1 + 0.12);
+            });
+        }
+
+        function playBgmStep() {
+            if (gameState !== 'PLAYING' || !audioCtx || isMuted) return;
+
+            // Determine level, tempo, and melody based on score
+            let noteDelay = 240; // in ms
+            let level = 1;
+            let notes = [];
+
+            if (score < 80) {
+                level = 1;
+                noteDelay = 240; // 125 bpm
+                // Lively C Major pentatonic melody
+                notes = [261.63, 329.63, 392.00, 523.25, 440.00, 392.00, 329.63, 293.66];
+            } else if (score < 180) {
+                level = 2;
+                noteDelay = 190; // 158 bpm
+                // Fast and happy F Major upbeat melody
+                notes = [349.23, 440.00, 523.25, 587.33, 523.25, 440.00, 392.00, 349.23];
+            } else {
+                level = 3;
+                noteDelay = 145; // 206 bpm (very intense!)
+                // Energetic high G Major scale
+                notes = [392.00, 493.88, 587.33, 783.99, 659.25, 587.33, 493.88, 440.00];
+            }
+
+            currentBgmLevel = level;
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            // Distinct retro waveform for each level to change music character
+            if (level === 1) {
+                osc.type = 'triangle'; // Sweet flute-like triangle
+            } else if (level === 2) {
+                osc.type = 'square'; // Classic NES chiptune square
+            } else {
+                osc.type = 'sawtooth'; // High energy retro arcade sawtooth
+            }
+
+            osc.frequency.value = notes[bgmStep % notes.length];
+
+            // Gain adjustment (sawtooth and square are louder than triangle, but made significantly louder overall)
+            const volume = level === 1 ? 0.15 : (level === 2 ? 0.08 : 0.05);
+            gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (noteDelay / 1000) * 0.95);
+
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + (noteDelay / 1000) * 0.95);
+
+            bgmStep++;
+
+            // Recursively schedule next note
+            bgmTimeout = setTimeout(playBgmStep, noteDelay);
+        }
+
+        function startBGM() {
+            if (isMuted) return;
+            initAudio();
+            stopBGM();
+            bgmStep = 0;
+            playBgmStep();
+        }
+
+        function stopBGM() {
+            if (bgmTimeout) {
+                clearTimeout(bgmTimeout);
+                bgmTimeout = null;
+            }
+        }
+
+        // Screen shake effect
+        let shakeTime = 0;
+        let shakeIntensity = 0;
+
+        function triggerShake(intensity, duration) {
+            shakeIntensity = intensity;
+            shakeTime = duration;
+        }
+
+        // Player configuration
+        const player = {
+            x: 0,
+            y: 0,
+            width: 22,
+            height: 22,
+            vx: 0,
+            vy: 0,
+            speed: 2.5,
+            gravity: 0.15,
+            jumpForce: -6,
+            isGrounded: false,
+            colorStart: '#c084fc',
+            colorEnd: '#a855f7',
+            glowColor: 'rgba(168, 85, 247, 0.8)'
+        };
+
+        // Platform configuration
+        let platforms = [];
+        const platformWidth = 75;
+        const platformHeight = 12;
+        const basePlatformSpeed = 0.75;
+        let currentPlatformSpeed = basePlatformSpeed;
+        let lastLandedPlatform = null;
+
+        // Particle System
+        let particles = [];
+
+        function spawnParticles(x, y, color, count = 8) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 5,
+                    vy: (Math.random() - 0.5) * 4 - 1.5,
+                    size: Math.random() * 3 + 2,
+                    color: color,
+                    alpha: 1,
+                    decay: Math.random() * 0.02 + 0.015
+                });
+            }
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+        }
+
+        // Draw rounded rectangle helper
+        function drawRoundedRect(x, y, width, height, radius, fillStyle, strokeStyle, shadowColor, shadowBlur) {
+            ctx.save();
+            if (shadowColor && shadowBlur) {
+                ctx.shadowColor = shadowColor;
+                ctx.shadowBlur = shadowBlur;
+            }
+            ctx.fillStyle = fillStyle;
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            ctx.fill();
+            if (strokeStyle) {
+                ctx.strokeStyle = strokeStyle;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        // Keyboard inputs
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'Space') {
+                if (gameState === 'GAME_OVER') {
+                    initAudio();
+                    initGame();
+                    gameState = 'PLAYING';
+                    keys['Space'] = false; // avoid accidental instant jump
+                }
+            }
+            if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+                if (gameState === 'START') {
+                    initAudio();
+                    initGame();
+                    gameState = 'PLAYING';
+                    keys['Space'] = false; // avoid accidental instant jump
+                }
+            }
+            if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+                e.preventDefault();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        // Touch inputs for mobile devices
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        function isTouchInBox(tx, ty, bx, by, bw, bh) {
+            return tx >= bx && tx <= bx + bw && ty >= by && ty <= by + bh;
+        }
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            initAudio();
+            if (gameState === 'START') {
+                initGame();
+                gameState = 'PLAYING';
+                return;
+            }
+            if (gameState === 'GAME_OVER') {
+                initGame();
+                gameState = 'PLAYING';
+                return;
+            }
+
+            const rect = canvas.getBoundingClientRect();
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                const touchX = (touch.clientX - rect.left) * (canvas.width / rect.width);
+                const touchY = (touch.clientY - rect.top) * (canvas.height / rect.height);
+
+                if (e.touches.length === 1) {
+                    touchStartX = touch.clientX;
+                    touchStartY = touch.clientY;
+                }
+
+                // Jump only if tapping inside Jump Zone (x: 10~390, y: 80~380)
+                if (isTouchInBox(touchX, touchY, 10, 80, canvas.width - 20, 300)) {
+                    if (player.isGrounded) {
+                        player.vy = player.jumpForce;
+                        player.isGrounded = false;
+                        triggerShake(2, 4);
+                        spawnParticles(player.x + player.width / 2, player.y + player.height, player.colorStart, 10);
+                        playJumpSound();
+                    }
+                }
+            }
+            updateTouchMovement(e);
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                const touchX = (touch.clientX - rect.left) * (canvas.width / rect.width);
+                const touchY = (touch.clientY - rect.top) * (canvas.height / rect.height);
+                
+                // Swipe up only if inside Jump Zone
+                const diffY = touch.clientY - touchStartY;
+                if (diffY < -25 && isTouchInBox(touchX, touchY, 10, 80, canvas.width - 20, 300)) {
+                    if (player.isGrounded) {
+                        player.vy = player.jumpForce;
+                        player.isGrounded = false;
+                        triggerShake(2, 4);
+                        spawnParticles(player.x + player.width / 2, player.y + player.height, player.colorStart, 10);
+                        playJumpSound();
+                    }
+                    touchStartY = touch.clientY;
+                }
+            }
+            updateTouchMovement(e);
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            updateTouchMovement(e);
+        }, { passive: false });
+
+        canvas.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            updateTouchMovement(e);
+        }, { passive: false });
+
+        function updateTouchMovement(e) {
+            keys['ArrowLeft'] = false;
+            keys['ArrowRight'] = false;
+            
+            if (gameState !== 'PLAYING') return;
+
+            const rect = canvas.getBoundingClientRect();
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                const touchX = (touch.clientX - rect.left) * (canvas.width / rect.width);
+                const touchY = (touch.clientY - rect.top) * (canvas.height / rect.height);
+                
+                // Left Zone: x: 10~190, y: 400~580
+                if (isTouchInBox(touchX, touchY, 10, 400, 180, 180)) {
+                    keys['ArrowLeft'] = true;
+                }
+                // Right Zone: x: 210~390, y: 400~580
+                if (isTouchInBox(touchX, touchY, 210, 400, 180, 180)) {
+                    keys['ArrowRight'] = true;
+                }
+            }
+        }
+
+        function initGame() {
+            initAudio();
+            gameState = 'PLAYING'; // 先將狀態設為播放中，否則 BGM 啟動時會因狀態不符而被 Return 阻擋
+            startBGM();
+            score = 0;
+            survivalTime = 0;
+            startTime = Date.now();
+            currentPlatformSpeed = basePlatformSpeed;
+            lastLandedPlatform = null;
+
+            // Set initial player state
+            player.x = canvas.width / 2 - player.width / 2;
+            player.y = canvas.height - 180;
+            player.vx = 0;
+            player.vy = 0;
+            player.isGrounded = true;
+
+            // Generate starting platforms
+            platforms = [];
+
+            // Initial landing platform directly under player (width: 95)
+            platforms.push({
+                x: canvas.width / 2 - 95 / 2,
+                y: canvas.height - 150,
+                width: 95,
+                height: platformHeight,
+                speed: currentPlatformSpeed,
+                colorStart: '#22d3ee',
+                colorEnd: '#06b6d4',
+                glowColor: 'rgba(6, 182, 212, 0.4)'
+            });
+
+            // Evenly spaced starting platforms (widths between 75 and 125)
+            for (let y = canvas.height - 230; y > 0; y -= 80) {
+                const w = 75 + Math.random() * 50;
+                platforms.push({
+                    x: Math.random() * (canvas.width - w),
+                    y: y,
+                    width: w,
+                    height: platformHeight,
+                    speed: currentPlatformSpeed,
+                    colorStart: '#22d3ee',
+                    colorEnd: '#06b6d4',
+                    glowColor: 'rgba(6, 182, 212, 0.4)'
+                });
+            }
+
+            particles = [];
+        }
+
+        function spawnNewPlatform(yPos) {
+            const w = 75 + Math.random() * 50;
+            platforms.unshift({
+                x: Math.random() * (canvas.width - w),
+                y: yPos,
+                width: w,
+                height: platformHeight,
+                speed: currentPlatformSpeed,
+                colorStart: '#22d3ee',
+                colorEnd: '#06b6d4',
+                glowColor: 'rgba(6, 182, 212, 0.4)'
+            });
+        }
+
+        function update() {
+            if (gameState !== 'PLAYING') return;
+
+            // 1. Calculate survival time
+            survivalTime = Math.floor((Date.now() - startTime) / 1000);
+
+            // 2. Increase platform speed gradually
+            currentPlatformSpeed = basePlatformSpeed + Math.min(3.5, survivalTime * 0.05);
+
+            // 3. Player horizontal movement
+            if (keys['ArrowLeft'] || keys['KeyA']) {
+                player.vx = -player.speed;
+            } else if (keys['ArrowRight'] || keys['KeyD']) {
+                player.vx = player.speed;
+            } else {
+                player.vx = 0;
+            }
+            player.x += player.vx;
+
+            // Keep player within horizontal borders
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+
+            // 4. Player vertical movement and gravity
+            player.vy += player.gravity;
+            player.y += player.vy;
+
+            // 5. Move platforms down and handle spawning
+            platforms.forEach(plat => {
+                plat.y += currentPlatformSpeed;
+                plat.speed = currentPlatformSpeed; // update internal speed
+            });
+
+            // Filter out platforms that fell off the screen
+            platforms = platforms.filter(plat => plat.y < canvas.height);
+
+            // Check if top-most platform has moved down enough to spawn a new one
+            platforms.sort((a, b) => a.y - b.y);
+            if (platforms.length === 0 || platforms[0].y > 70) {
+                const spawnY = platforms.length > 0 ? platforms[0].y - 80 : -platformHeight;
+                spawnNewPlatform(spawnY);
+            }
+
+            // 6. Collision detection (One-way collision: player falling down onto platform)
+            let stoodOnPlatform = false;
+            platforms.forEach(plat => {
+                if (player.vy >= 0 &&
+                    player.x + player.width > plat.x &&
+                    player.x < plat.x + plat.width) {
+
+                    const oldBottom = player.y + player.height - player.vy;
+                    const newBottom = player.y + player.height;
+
+                    // Support landing if crossing the platform top line
+                    if (oldBottom <= plat.y + 4 && newBottom >= plat.y) {
+                        player.y = plat.y - player.height;
+                        player.vy = plat.speed; // Match vertical downward movement of platform
+
+                        if (!player.isGrounded) {
+                            player.isGrounded = true;
+                            triggerShake(3, 4);
+                            spawnParticles(player.x + player.width / 2, player.y + player.height, '#10b981', 6);
+                            playLandSound();
+                            
+                            // Score increment if it's a new platform
+                            if (lastLandedPlatform !== plat) {
+                                score += 10;
+                                lastLandedPlatform = plat;
+                            }
+                        }
+                        stoodOnPlatform = true;
+                    }
+                }
+            });
+
+            if (!stoodOnPlatform) {
+                player.isGrounded = false;
+            }
+
+            // 7. Jump action
+            if ((keys['ArrowUp'] || keys['Space'] || keys['KeyW']) && player.isGrounded) {
+                player.vy = player.jumpForce;
+                player.isGrounded = false;
+                triggerShake(2, 4);
+                spawnParticles(player.x + player.width / 2, player.y + player.height, player.colorStart, 10);
+                playJumpSound();
+            }
+
+            // 8. Game Over Check
+            if (player.y > canvas.height) {
+                gameState = 'GAME_OVER';
+                triggerShake(12, 15);
+                spawnParticles(player.x + player.width / 2, canvas.height - 10, '#ef4444', 20);
+                stopBGM();
+                playGameOverSound();
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem('stair_jump_high_score', highScore);
+                }
+            }
+
+            // 9. Update particle effects
+            updateParticles();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Save state for screen shake
+            ctx.save();
+            if (shakeTime > 0) {
+                const dx = (Math.random() - 0.5) * shakeIntensity;
+                const dy = (Math.random() - 0.5) * shakeIntensity;
+                ctx.translate(dx, dy);
+                shakeTime--;
+            }
+
+            // 1. Draw grid backdrop lines (sleek cyberpunk background grid)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 40) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // 1.5. Draw touch area indicators (only during PLAYING state)
+            if (gameState === 'PLAYING') {
+                // Jump Zone
+                drawRoundedRect(
+                    10, 80, canvas.width - 20, 300, 12,
+                    'rgba(255, 255, 255, 0.012)',
+                    'rgba(255, 255, 255, 0.06)',
+                    null, 0
+                );
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+                ctx.font = '13px "Outfit", "Microsoft JhengHei", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('跳躍區 (點擊 / 向上滑動)', canvas.width / 2, 230);
+
+                // Left Zone
+                drawRoundedRect(
+                    10, 400, 180, 180, 12,
+                    'rgba(255, 255, 255, 0.012)',
+                    'rgba(255, 255, 255, 0.06)',
+                    null, 0
+                );
+                ctx.fillText('左移 (按住)', 100, 495);
+
+                // Right Zone
+                drawRoundedRect(
+                    210, 400, 180, 180, 12,
+                    'rgba(255, 255, 255, 0.012)',
+                    'rgba(255, 255, 255, 0.06)',
+                    null, 0
+                );
+                ctx.fillText('右移 (按住)', 300, 495);
+            }
+
+            // 2. Draw platforms
+            platforms.forEach(plat => {
+                const platGrad = ctx.createLinearGradient(plat.x, plat.y, plat.x + plat.width, plat.y);
+                platGrad.addColorStop(0, plat.colorStart);
+                platGrad.addColorStop(1, plat.colorEnd);
+                drawRoundedRect(
+                    plat.x, plat.y, plat.width, plat.height, 4,
+                    platGrad, 'rgba(255,255,255,0.1)',
+                    plat.glowColor, 8
+                );
+            });
+
+            // 3. Draw player
+            if (gameState === 'PLAYING') {
+                const playerGrad = ctx.createLinearGradient(player.x, player.y, player.x + player.width, player.y + player.height);
+                playerGrad.addColorStop(0, player.colorStart);
+                playerGrad.addColorStop(1, player.colorEnd);
+                drawRoundedRect(
+                    player.x, player.y, player.width, player.height, 6,
+                    playerGrad, 'rgba(255,255,255,0.15)',
+                    player.glowColor, 12
+                );
+            }
+
+            // 4. Draw particles
+            drawParticles();
+
+            // Restore from screen shake translation
+            ctx.restore();
+
+            // 5. Draw HUD Overlay (Digital Dashboard style)
+            if (gameState === 'PLAYING') {
+                ctx.shadowBlur = 0; // disable shadows for crisp text
+
+                // Score
+                ctx.fillStyle = '#f8fafc';
+                ctx.font = 'bold 18px "Outfit", sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText(`SCORE: ${score}`, 20, 35);
+
+                // Time
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '14px "Outfit", sans-serif';
+                ctx.fillText(`TIME: ${survivalTime}s`, 20, 55);
+
+                // High score indicator
+                ctx.textAlign = 'right';
+                ctx.fillStyle = 'rgba(6, 182, 212, 0.7)';
+                ctx.fillText(`BEST: ${highScore}`, canvas.width - 20, 35);
+            }
+
+            // 6. Draw start screen
+            if (gameState === 'START') {
+                // Background dark layer
+                ctx.fillStyle = 'rgba(11, 15, 25, 0.85)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.textAlign = 'center';
+
+                // Neon Title
+                ctx.shadowColor = '#06b6d4';
+                ctx.shadowBlur = 15;
+                ctx.fillStyle = '#22d3ee';
+                ctx.font = '800 36px "Outfit", sans-serif';
+                ctx.fillText('STAIR JUMP', canvas.width / 2, canvas.height / 2 - 60);
+
+                ctx.shadowColor = '#a855f7';
+                ctx.shadowBlur = 10;
+                ctx.fillStyle = '#c084fc';
+                ctx.font = '400 16px "Outfit", sans-serif';
+                ctx.fillText('保持向上跳躍，避免掉落底部！', canvas.width / 2, canvas.height / 2 - 15);
+
+                // Press to start
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#f8fafc';
+                ctx.font = 'bold 18px "Outfit", sans-serif';
+                ctx.fillText('按 ［空格鍵］/［↑］ 或 點擊螢幕 開始', canvas.width / 2, canvas.height / 2 + 50);
+
+                // Keyboard schema description
+                ctx.fillStyle = '#64748b';
+                ctx.font = '13px "Outfit", sans-serif';
+                ctx.fillText('按 A/D、左右鍵，或觸控螢幕左右側移動', canvas.width / 2, canvas.height / 2 + 90);
+            }
+
+            // 7. Draw Game Over screen
+            if (gameState === 'GAME_OVER') {
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.textAlign = 'center';
+
+                // Game Over Text
+                ctx.shadowColor = '#ef4444';
+                ctx.shadowBlur = 20;
+                ctx.fillStyle = '#f87171';
+                ctx.font = '800 40px "Outfit", sans-serif';
+                ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 80);
+
+                // Score Report
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#f8fafc';
+                ctx.font = 'bold 22px "Outfit", sans-serif';
+                ctx.fillText(`最終得分: ${score}`, canvas.width / 2, canvas.height / 2 - 20);
+
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '16px "Outfit", sans-serif';
+                ctx.fillText(`生存時間: ${survivalTime} 秒`, canvas.width / 2, canvas.height / 2 + 10);
+
+                if (score >= highScore && score > 0) {
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.font = 'bold 16px "Outfit", sans-serif';
+                    ctx.fillText('🎉 創下個人新高紀錄！', canvas.width / 2, canvas.height / 2 + 45);
+                }
+
+                // Play Again instruction
+                ctx.fillStyle = '#22d3ee';
+                ctx.font = 'bold 18px "Outfit", sans-serif';
+                ctx.fillText('按 ［空格鍵］ 或 點擊螢幕 重新開始', canvas.width / 2, canvas.height / 2 + 100);
+            }
+        }
+
+        // Main Loop
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start animation loop
+        gameLoop();
+    </script>
+</body>
+
+</html>

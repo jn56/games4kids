@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="兒童創意遊戲庫：挑選一款喜歡的遊戲，開始你的精彩冒險旅程！包含 2.5D 草原走道大冒險與科幻霓虹 Stair Jump 平台跳躍遊戲。">
+    <title>🎮 兒童創意遊戲庫 | Kids Game Hub</title>
+    <!-- Outfit & Fredoka Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* Modern Design System & CSS Variables */
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(30, 41, 59, 0.5);
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --pkmadv-accent: #10b981;
+            --pkmadv-glow: rgba(16, 185, 129, 0.25);
+            --stair-accent: #a855f7;
+            --stair-glow: rgba(168, 85, 247, 0.25);
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'Fredoka', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            font-family: var(--font-body);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Ambient Glowing Backgrounds */
+        .ambient-glow-1 {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+            top: -10%;
+            left: -10%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .ambient-glow-2 {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+            bottom: -10%;
+            right: -10%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 1000px;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 2.8rem;
+            letter-spacing: -0.02em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #38bdf8 0%, #a855f7 50%, #f43f5e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 20px rgba(168, 85, 247, 0.15);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Game Grid */
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 30px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        /* Game Card Glassmorphism Design */
+        .game-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 24px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 20px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            transition: all 0.3s ease;
+        }
+
+        /* PKMAdv Card Style */
+        .card-pkmadv {
+            border: 1px solid rgba(16, 185, 129, 0.15);
+        }
+        .card-pkmadv::before {
+            background: linear-gradient(90deg, #10b981, #34d399);
+        }
+        .card-pkmadv:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px -15px rgba(16, 185, 129, 0.25),
+                        0 0 25px var(--pkmadv-glow);
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+
+        /* Stair Jump Card Style */
+        .card-stair {
+            border: 1px solid rgba(168, 85, 247, 0.15);
+        }
+        .card-stair::before {
+            background: linear-gradient(90deg, #a855f7, #c084fc);
+        }
+        .card-stair:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px -15px rgba(168, 85, 247, 0.25),
+                        0 0 25px var(--stair-glow);
+            border-color: rgba(168, 85, 247, 0.4);
+        }
+
+        /* Header Info inside Card */
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .game-icon {
+            font-size: 3rem;
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.05);
+        }
+
+        .game-title-info h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-light);
+            margin-bottom: 4px;
+        }
+
+        .game-genre {
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: inline-block;
+        }
+
+        .game-description {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* Features & Info */
+        .game-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .meta-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .meta-label {
+            color: var(--text-muted);
+        }
+
+        .meta-val {
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .high-score-val {
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+        .card-pkmadv .high-score-val {
+            color: #34d399;
+        }
+        .card-stair .high-score-val {
+            color: #c084fc;
+        }
+
+        /* Beautiful Play Button */
+        .play-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s;
+            cursor: pointer;
+            border: none;
+            outline: none;
+        }
+
+        .card-pkmadv .play-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+        .card-pkmadv .play-btn:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: scale(1.02);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+        }
+
+        .card-stair .play-btn {
+            background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);
+        }
+        .card-stair .play-btn:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            transform: scale(1.02);
+            box-shadow: 0 6px 16px rgba(168, 85, 247, 0.35);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: auto;
+            text-align: center;
+            padding: 40px 0 20px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Subtle Hover Animation for Icon Emojis */
+        .game-card:hover .game-icon {
+            animation: bounce 0.6s ease infinite alternate;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-6px); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+            .game-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Ambient Glow effects -->
+    <div class="ambient-glow-1"></div>
+    <div class="ambient-glow-2"></div>
+
+    <div class="container">
+        <header>
+            <h1 id="hubTitle">✨ 兒童創意遊戲庫 🎮</h1>
+            <p class="subtitle" id="hubSubtitle">挑選一款喜歡的遊戲，點擊按鈕，即可開始你的精彩冒險旅程！</p>
+        </header>
+
+        <main class="game-grid">
+            <!-- PKMAdv Game Card -->
+            <article class="game-card card-pkmadv" id="cardPkmadv">
+                <div>
+                    <div class="card-header">
+                        <div class="game-icon">👧</div>
+                        <div class="game-title-info">
+                            <h2>草原走道大冒險</h2>
+                            <span class="game-genre">2.5D 跑酷</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <p class="game-description">在陽光明媚的 2.5D 立體草原跑道上，控制小女孩上下切換跑道，避開危險的樹木與木箱，同時收集美麗的花朵，獲取最高分數吧！</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 10px;">
+                    <div class="game-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">遊玩難度：</span>
+                            <span class="meta-val" style="color: #34d399;">★☆☆ 簡單</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">操控方式：</span>
+                            <span class="meta-val">鍵盤 ▲ / ▼ 鍵</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">最高紀錄：</span>
+                            <span class="meta-val high-score-val" id="scorePkmadv">0</span>
+                        </div>
+                    </div>
+                    <a href="pkmadv/index.html" class="play-btn" id="playBtnPkmadv">
+                        <span>開始冒險</span> 🚀
+                    </a>
+                </div>
+            </article>
+
+            <!-- Stair Jump Game Card -->
+            <article class="game-card card-stair" id="cardStair">
+                <div>
+                    <div class="card-header">
+                        <div class="game-icon">👾</div>
+                        <div class="game-title-info">
+                            <h2>Stair Jump</h2>
+                            <span class="game-genre">平台跳躍</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <p class="game-description">充滿科幻霓虹風格的平台跳躍挑戰！不斷在移動的階梯間左右平移、向上躍起。隨著生存時間拉長，背景節奏與遊戲速度將會瘋狂升級！</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 10px;">
+                    <div class="game-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">遊玩難度：</span>
+                            <span class="meta-val" style="color: #c084fc;">★★☆ 中等</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">操控方式：</span>
+                            <span class="meta-val">鍵盤 ← / → / Space / ▲</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">最高紀錄：</span>
+                            <span class="meta-val high-score-val" id="scoreStair">0</span>
+                        </div>
+                    </div>
+                    <a href="stair_jump/index.html" class="play-btn" id="playBtnStair">
+                        <span>進入挑戰</span> ⚡
+                    </a>
+                </div>
+            </article>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Kids Game Hub. Enjoy Playing!</p>
+        </footer>
+    </div>
+
+    <script>
+        // Load High Scores dynamically from localStorage
+        document.addEventListener('DOMContentLoaded', () => {
+            const pkmadvHighScore = localStorage.getItem('pkmadv_highScore') || 0;
+            const stairHighScore = localStorage.getItem('stair_jump_high_score') || 0;
+
+            document.getElementById('scorePkmadv').textContent = pkmadvHighScore;
+            document.getElementById('scoreStair').textContent = stairHighScore;
+        });
+    </script>
+</body>
+</html>
