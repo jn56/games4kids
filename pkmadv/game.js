@@ -117,6 +117,14 @@ function playGameOverSound() {
   playNote(audioCtx.currentTime + 0.4, 200, 'square', 0.4); // 登登登
 }
 
+function playWinSound() {
+  if (!audioCtx) return;
+  const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+  notes.forEach((freq, idx) => {
+    playNote(audioCtx.currentTime + idx * 0.15, freq, 'square', 0.15, 0.05);
+  });
+}
+
 function runAudio() {
   if (!audioCtx || gameState !== 'PLAYING') return;
   // 分數越高，BPM 越快
@@ -151,12 +159,29 @@ window.addEventListener('keydown', (e) => {
     } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
       if (player.lane < LANE_COUNT - 1) player.lane++;
     }
-  } else if (gameState === 'GAMEOVER') {
+  } else if (gameState === 'GAMEOVER' || gameState === 'WIN') {
     if (e.key === ' ' || e.key === 'Spacebar') {
       resetGame();
     }
   }
 });
+
+// 觸控監聽
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault(); // 避免網頁捲動
+  initAudio();
+  if (gameState === 'PLAYING') {
+    let rect = canvas.getBoundingClientRect();
+    let touchY = e.touches[0].clientY - rect.top;
+    if (touchY < canvas.height / 2) {
+      if (player.lane > 0) player.lane--;
+    } else {
+      if (player.lane < LANE_COUNT - 1) player.lane++;
+    }
+  } else if (gameState === 'GAMEOVER' || gameState === 'WIN') {
+    resetGame();
+  }
+}, { passive: false });
 
 // 重置遊戲
 function resetGame() {
@@ -279,6 +304,12 @@ function update(now) {
             if (score > highScore) {
               highScore = score;
               localStorage.setItem('pkmadv_highScore', highScore);
+            }
+
+            // 檢查是否破關
+            if (score >= 20) {
+              gameState = 'WIN';
+              playWinSound();
             }
 
             // 視覺回饋
@@ -409,7 +440,24 @@ function draw() {
     // 副標題
     ctx.fillStyle = '#555';
     ctx.font = '24px "Fredoka", sans-serif';
-    ctx.fillText('按下空白鍵再玩一次', canvas.width / 2, canvas.height / 2 + 65);
+    ctx.fillText('按下空白鍵或點擊螢幕再玩一次', canvas.width / 2, canvas.height / 2 + 65);
+  } else if (gameState === 'WIN') {
+    // 破關畫面
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#f57c00'; // 橘黃色
+    ctx.font = 'bold 48px "Fredoka", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🎉 恭喜破關！ 🎉', canvas.width / 2, canvas.height / 2 - 40);
+
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 28px "Fredoka", sans-serif';
+    ctx.fillText(`得分: ${score}  ,  最高紀錄: ${highScore}`, canvas.width / 2, canvas.height / 2 + 15);
+
+    ctx.fillStyle = '#555';
+    ctx.font = '24px "Fredoka", sans-serif';
+    ctx.fillText('按下空白鍵或點擊螢幕再玩一次', canvas.width / 2, canvas.height / 2 + 65);
   }
 }
 
