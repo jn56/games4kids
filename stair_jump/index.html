@@ -269,6 +269,30 @@
             });
         }
 
+        function playWinSound() {
+            if (isMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                osc.type = 'square';
+                osc.frequency.value = freq;
+                
+                gainNode.gain.setValueAtTime(0.15, now + idx * 0.15);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.15 + 0.1);
+                
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                osc.start(now + idx * 0.15);
+                osc.stop(now + idx * 0.15 + 0.1);
+            });
+        }
+
         function playBgmStep() {
             if (gameState !== 'PLAYING' || !audioCtx || isMuted) return;
 
@@ -451,7 +475,7 @@
         window.addEventListener('keydown', (e) => {
             keys[e.code] = true;
             if (e.code === 'Space') {
-                if (gameState === 'GAME_OVER') {
+                if (gameState === 'GAME_OVER' || gameState === 'WIN') {
                     initAudio();
                     initGame();
                     gameState = 'PLAYING';
@@ -491,7 +515,7 @@
                 gameState = 'PLAYING';
                 return;
             }
-            if (gameState === 'GAME_OVER') {
+            if (gameState === 'GAME_OVER' || gameState === 'WIN') {
                 initGame();
                 gameState = 'PLAYING';
                 return;
@@ -731,6 +755,19 @@
                 playJumpSound();
             }
 
+            // 7.5. Win Check
+            if (score >= 20 && gameState !== 'WIN') {
+                gameState = 'WIN';
+                triggerShake(8, 10);
+                spawnParticles(player.x + player.width / 2, player.y + player.height, '#f59e0b', 30);
+                stopBGM();
+                playWinSound();
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem('stair_jump_high_score', highScore);
+                }
+            }
+
             // 8. Game Over Check
             if (player.y > canvas.height) {
                 gameState = 'GAME_OVER';
@@ -891,6 +928,34 @@
                 ctx.fillStyle = '#64748b';
                 ctx.font = '13px "Outfit", sans-serif';
                 ctx.fillText('按 A/D、左右鍵，或觸控螢幕左右側移動', canvas.width / 2, canvas.height / 2 + 90);
+            } else if (gameState === 'WIN') {
+                // Dim background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                drawRoundedRect(
+                    40, canvas.height / 2 - 120, canvas.width - 80, 200, 16,
+                    'rgba(15, 23, 42, 0.95)',
+                    'rgba(245, 158, 11, 0.5)',
+                    'rgba(245, 158, 11, 0.5)', 20
+                );
+
+                ctx.fillStyle = '#f59e0b';
+                ctx.font = 'bold 32px "Outfit", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('🎉 YOU WIN! 🎉', canvas.width / 2, canvas.height / 2 - 50);
+
+                ctx.fillStyle = '#f8fafc';
+                ctx.font = '20px "Outfit", sans-serif';
+                ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 - 10);
+
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '16px "Outfit", sans-serif';
+                ctx.fillText(`High Score: ${highScore}`, canvas.width / 2, canvas.height / 2 + 20);
+
+                ctx.fillStyle = '#06b6d4';
+                ctx.font = '14px "Outfit", sans-serif';
+                ctx.fillText('Tap or press Space to play again', canvas.width / 2, canvas.height / 2 + 60);
             }
 
             // 7. Draw Game Over screen
