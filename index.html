@@ -322,8 +322,8 @@
     <div class="ambient-glow-2"></div>
 
     <div class="container">
-        <header style="position: relative;">
-            <button id="bgmToggleBtn" style="position: absolute; top: 0; right: 0; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 12px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.3s; font-family: var(--font-body); font-weight: 600;">🎵 背景音樂: 關</button>
+        <button id="bgmToggleBtn" style="position: fixed; top: 20px; right: 20px; z-index: 100; background: rgba(168, 85, 247, 0.4); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 12px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.3s; font-family: var(--font-body); font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🎶 背景音樂: 開</button>
+        <header>
             <h1 id="hubTitle">✨ 兒童創意遊戲庫 🎮</h1>
             <p class="subtitle" id="hubSubtitle">挑選一款喜歡的遊戲，點擊按鈕，即可開始你的精彩冒險旅程！</p>
         </header>
@@ -419,28 +419,55 @@
 
         // BGM Synthesizer for Home Page
         let audioCtx = null;
-        let isBgmPlaying = false;
+        let isBgmPlaying = true;
         let bgmTimeout = null;
         let bgmStep = 0;
         
         const bgmToggleBtn = document.getElementById('bgmToggleBtn');
+
+        function initAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Start BGM on first user interaction if default is ON
+        const startBgmOnInteract = () => {
+            if (isBgmPlaying && !bgmTimeout) {
+                initAudioContext();
+                playHomeBgm();
+            }
+            window.removeEventListener('click', startBgmOnInteract);
+            window.removeEventListener('keydown', startBgmOnInteract);
+            window.removeEventListener('touchstart', startBgmOnInteract);
+        };
+
+        window.addEventListener('click', startBgmOnInteract);
+        window.addEventListener('keydown', startBgmOnInteract);
+        window.addEventListener('touchstart', startBgmOnInteract);
         
-        bgmToggleBtn.addEventListener('click', () => {
+        bgmToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // prevent triggering the window interaction
             if (isBgmPlaying) {
                 isBgmPlaying = false;
                 bgmToggleBtn.innerHTML = '🎵 背景音樂: 關';
                 bgmToggleBtn.style.background = 'rgba(255,255,255,0.1)';
-                if (bgmTimeout) clearTimeout(bgmTimeout);
+                if (bgmTimeout) {
+                    clearTimeout(bgmTimeout);
+                    bgmTimeout = null;
+                }
             } else {
                 isBgmPlaying = true;
                 bgmToggleBtn.innerHTML = '🎶 背景音樂: 開';
                 bgmToggleBtn.style.background = 'rgba(168, 85, 247, 0.4)';
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                initAudioContext();
+                if (!bgmTimeout) {
+                    bgmStep = 0;
+                    playHomeBgm();
                 }
-                if (audioCtx.state === 'suspended') audioCtx.resume();
-                bgmStep = 0;
-                playHomeBgm();
             }
         });
 
