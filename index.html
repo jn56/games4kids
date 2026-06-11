@@ -322,7 +322,8 @@
     <div class="ambient-glow-2"></div>
 
     <div class="container">
-        <header>
+        <header style="position: relative;">
+            <button id="bgmToggleBtn" style="position: absolute; top: 0; right: 0; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 12px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.3s; font-family: var(--font-body); font-weight: 600;">🎵 背景音樂: 關</button>
             <h1 id="hubTitle">✨ 兒童創意遊戲庫 🎮</h1>
             <p class="subtitle" id="hubSubtitle">挑選一款喜歡的遊戲，點擊按鈕，即可開始你的精彩冒險旅程！</p>
         </header>
@@ -415,6 +416,59 @@
             document.getElementById('scorePkmadv').textContent = pkmadvHighScore;
             document.getElementById('scoreStair').textContent = stairHighScore;
         });
+
+        // BGM Synthesizer for Home Page
+        let audioCtx = null;
+        let isBgmPlaying = false;
+        let bgmTimeout = null;
+        let bgmStep = 0;
+        
+        const bgmToggleBtn = document.getElementById('bgmToggleBtn');
+        
+        bgmToggleBtn.addEventListener('click', () => {
+            if (isBgmPlaying) {
+                isBgmPlaying = false;
+                bgmToggleBtn.innerHTML = '🎵 背景音樂: 關';
+                bgmToggleBtn.style.background = 'rgba(255,255,255,0.1)';
+                if (bgmTimeout) clearTimeout(bgmTimeout);
+            } else {
+                isBgmPlaying = true;
+                bgmToggleBtn.innerHTML = '🎶 背景音樂: 開';
+                bgmToggleBtn.style.background = 'rgba(168, 85, 247, 0.4)';
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                bgmStep = 0;
+                playHomeBgm();
+            }
+        });
+
+        function playHomeBgm() {
+            if (!isBgmPlaying || !audioCtx) return;
+            
+            const noteDelay = 350; 
+            // Simple happy arpeggio melody
+            const notes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63];
+            
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.value = notes[bgmStep % notes.length];
+            
+            gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (noteDelay / 1000) * 0.9);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + (noteDelay / 1000) * 0.9);
+            
+            bgmStep++;
+            bgmTimeout = setTimeout(playHomeBgm, noteDelay);
+        }
     </script>
 </body>
 </html>
