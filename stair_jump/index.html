@@ -756,7 +756,7 @@
             }
 
             // 7.5. Win Check
-            if (score >= 20 && gameState !== 'WIN') {
+            if (score >= 300 && gameState !== 'WIN') {
                 gameState = 'WIN';
                 triggerShake(8, 10);
                 spawnParticles(player.x + player.width / 2, player.y + player.height, '#f59e0b', 30);
