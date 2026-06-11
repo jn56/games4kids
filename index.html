@@ -166,6 +166,20 @@
             border-color: rgba(168, 85, 247, 0.4);
         }
 
+        /* Maze Adventure Card Style */
+        .card-maze {
+            border: 1px solid rgba(245, 158, 11, 0.15);
+        }
+        .card-maze::before {
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        }
+        .card-maze:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px -15px rgba(245, 158, 11, 0.25),
+                        0 0 25px rgba(245, 158, 11, 0.25);
+            border-color: rgba(245, 158, 11, 0.4);
+        }
+
         /* Header Info inside Card */
         .card-header {
             display: flex;
@@ -284,6 +298,16 @@
             background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
             transform: scale(1.02);
             box-shadow: 0 6px 16px rgba(168, 85, 247, 0.35);
+        }
+
+        .card-maze .play-btn {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+        }
+        .card-maze .play-btn:hover {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            transform: scale(1.02);
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.35);
         }
 
         /* Footer */
@@ -417,6 +441,42 @@
                     </div>
                     <a href="stair_jump/index.html" class="play-btn" id="playBtnStair">
                         <span>進入挑戰</span> ⚡
+                    </a>
+                </div>
+            </article>
+
+            <!-- Maze Adventure Game Card -->
+            <article class="game-card card-maze" id="cardMaze">
+                <div>
+                    <div class="card-header">
+                        <div class="game-icon">🦊</div>
+                        <div class="game-title-info">
+                            <h2>迷宮大冒險</h2>
+                            <span class="game-genre">益智解謎</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <p class="game-description">專為一年級生設計的無壓力迷宮遊戲！幫助可愛的小狐狸穿越由魔法森林構成的隨機複雜迷宮，不需要計時也不會有危險，順利找到溫暖的家吧！</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 10px;">
+                    <div class="game-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">遊玩難度：</span>
+                            <span class="meta-val" style="color: #f59e0b;">★☆☆ 簡單</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">操控方式：</span>
+                            <span class="meta-val">鍵盤方向鍵 / 螢幕滑動</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">遊戲特色：</span>
+                            <span class="meta-val">無壓力・隨機迷宮</span>
+                        </div>
+                    </div>
+                    <a href="maze_adventure/index.html" class="play-btn" id="playBtnMaze">
+                        <span>開始解謎</span> 🧭
                     </a>
                 </div>
             </article>

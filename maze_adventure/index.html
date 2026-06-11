@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🦊 迷宮大冒險 - 尋找回家的路</title>
+  <!-- 引入可愛的 Fredoka 與 Outfit 字型 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="game-container">
+    <header class="game-header">
+      <div class="title-row">
+        <a href="../index.html" class="home-btn">🏠 返回</a>
+        <h1>🦊 迷宮大冒險！</h1>
+      </div>
+      <p class="subtitle">幫助小狐狸穿過複雜的森林迷宮，找到溫暖的家！</p>
+    </header>
+
+    <div class="canvas-wrapper">
+      <canvas id="gameCanvas" width="600" height="600"></canvas>
+    </div>
+
+    <footer class="game-footer">
+      <div class="controls-guide">
+        <span class="key-badge">▲</span>
+        <span class="key-badge">▼</span>
+        <span class="key-badge">◀</span>
+        <span class="key-badge">▶</span>
+        <span>鍵盤或滑動螢幕來移動</span>
+      </div>
+      <div class="rules-guide">
+        <span class="rule-item">🦊 主角</span>
+        <span class="rule-item">🏡 終點</span>
+      </div>
+      <!-- Congrats overlay hidden by default -->
+      <div id="congratsMsg" class="hidden">
+        🎉 恭喜你找到家了！ 🎉<br>
+        <button id="restartBtn">再玩一次</button>
+      </div>
+    </footer>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
