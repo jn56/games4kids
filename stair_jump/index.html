@@ -126,6 +126,23 @@
         #muteBtn:active {
             transform: scale(0.95);
         }
+
+        @media (max-width: 480px) {
+            .game-container {
+                padding: 15px;
+            }
+            .header-row {
+                flex-wrap: wrap;
+                justify-content: center !important;
+                gap: 10px;
+            }
+            .header-row h1 {
+                width: 100%;
+                text-align: center;
+                order: -1;
+                font-size: 1.5rem !important;
+            }
+        }
     </style>
 </head>
 

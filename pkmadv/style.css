@@ -135,6 +135,8 @@ body {
 #gameCanvas {
   display: block;
   background: #a8e6cf;
+  max-width: 100%;
+  height: auto;
 }
 
 /* 頁尾說明區域 */
@@ -186,4 +188,35 @@ body {
   border-radius: 20px;
   border: 1px solid rgba(46, 125, 50, 0.15);
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .game-container {
+    padding: 15px;
+    gap: 15px;
+  }
+  .title-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .home-btn {
+    position: static !important;
+    align-self: flex-start;
+  }
+  .game-header h1 {
+    font-size: 1.5rem;
+  }
+  .game-footer {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .rules-guide {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .controls-guide {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
