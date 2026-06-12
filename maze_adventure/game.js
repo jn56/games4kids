@@ -54,7 +54,7 @@ function removeWalls(a, b) {
     const x = a.i - b.i;
     if (x === 1) { a.walls[3] = false; b.walls[1] = false; }
     else if (x === -1) { a.walls[1] = false; b.walls[3] = false; }
-    
+
     const y = a.j - b.j;
     if (y === 1) { a.walls[0] = false; b.walls[2] = false; }
     else if (y === -1) { a.walls[2] = false; b.walls[0] = false; }
@@ -80,10 +80,10 @@ function generateMaze() {
         let i = current.i;
         let j = current.j;
 
-        let top    = grid[index(i, j - 1)];
-        let right  = grid[index(i + 1, j)];
+        let top = grid[index(i, j - 1)];
+        let right = grid[index(i + 1, j)];
         let bottom = grid[index(i, j + 1)];
-        let left   = grid[index(i - 1, j)];
+        let left = grid[index(i - 1, j)];
 
         if (top && !top.visited) neighbors.push(top);
         if (right && !right.visited) neighbors.push(right);
@@ -108,7 +108,7 @@ function drawGrid() {
     for (let i = 0; i < grid.length; i++) {
         grid[i].show();
     }
-    
+
     // Draw walls on top
     for (let i = 0; i < grid.length; i++) {
         const x = grid[i].i * w;
@@ -132,7 +132,7 @@ function drawPlayer() {
     const py = player.j * w + w / 2;
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
-    
+
     const dx = px - cx;
     const dy = py - cy;
     const cosA = Math.cos(angle);
@@ -151,7 +151,7 @@ function drawGoal() {
     const gy = goal.j * w + w / 2;
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
-    
+
     const dx = gx - cx;
     const dy = gy - cy;
     const cosA = Math.cos(angle);
@@ -169,7 +169,7 @@ let angle = 0;
 
 function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     if (player) {
         const cx = canvas.width / 2;
         const cy = canvas.height / 2;
@@ -184,7 +184,7 @@ function render() {
         drawGrid();
 
         ctx.restore();
-        
+
         // Draw emojis outside rotated context using calculated rotated coordinates
         drawGoal();
         drawPlayer();
@@ -209,19 +209,19 @@ let audioCtx = null;
 function playWinSound() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    
+
     const notes = [523.25, 659.25, 783.99, 1046.50]; // C E G C
     const now = audioCtx.currentTime;
-    
+
     notes.forEach((freq, idx) => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'triangle';
         osc.frequency.value = freq;
-        
+
         gain.gain.setValueAtTime(0.1, now + idx * 0.15);
         gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.15 + 0.1);
-        
+
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(now + idx * 0.15);
@@ -233,11 +233,11 @@ function playWinSound() {
 function getGridDirection(sdx, sdy) {
     const cosA = Math.cos(angle);
     const sinA = Math.sin(angle);
-    
+
     // Rotate screen direction by -angle to get grid direction vector
     const gdx = sdx * cosA + sdy * sinA;
     const gdy = -sdx * sinA + sdy * cosA;
-    
+
     // Check dot products with the four grid unit vectors
     const candidates = [
         { dx: 0, dy: -1, score: -gdy }, // Up
@@ -245,7 +245,7 @@ function getGridDirection(sdx, sdy) {
         { dx: -1, dy: 0, score: -gdx }, // Left
         { dx: 1, dy: 0, score: gdx }    // Right
     ];
-    
+
     let best = candidates[0];
     for (let i = 1; i < candidates.length; i++) {
         if (candidates[i].score > best.score) {
@@ -257,12 +257,12 @@ function getGridDirection(sdx, sdy) {
 
 function movePlayer(dx, dy) {
     if (!isPlaying) return;
-    
+
     let cell = grid[index(player.i, player.j)];
-    
+
     // dx = 1 (Right), dx = -1 (Left)
     // dy = 1 (Down), dy = -1 (Up)
-    
+
     if (dy === -1 && !cell.walls[0]) player.j--; // Up
     if (dx === 1 && !cell.walls[1]) player.i++; // Right
     if (dy === 1 && !cell.walls[2]) player.j++; // Down
@@ -285,7 +285,7 @@ const moveInterval = 150; // Milliseconds between moves when holding a key
 window.addEventListener('keydown', (e) => {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyS', 'KeyA', 'KeyD'].includes(e.code)) {
         e.preventDefault(); // Prevent scrolling
-        
+
         if (!keysPressed[e.code]) {
             keysPressed[e.code] = true;
             // Force immediate move on new key press by resetting lastMoveTime
@@ -323,13 +323,13 @@ canvas.addEventListener('touchmove', (e) => {
 canvas.addEventListener('touchend', (e) => {
     e.preventDefault();
     if (!isPlaying) return;
-    
+
     let touchEndX = e.changedTouches[0].clientX;
     let touchEndY = e.changedTouches[0].clientY;
-    
+
     let dx = touchEndX - touchStartX;
     let dy = touchEndY - touchStartY;
-    
+
     if (Math.abs(dx) > Math.abs(dy)) {
         // Horizontal swipe
         if (Math.abs(dx) > 30) {
@@ -355,18 +355,18 @@ function animate(timestamp) {
 
     if (isPlaying) {
         // Rotate slowly (0.15 radians per second)
-        angle += 0.15 * (dt / 1000);
+        angle += 0.6 * (dt / 1000);
 
         // Check held keys for continuous movement
         if (timestamp - lastMoveTime > moveInterval) {
             let sdx = 0;
             let sdy = 0;
-            
+
             if (keysPressed['ArrowUp'] || keysPressed['KeyW']) sdy = -1;
             else if (keysPressed['ArrowDown'] || keysPressed['KeyS']) sdy = 1;
             else if (keysPressed['ArrowLeft'] || keysPressed['KeyA']) sdx = -1;
             else if (keysPressed['ArrowRight'] || keysPressed['KeyD']) sdx = 1;
- 
+
             if (sdx !== 0 || sdy !== 0) {
                 const dir = getGridDirection(sdx, sdy);
                 movePlayer(dir.dx, dir.dy);
