@@ -190,7 +190,7 @@ function resetGame() {
   player.lane = 1;
   gameState = 'PLAYING';
   lastSpawnTime = performance.now();
-  nextSpawnDelay = 480 + Math.random() * 360; // 初始延隔縮小
+  nextSpawnDelay = 300 + Math.random() * 200; // 初始延隔進一步縮小
 
   // 啟動迴圈
   requestAnimationFrame(gameLoop);
@@ -206,7 +206,7 @@ function spawnItem(now) {
     // 新生成的物品 X 必須與前一個物品保持一定安全距離
     let canSpawn = true;
     for (let item of items) {
-      if (item.x > canvas.width - 80) { // 如果有物品還在生成點附近，則延後生成
+      if (item.x > canvas.width - 55) { // 縮小安全距離，使生成頻率可以更高
         canSpawn = false;
         break;
       }
@@ -238,10 +238,10 @@ function spawnItem(now) {
 
     lastSpawnTime = now;
 
-    // 動態縮短生成時間 (縮短延隔使總產量增加，但花朵比例下降，維持花朵絕對數量不變)
+    // 動態縮短生成時間 (縮短延隔以全面增加所有物品的生成數量)
     let level = Math.floor(Math.max(0, score) / 3);
-    let minDelay = Math.max(200, 480 - level * 18); // 最小間隔隨等級下降
-    let maxDelay = Math.max(350, 840 - level * 27); // 最大間隔隨等級下降
+    let minDelay = Math.max(120, 300 - level * 12); // 最小間隔隨等級下降
+    let maxDelay = Math.max(200, 500 - level * 18); // 最大間隔隨等級下降
     nextSpawnDelay = minDelay + Math.random() * (maxDelay - minDelay);
   }
 }
