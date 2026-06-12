@@ -10,7 +10,7 @@ const LANE_COUNT = 3;
 const LANE_HEIGHT = canvas.height / LANE_COUNT;
 const PLAYER_X = 100; // 主角固定在畫面左側
 const EMOJI_SIZE = 45; // 尺寸大約 40px - 50px
-let currentSpeed = 3.5; // 物品向左移動速度 (動態調整)
+let currentSpeed = 2.5; // 物品向左移動速度 (動態調整)
 
 let score = 0;
 let highScore = localStorage.getItem('pkmadv_highScore') || 0;
@@ -253,7 +253,7 @@ function update(now) {
   runAudio(); // 播放音樂
 
   // 動態更新速度 (每 3 分微微增加一點速度)
-  currentSpeed = 3.5 + Math.floor(Math.max(0, score) / 3) * 0.25;
+  currentSpeed = 2.5 + Math.floor(Math.max(0, score) / 3) * 0.25;
 
   // 背景雲朵移動
   clouds.forEach(cloud => {
