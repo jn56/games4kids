@@ -2,6 +2,137 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const congratsMsg = document.getElementById('congratsMsg');
 const restartBtn = document.getElementById('restartBtn');
+const gameOverMsg = document.getElementById('gameOverMsg');
+const retryBtn = document.getElementById('retryBtn');
+const timerVal = document.getElementById('timerVal');
+const timerBadge = document.querySelector('.timer-badge');
+
+// Timer state
+let timeLeft = 60;
+let timerInterval = null;
+
+// Audio synth BGM state
+let audioCtx = null;
+let musicIntervalId = null;
+let nextNoteTime = 0;
+let melodyStep = 0;
+let currentBpm = 110;
+
+// Happy 8-bit loop melody arpeggio (frequencies in C-G-Am-F chord progression)
+const melody = [
+    523.25, 659.25, 783.99, 659.25, // Measure 1: C5, E5, G5, E5
+    493.88, 587.33, 783.99, 587.33, // Measure 2: B4, D5, G5, D5
+    440.00, 523.25, 659.25, 523.25, // Measure 3: A4, C5, E5, C5
+    349.23, 440.00, 523.25, 440.00  // Measure 4: F4, A4, C5, A4
+];
+
+const bass = [
+    130.81, 0, 0, 0, // C3
+    98.00,  0, 0, 0, // G2
+    110.00, 0, 0, 0, // A2
+    87.31,  0, 0, 0  // F2
+];
+
+function startMusic() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    if (musicIntervalId) return; // Already running
+    nextNoteTime = audioCtx.currentTime;
+    melodyStep = 0;
+    musicIntervalId = setInterval(scheduler, 100);
+}
+
+function stopMusic() {
+    if (musicIntervalId) {
+        clearInterval(musicIntervalId);
+        musicIntervalId = null;
+    }
+}
+
+function scheduler() {
+    const scheduleAheadTime = 0.2; // schedule 200ms in advance
+    while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
+        scheduleNote(melodyStep, nextNoteTime);
+        advanceNote();
+    }
+}
+
+function advanceNote() {
+    const secondsPerBeat = 60.0 / currentBpm;
+    nextNoteTime += 0.5 * secondsPerBeat; // 8th notes (half beat per step)
+    melodyStep = (melodyStep + 1) % melody.length;
+}
+
+function scheduleNote(step, time) {
+    // Melody synth (Triangle oscillator for music-box tone)
+    const freq = melody[step];
+    if (freq > 0) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+        
+        gain.gain.setValueAtTime(0.04, time); // Soft background music volume
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.25);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(time);
+        osc.stop(time + 0.25);
+    }
+    
+    // Bass synth (Sine oscillator for warm bassline)
+    const bassFreq = bass[step];
+    if (bassFreq > 0) {
+        const oscBass = audioCtx.createOscillator();
+        const gainBass = audioCtx.createGain();
+        oscBass.type = 'sine';
+        oscBass.frequency.value = bassFreq;
+        
+        gainBass.gain.setValueAtTime(0.06, time);
+        gainBass.gain.exponentialRampToValueAtTime(0.001, time + 0.5);
+        
+        oscBass.connect(gainBass);
+        gainBass.connect(audioCtx.destination);
+        oscBass.start(time);
+        oscBass.stop(time + 0.5);
+    }
+}
+
+function ensureAudioStarted() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    if (!musicIntervalId && isPlaying) {
+        startMusic();
+    }
+}
+
+function playLoseSound() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    
+    const notes = [293.66, 261.63, 220.00, 196.00]; // D4, C4, A3, G3 (retro drop)
+    const now = audioCtx.currentTime;
+    
+    notes.forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.value = freq;
+        
+        gain.gain.setValueAtTime(0.08, now + idx * 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.15 + 0.25);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + idx * 0.15);
+        osc.stop(now + idx * 0.15 + 0.25);
+    });
+}
 
 // Maze settings
 const cols = 10;
@@ -200,12 +331,45 @@ function initGame() {
     goal = { i: cols - 1, j: rows - 1 };
     isPlaying = true;
     angle = 0; // Reset angle
+    timeLeft = 60; // Reset timer
+
     congratsMsg.classList.add('hidden');
+    gameOverMsg.classList.add('hidden');
+
+    timerVal.textContent = timeLeft;
+    timerBadge.classList.remove('urgent');
+
+    currentBpm = 110; // Reset tempo to normal
+
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        if (!isPlaying) return;
+        timeLeft--;
+        timerVal.textContent = timeLeft;
+
+        if (timeLeft <= 15) {
+            timerBadge.classList.add('urgent');
+            currentBpm = 160; // Speed up music!
+        }
+
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            isPlaying = false;
+            stopMusic();
+            playLoseSound();
+            gameOverMsg.classList.remove('hidden');
+        }
+    }, 1000);
+
+    // If audio has already been initiated and is running, auto-play
+    if (audioCtx && audioCtx.state === 'running') {
+        startMusic();
+    }
+
     render();
 }
 
 // Audio context for win sound
-let audioCtx = null;
 function playWinSound() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -271,6 +435,8 @@ function movePlayer(dx, dy) {
     // Check Win Condition
     if (player.i === goal.i && player.j === goal.j) {
         isPlaying = false;
+        if (timerInterval) clearInterval(timerInterval);
+        stopMusic();
         playWinSound();
         congratsMsg.classList.remove('hidden');
     }
@@ -285,6 +451,8 @@ const moveInterval = 150; // Milliseconds between moves when holding a key
 window.addEventListener('keydown', (e) => {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyS', 'KeyA', 'KeyD'].includes(e.code)) {
         e.preventDefault(); // Prevent scrolling
+
+        ensureAudioStarted(); // Resume/start music on interaction
 
         if (!keysPressed[e.code]) {
             keysPressed[e.code] = true;
@@ -305,6 +473,14 @@ window.addEventListener('blur', () => {
     for (const key in keysPressed) {
         keysPressed[key] = false;
     }
+    stopMusic(); // Stop music when browser tab is inactive
+});
+
+window.addEventListener('focus', () => {
+    // Resume music if page is focused and game is running
+    if (isPlaying && audioCtx && audioCtx.state === 'running') {
+        startMusic();
+    }
 });
 
 // Touch controls (Swipe)
@@ -312,6 +488,7 @@ let touchStartX = 0;
 let touchStartY = 0;
 canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
+    ensureAudioStarted(); // Resume/start music on touch
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
 }, { passive: false });
@@ -346,6 +523,7 @@ canvas.addEventListener('touchend', (e) => {
 }, { passive: false });
 
 restartBtn.addEventListener('click', initGame);
+retryBtn.addEventListener('click', initGame);
 
 // Animation Loop
 function animate(timestamp) {

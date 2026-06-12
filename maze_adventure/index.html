@@ -18,6 +18,9 @@
         <h1>🦊 迷宮大冒險！</h1>
       </div>
       <p class="subtitle">幫助小狐狸穿過複雜的森林迷宮，找到溫暖的家！</p>
+      <div class="info-bar">
+        <span class="timer-badge">⏱️ 剩餘時間: <span id="timerVal">60</span> 秒</span>
+      </div>
     </header>
 
     <div class="canvas-wrapper">
@@ -28,6 +31,13 @@
     <div id="congratsMsg" class="hidden">
       🎉 恭喜你找到家了！ 🎉<br>
       <button id="restartBtn">再玩一次</button>
+    </div>
+
+    <!-- Game Over overlay hidden by default -->
+    <div id="gameOverMsg" class="hidden">
+      😢 時間到了！ 😢<br>
+      <span class="game-over-sub">小狐狸迷路了...</span>
+      <button id="retryBtn">再試一次</button>
     </div>
 
     <footer class="game-footer">
