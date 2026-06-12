@@ -355,7 +355,7 @@ function animate(timestamp) {
 
     if (isPlaying) {
         // Rotate slowly (0.15 radians per second)
-        angle += 0.6 * (dt / 1000);
+        angle += 0.5 * (dt / 1000);
 
         // Check held keys for continuous movement
         if (timestamp - lastMoveTime > moveInterval) {
