@@ -105,7 +105,6 @@ function generateMaze() {
 }
 
 function drawGrid() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (let i = 0; i < grid.length; i++) {
         grid[i].show();
     }
@@ -126,24 +125,73 @@ function drawGrid() {
     }
 }
 
+const scaleFactor = 0.68;
+
 function drawPlayer() {
-    ctx.font = `${w * 0.7}px Arial`;
+    const px = player.i * w + w / 2;
+    const py = player.j * w + w / 2;
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    
+    const dx = px - cx;
+    const dy = py - cy;
+    const cosA = Math.cos(angle);
+    const sinA = Math.sin(angle);
+    const rpx = (dx * cosA - dy * sinA) * scaleFactor + cx;
+    const rpy = (dx * sinA + dy * cosA) * scaleFactor + cy;
+
+    ctx.font = `${w * 0.7 * scaleFactor}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(playerEmoji, player.i * w + w / 2, player.j * w + w / 2);
+    ctx.fillText(playerEmoji, rpx, rpy);
 }
 
 function drawGoal() {
-    ctx.font = `${w * 0.7}px Arial`;
+    const gx = goal.i * w + w / 2;
+    const gy = goal.j * w + w / 2;
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    
+    const dx = gx - cx;
+    const dy = gy - cy;
+    const cosA = Math.cos(angle);
+    const sinA = Math.sin(angle);
+    const rgx = (dx * cosA - dy * sinA) * scaleFactor + cx;
+    const rgy = (dx * sinA + dy * cosA) * scaleFactor + cy;
+
+    ctx.font = `${w * 0.7 * scaleFactor}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(goalEmoji, goal.i * w + w / 2, goal.j * w + w / 2);
+    ctx.fillText(goalEmoji, rgx, rgy);
 }
 
+let angle = 0;
+
 function render() {
-    drawGrid();
-    drawGoal();
-    drawPlayer();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (player) {
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+
+        ctx.save();
+        // Translate to canvas center, rotate, scale, then translate back
+        ctx.translate(cx, cy);
+        ctx.rotate(angle);
+        ctx.scale(scaleFactor, scaleFactor);
+        ctx.translate(-cx, -cy);
+
+        drawGrid();
+
+        ctx.restore();
+        
+        // Draw emojis outside rotated context using calculated rotated coordinates
+        drawGoal();
+        drawPlayer();
+    } else {
+        drawGrid();
+        drawGoal();
+    }
 }
 
 function initGame() {
@@ -151,6 +199,7 @@ function initGame() {
     player = { i: 0, j: 0 };
     goal = { i: cols - 1, j: rows - 1 };
     isPlaying = true;
+    angle = 0; // Reset angle
     congratsMsg.classList.add('hidden');
     render();
 }
@@ -180,6 +229,32 @@ function playWinSound() {
     });
 }
 
+// Convert screen movement direction to grid movement direction based on current rotation angle
+function getGridDirection(sdx, sdy) {
+    const cosA = Math.cos(angle);
+    const sinA = Math.sin(angle);
+    
+    // Rotate screen direction by -angle to get grid direction vector
+    const gdx = sdx * cosA + sdy * sinA;
+    const gdy = -sdx * sinA + sdy * cosA;
+    
+    // Check dot products with the four grid unit vectors
+    const candidates = [
+        { dx: 0, dy: -1, score: -gdy }, // Up
+        { dx: 0, dy: 1, score: gdy },   // Down
+        { dx: -1, dy: 0, score: -gdx }, // Left
+        { dx: 1, dy: 0, score: gdx }    // Right
+    ];
+    
+    let best = candidates[0];
+    for (let i = 1; i < candidates.length; i++) {
+        if (candidates[i].score > best.score) {
+            best = candidates[i];
+        }
+    }
+    return best;
+}
+
 function movePlayer(dx, dy) {
     if (!isPlaying) return;
     
@@ -193,8 +268,6 @@ function movePlayer(dx, dy) {
     if (dy === 1 && !cell.walls[2]) player.j++; // Down
     if (dx === -1 && !cell.walls[3]) player.i--; // Left
 
-    render();
-
     // Check Win Condition
     if (player.i === goal.i && player.j === goal.j) {
         isPlaying = false;
@@ -203,15 +276,35 @@ function movePlayer(dx, dy) {
     }
 }
 
-// Keyboard controls
+// Keyboard controls state
+const keysPressed = {};
+let lastTimestamp = 0;
+let lastMoveTime = 0;
+const moveInterval = 150; // Milliseconds between moves when holding a key
+
 window.addEventListener('keydown', (e) => {
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyS', 'KeyA', 'KeyD'].includes(e.code)) {
         e.preventDefault(); // Prevent scrolling
+        
+        if (!keysPressed[e.code]) {
+            keysPressed[e.code] = true;
+            // Force immediate move on new key press by resetting lastMoveTime
+            lastMoveTime = 0;
+        }
     }
-    if (e.code === 'ArrowUp' || e.code === 'KeyW') movePlayer(0, -1);
-    if (e.code === 'ArrowDown' || e.code === 'KeyS') movePlayer(0, 1);
-    if (e.code === 'ArrowLeft' || e.code === 'KeyA') movePlayer(-1, 0);
-    if (e.code === 'ArrowRight' || e.code === 'KeyD') movePlayer(1, 0);
+});
+
+window.addEventListener('keyup', (e) => {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyS', 'KeyA', 'KeyD'].includes(e.code)) {
+        keysPressed[e.code] = false;
+    }
+});
+
+window.addEventListener('blur', () => {
+    // Clear pressed keys when window loses focus
+    for (const key in keysPressed) {
+        keysPressed[key] = false;
+    }
 });
 
 // Touch controls (Swipe)
@@ -240,19 +333,52 @@ canvas.addEventListener('touchend', (e) => {
     if (Math.abs(dx) > Math.abs(dy)) {
         // Horizontal swipe
         if (Math.abs(dx) > 30) {
-            if (dx > 0) movePlayer(1, 0);
-            else movePlayer(-1, 0);
+            const dir = getGridDirection(dx > 0 ? 1 : -1, 0);
+            movePlayer(dir.dx, dir.dy);
         }
     } else {
         // Vertical swipe
         if (Math.abs(dy) > 30) {
-            if (dy > 0) movePlayer(0, 1);
-            else movePlayer(0, -1);
+            const dir = getGridDirection(0, dy > 0 ? 1 : -1);
+            movePlayer(dir.dx, dir.dy);
         }
     }
 }, { passive: false });
 
 restartBtn.addEventListener('click', initGame);
 
+// Animation Loop
+function animate(timestamp) {
+    if (!lastTimestamp) lastTimestamp = timestamp;
+    const dt = timestamp - lastTimestamp;
+    lastTimestamp = timestamp;
+
+    if (isPlaying) {
+        // Rotate slowly (0.15 radians per second)
+        angle += 0.15 * (dt / 1000);
+
+        // Check held keys for continuous movement
+        if (timestamp - lastMoveTime > moveInterval) {
+            let sdx = 0;
+            let sdy = 0;
+            
+            if (keysPressed['ArrowUp'] || keysPressed['KeyW']) sdy = -1;
+            else if (keysPressed['ArrowDown'] || keysPressed['KeyS']) sdy = 1;
+            else if (keysPressed['ArrowLeft'] || keysPressed['KeyA']) sdx = -1;
+            else if (keysPressed['ArrowRight'] || keysPressed['KeyD']) sdx = 1;
+ 
+            if (sdx !== 0 || sdy !== 0) {
+                const dir = getGridDirection(sdx, sdy);
+                movePlayer(dir.dx, dir.dy);
+                lastMoveTime = timestamp;
+            }
+        }
+    }
+
+    render();
+    requestAnimationFrame(animate);
+}
+
 // Start
 initGame();
+requestAnimationFrame(animate);
