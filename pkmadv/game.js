@@ -33,9 +33,9 @@ let scoreFeedback = {
 
 // 物品屬性 (加入權重，增加大便和樹的數量)
 const ITEM_TYPES = [
-  { type: 'flower', emoji: '🌸', score: 1, isObstacle: false, weight: 20 },
-  { type: 'poop', emoji: '💩', score: -1, isObstacle: false, weight: 35 },
-  { type: 'tree', emoji: '🌳', score: 0, isObstacle: true, weight: 35 },
+  { type: 'flower', emoji: '🌸', score: 1, isObstacle: false, weight: 60 },
+  { type: 'poop', emoji: '💩', score: -1, isObstacle: false, weight: 20 },
+  { type: 'tree', emoji: '🌳', score: 0, isObstacle: true, weight: 20 },
   { type: 'box', emoji: '📦', score: 0, isObstacle: true, weight: 10 }
 ];
 
