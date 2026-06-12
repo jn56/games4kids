@@ -4,8 +4,8 @@ const congratsMsg = document.getElementById('congratsMsg');
 const restartBtn = document.getElementById('restartBtn');
 
 // Maze settings
-const cols = 15;
-const rows = 15;
+const cols = 10;
+const rows = 10;
 const w = canvas.width / cols;
 let grid = [];
 let current;
@@ -140,7 +140,7 @@ function drawPlayer() {
     const rpx = (dx * cosA - dy * sinA) * scaleFactor + cx;
     const rpy = (dx * sinA + dy * cosA) * scaleFactor + cy;
 
-    ctx.font = `${w * 0.7 * scaleFactor}px Arial`;
+    ctx.font = `${w * 0.85 * scaleFactor}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(playerEmoji, rpx, rpy);
@@ -159,7 +159,7 @@ function drawGoal() {
     const rgx = (dx * cosA - dy * sinA) * scaleFactor + cx;
     const rgy = (dx * sinA + dy * cosA) * scaleFactor + cy;
 
-    ctx.font = `${w * 0.7 * scaleFactor}px Arial`;
+    ctx.font = `${w * 0.85 * scaleFactor}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(goalEmoji, rgx, rgy);
