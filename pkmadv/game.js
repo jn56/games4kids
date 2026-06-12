@@ -33,10 +33,10 @@ let scoreFeedback = {
 
 // 物品屬性 (加入權重，增加大便和樹的數量)
 const ITEM_TYPES = [
-  { type: 'flower', emoji: '🌸', score: 1, isObstacle: false, weight: 60 },
-  { type: 'poop', emoji: '💩', score: -1, isObstacle: false, weight: 20 },
-  { type: 'tree', emoji: '🌳', score: 0, isObstacle: true, weight: 20 },
-  { type: 'box', emoji: '📦', score: 0, isObstacle: true, weight: 10 }
+  { type: 'flower', emoji: '🌸', score: 1, isObstacle: false, weight: 20 },
+  { type: 'poop', emoji: '💩', score: -1, isObstacle: false, weight: 60 },
+  { type: 'tree', emoji: '🌳', score: 0, isObstacle: true, weight: 60 },
+  { type: 'box', emoji: '📦', score: 0, isObstacle: true, weight: 30 }
 ];
 
 function getRandomItem() {
@@ -190,7 +190,7 @@ function resetGame() {
   player.lane = 1;
   gameState = 'PLAYING';
   lastSpawnTime = performance.now();
-  nextSpawnDelay = 800 + Math.random() * 600; // 初始頻率增加
+  nextSpawnDelay = 480 + Math.random() * 360; // 初始延隔縮小
 
   // 啟動迴圈
   requestAnimationFrame(gameLoop);
@@ -238,10 +238,10 @@ function spawnItem(now) {
 
     lastSpawnTime = now;
 
-    // 動態縮短生成時間 (分數每增加 3 分，延遲減少，物品數量微微變多)
+    // 動態縮短生成時間 (縮短延隔使總產量增加，但花朵比例下降，維持花朵絕對數量不變)
     let level = Math.floor(Math.max(0, score) / 3);
-    let minDelay = Math.max(350, 800 - level * 30); // 最小間隔隨等級下降
-    let maxDelay = Math.max(600, 1400 - level * 45); // 最大間隔隨等級下降
+    let minDelay = Math.max(200, 480 - level * 18); // 最小間隔隨等級下降
+    let maxDelay = Math.max(350, 840 - level * 27); // 最大間隔隨等級下降
     nextSpawnDelay = minDelay + Math.random() * (maxDelay - minDelay);
   }
 }
