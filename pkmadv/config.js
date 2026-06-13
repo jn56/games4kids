@@ -14,6 +14,10 @@ const CONFIG = {
         
         // 如果想使用自己準備的 3 張獨立圖 (跨左腳、站立、跨右腳)，請將檔名填入下方陣列中：
         images: ['walk_left.png', 'walk_stand.png', 'walk_right.png'], 
+        
+        // 動畫切換速度 (數字越大越慢，預設約為 150)
+        frameInterval: 250,
+        
         // 撞到花朵以外物品時的受傷圖檔 (可填寫檔名，例如 'hurt.png')
         hurtImage: '',
         // 如果沒填寫圖檔，預設會使用 Emoji 來連續切換

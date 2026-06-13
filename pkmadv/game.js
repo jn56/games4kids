@@ -480,8 +480,8 @@ function draw() {
       let img = player.loadedImages[player.frameIndex];
       // 確保圖片已經載入完成
       if (img && img.complete && img.naturalHeight !== 0) {
-          // 放大 1.5 倍，並保持圖片原來的長寬比
-          let scale = (EMOJI_SIZE * 1.5) / img.naturalHeight;
+          // 放大 2.0 倍，並保持圖片原來的長寬比
+          let scale = (EMOJI_SIZE * 2.0) / img.naturalHeight;
           let drawW = img.naturalWidth * scale;
           let drawH = img.naturalHeight * scale;
           
