@@ -46,13 +46,31 @@ if (CONFIG.player.spriteSheet) {
             
             // 假設左上角 [0,0] 的顏色為背景色 (去背)
             let bgR = data[0], bgG = data[1], bgB = data[2];
-            let tolerance = 30; // 容差值
+            let tolerance = 40;  // 距離小於此值視為純背景
+            let feather = 80;    // 柔化範圍 (距離在此範圍內視為半透明邊緣)
             
             for (let i = 0; i < data.length; i += 4) {
                 let r = data[i], g = data[i+1], b = data[i+2];
-                // 若接近背景色，將透明度設為 0
-                if (Math.abs(r - bgR) < tolerance && Math.abs(g - bgG) < tolerance && Math.abs(b - bgB) < tolerance) {
-                    data[i+3] = 0;
+                // 計算與背景色的空間距離
+                let dist = Math.sqrt(Math.pow(r - bgR, 2) + Math.pow(g - bgG, 2) + Math.pow(b - bgB, 2));
+                
+                if (dist < tolerance) {
+                    data[i+3] = 0; // 純背景，完全透明
+                } else if (dist < tolerance + feather) {
+                    // 半透明邊緣處理：計算 0 到 1 的 alpha
+                    let alpha = (dist - tolerance) / feather;
+                    
+                    // 色彩淨化 (Color Decontamination)：
+                    // 消除圖片邊緣與背景色(例如白邊)混合造成的亮邊現象
+                    // 反推原本角色的顏色公式: C_char = (C_orig - C_bg * (1 - alpha)) / alpha
+                    let newR = (r - bgR * (1 - alpha)) / alpha;
+                    let newG = (g - bgG * (1 - alpha)) / alpha;
+                    let newB = (b - bgB * (1 - alpha)) / alpha;
+                    
+                    data[i] = Math.min(255, Math.max(0, newR));
+                    data[i+1] = Math.min(255, Math.max(0, newG));
+                    data[i+2] = Math.min(255, Math.max(0, newB));
+                    data[i+3] = Math.floor(255 * alpha);
                 }
             }
             offCtx.putImageData(imgData, 0, 0);
