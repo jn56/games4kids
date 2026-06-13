@@ -17,7 +17,7 @@ const CONFIG = {
         // 受傷時預設顯示的 Emoji
         hurtEmoji: '😵',
         frameInterval: 150, // 動畫切換的速度 (毫秒)
-        hurtDuration: 500 // 受傷表情維持的時間 (毫秒)
+        hurtDuration: 100 // 受傷表情維持的時間 (毫秒)
     },
     items: [
         { type: 'flower', emoji: '🌸', score: 1, isObstacle: false, weight: 50 },
