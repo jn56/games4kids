@@ -7,8 +7,12 @@ const CONFIG = {
         winScore: 20
     },
     player: {
-        // 如果想使用自己準備的 3 張圖 (跨左腳、站立、跨右腳)，請將檔名填入下方陣列中，例如: 
-        // images: ['walk_left.png', 'walk_stand.png', 'walk_right.png'],
+        // 如果想直接使用包含連續動作的單一圖片 (Sprite Sheet)，請將檔名填在這裡：
+        // 這樣就不需要手動分割圖片了！
+        spriteSheet: 'blue.png',
+        spriteFrames: 3, // 圖片裡由上到下包含幾個動作
+        
+        // 如果想使用自己準備的 3 張獨立圖 (跨左腳、站立、跨右腳)，請將檔名填入下方陣列中：
         images: [], 
         // 撞到花朵以外物品時的受傷圖檔 (可填寫檔名，例如 'hurt.png')
         hurtImage: '',

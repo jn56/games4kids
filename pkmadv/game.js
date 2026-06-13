@@ -26,8 +26,16 @@ let player = {
   lastAnimTime: 0,
   hurtTimer: 0, // 處於受傷狀態的剩餘時間
   loadedImages: [],
-  loadedHurtImage: null
+  loadedHurtImage: null,
+  loadedSprite: null
 };
+
+// 預載入 Sprite Sheet
+if (CONFIG.player.spriteSheet) {
+    let img = new Image();
+    img.src = CONFIG.player.spriteSheet;
+    player.loadedSprite = img;
+}
 
 // 預載入圖片
 if (CONFIG.player.images && CONFIG.player.images.length > 0) {
@@ -278,7 +286,15 @@ function update(now) {
   player.frameTimer += dt;
   if (player.frameTimer > (CONFIG.player.frameInterval || 150)) {
       player.frameTimer = 0;
-      let frameCount = player.loadedImages.length > 0 ? player.loadedImages.length : (CONFIG.player.emojis ? CONFIG.player.emojis.length : 1);
+      let frameCount = 1;
+      if (CONFIG.player.spriteSheet && CONFIG.player.spriteFrames) {
+          frameCount = CONFIG.player.spriteFrames;
+      } else if (player.loadedImages.length > 0) {
+          frameCount = player.loadedImages.length;
+      } else if (CONFIG.player.emojis) {
+          frameCount = CONFIG.player.emojis.length;
+      }
+      
       if (frameCount > 0) {
           player.frameIndex = (player.frameIndex + 1) % frameCount;
       }
@@ -443,6 +459,23 @@ function draw() {
   } else if (isHurt && CONFIG.player.hurtEmoji) {
       ctx.font = `${EMOJI_SIZE}px sans-serif`;
       ctx.fillText(CONFIG.player.hurtEmoji, PLAYER_X, playerY);
+  } else if (player.loadedSprite && player.loadedSprite.complete && player.loadedSprite.naturalHeight !== 0) {
+      // 使用 Sprite Sheet (整張圖裁切顯示)
+      let img = player.loadedSprite;
+      let frames = CONFIG.player.spriteFrames || 1;
+      let frameHeight = img.naturalHeight / frames;
+      let sy = player.frameIndex * frameHeight;
+      
+      // 計算等比例縮放，確保人物大小與 EMOJI_SIZE 差不多
+      let scale = (EMOJI_SIZE * 1.5) / Math.max(img.naturalWidth, frameHeight);
+      let drawW = img.naturalWidth * scale;
+      let drawH = frameHeight * scale;
+      
+      ctx.drawImage(
+          img,
+          0, sy, img.naturalWidth, frameHeight,
+          PLAYER_X - drawW/2, playerY - drawH/2, drawW, drawH
+      );
   } else if (player.loadedImages.length > 0) {
       let img = player.loadedImages[player.frameIndex];
       // 確保圖片已經載入完成
