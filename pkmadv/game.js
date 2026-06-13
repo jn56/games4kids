@@ -44,68 +44,102 @@ if (CONFIG.player.spriteSheet) {
             let imgData = offCtx.getImageData(0, 0, img.width, img.height);
             let data = imgData.data;
             
-            // 假設左上角 [0,0] 的顏色為背景色 (去背)
-            let bgR = data[0], bgG = data[1], bgB = data[2];
-            let tolerance = 40;  // 距離小於此值視為純背景
-            let feather = 80;    // 柔化範圍 (距離在此範圍內視為半透明邊緣)
+            // 判斷是否需要去背：檢查四個角落是否有透明像素
+            let corners = [0, (img.width-1)*4, (img.height-1)*img.width*4, ((img.height-1)*img.width + img.width-1)*4];
+            let needsChromaKey = !corners.some(i => data[i+3] < 50);
             
-            for (let i = 0; i < data.length; i += 4) {
-                let r = data[i], g = data[i+1], b = data[i+2];
-                // 計算與背景色的空間距離
-                let dist = Math.sqrt(Math.pow(r - bgR, 2) + Math.pow(g - bgG, 2) + Math.pow(b - bgB, 2));
+            if (needsChromaKey) {
+                // 假設左上角 [0,0] 的顏色為背景色 (去背)
+                let bgR = data[0], bgG = data[1], bgB = data[2];
+                let tolerance = 40;  
+                let feather = 80;    
                 
-                if (dist < tolerance) {
-                    data[i+3] = 0; // 純背景，完全透明
-                } else if (dist < tolerance + feather) {
-                    // 半透明邊緣處理：計算 0 到 1 的 alpha
-                    let alpha = (dist - tolerance) / feather;
+                for (let i = 0; i < data.length; i += 4) {
+                    let r = data[i], g = data[i+1], b = data[i+2];
+                    let dist = Math.sqrt(Math.pow(r - bgR, 2) + Math.pow(g - bgG, 2) + Math.pow(b - bgB, 2));
                     
-                    // 色彩淨化 (Color Decontamination)：
-                    // 消除圖片邊緣與背景色(例如白邊)混合造成的亮邊現象
-                    // 反推原本角色的顏色公式: C_char = (C_orig - C_bg * (1 - alpha)) / alpha
-                    let newR = (r - bgR * (1 - alpha)) / alpha;
-                    let newG = (g - bgG * (1 - alpha)) / alpha;
-                    let newB = (b - bgB * (1 - alpha)) / alpha;
-                    
-                    data[i] = Math.min(255, Math.max(0, newR));
-                    data[i+1] = Math.min(255, Math.max(0, newG));
-                    data[i+2] = Math.min(255, Math.max(0, newB));
-                    data[i+3] = Math.floor(255 * alpha);
+                    if (dist < tolerance) {
+                        data[i+3] = 0; 
+                    } else if (dist < tolerance + feather) {
+                        let alpha = (dist - tolerance) / feather;
+                        let newR = (r - bgR * (1 - alpha)) / alpha;
+                        let newG = (g - bgG * (1 - alpha)) / alpha;
+                        let newB = (b - bgB * (1 - alpha)) / alpha;
+                        
+                        data[i] = Math.min(255, Math.max(0, newR));
+                        data[i+1] = Math.min(255, Math.max(0, newG));
+                        data[i+2] = Math.min(255, Math.max(0, newB));
+                        data[i+3] = Math.floor(255 * alpha);
+                    }
                 }
+                offCtx.putImageData(imgData, 0, 0);
             }
-            offCtx.putImageData(imgData, 0, 0);
             
-            // 自動計算每個動作的實際範圍 (Bounding Box) 解決大小不一致
-            let frames = CONFIG.player.spriteFrames || 1;
-            let frameHeight = img.height / frames;
-            player.spriteBounds = [];
+            // 智慧尋找獨立區塊 (Islands Detection) 解決任意排列的問題
+            let visited = new Uint8Array(img.width * img.height);
+            let islands = [];
+            let q = new Int32Array(img.width * img.height * 2); // Pre-allocate for BFS
             
-            for (let f = 0; f < frames; f++) {
-                let startY = Math.floor(f * frameHeight);
-                let endY = Math.floor((f + 1) * frameHeight);
-                
-                let minX = img.width, maxX = 0, minY = img.height, maxY = 0;
-                let found = false;
-                
-                for (let y = startY; y < endY; y++) {
-                    for (let x = 0; x < img.width; x++) {
-                        let alpha = data[(y * img.width + x) * 4 + 3];
-                        if (alpha > 10) { // 非透明像素
-                            if (x < minX) minX = x;
-                            if (x > maxX) maxX = x;
-                            if (y < minY) minY = y;
-                            if (y > maxY) maxY = y;
-                            found = true;
+            for (let y = 0; y < img.height; y++) {
+                for (let x = 0; x < img.width; x++) {
+                    let idx = y * img.width + x;
+                    if (!visited[idx] && data[idx * 4 + 3] > 20) {
+                        // 發現新的非透明像素，開始 BFS
+                        let minX = x, maxX = x, minY = y, maxY = y;
+                        let head = 0, tail = 0;
+                        q[tail++] = x;
+                        q[tail++] = y;
+                        visited[idx] = 1;
+                        let pixelCount = 0;
+                        
+                        while(head < tail) {
+                            let cx = q[head++];
+                            let cy = q[head++];
+                            pixelCount++;
+                            
+                            if (cx < minX) minX = cx;
+                            if (cx > maxX) maxX = cx;
+                            if (cy < minY) minY = cy;
+                            if (cy > maxY) maxY = cy;
+                            
+                            // 檢查 8 個方向
+                            let dirs = [[-1,0],[1,0],[0,-1],[0,1], [-1,-1], [1,1], [-1,1], [1,-1]];
+                            for (let d of dirs) {
+                                let nx = cx + d[0];
+                                let ny = cy + d[1];
+                                if (nx >= 0 && nx < img.width && ny >= 0 && ny < img.height) {
+                                    let nidx = ny * img.width + nx;
+                                    if (!visited[nidx] && data[nidx * 4 + 3] > 20) {
+                                        visited[nidx] = 1;
+                                        q[tail++] = nx;
+                                        q[tail++] = ny;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // 忽略太小的雜訊區塊 (大於 100 像素才算是一個動作)
+                        if (pixelCount > 100) {
+                            islands.push({ x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 });
                         }
                     }
                 }
-                
-                if (found) {
-                    player.spriteBounds.push({ x: minX, y: minY, w: maxX - minX + 1, h: Math.max(1, maxY - minY + 1) });
-                } else {
-                    player.spriteBounds.push({ x: 0, y: startY, w: img.width, h: frameHeight });
+            }
+            
+            if (islands.length > 0) {
+                // 依照位置排序 (由左上到右下)
+                islands.sort((a, b) => (a.y + a.x) - (b.y + b.x));
+                player.spriteBounds = islands;
+            } else {
+                // 如果找不到，降級回原本平均切分邏輯
+                let frames = CONFIG.player.spriteFrames || 1;
+                let frameHeight = img.height / frames;
+                player.spriteBounds = [];
+                for (let f = 0; f < frames; f++) {
+                    player.spriteBounds.push({ x: 0, y: Math.floor(f * frameHeight), w: img.width, h: Math.floor(frameHeight) });
                 }
             }
+            
             player.processedSprite = offCanvas;
         } catch(e) {
             console.error("Image processing failed:", e);
