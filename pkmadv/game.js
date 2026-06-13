@@ -24,7 +24,9 @@ let player = {
   frameIndex: 0,
   frameTimer: 0,
   lastAnimTime: 0,
-  loadedImages: []
+  hurtTimer: 0, // 處於受傷狀態的剩餘時間
+  loadedImages: [],
+  loadedHurtImage: null
 };
 
 // 預載入圖片
@@ -34,6 +36,11 @@ if (CONFIG.player.images && CONFIG.player.images.length > 0) {
         img.src = src;
         player.loadedImages.push(img);
     });
+}
+if (CONFIG.player.hurtImage) {
+    let img = new Image();
+    img.src = CONFIG.player.hurtImage;
+    player.loadedHurtImage = img;
 }
 
 let scoreFeedback = {
@@ -259,10 +266,15 @@ function update(now) {
 
   runAudio(); // 播放音樂
 
-  // 更新玩家動畫
+  // 更新玩家動畫與受傷狀態
   if (!player.lastAnimTime) player.lastAnimTime = now;
   let dt = now - player.lastAnimTime;
   player.lastAnimTime = now;
+  
+  if (player.hurtTimer > 0) {
+      player.hurtTimer -= dt;
+  }
+  
   player.frameTimer += dt;
   if (player.frameTimer > (CONFIG.player.frameInterval || 150)) {
       player.frameTimer = 0;
@@ -306,11 +318,15 @@ function update(now) {
       if (distanceX < hitDistance) { // 碰撞容差
         if (item.isObstacle) {
           // 撞到障礙物 🌳 / 📦
+          player.hurtTimer = CONFIG.player.hurtDuration || 500;
           gameState = 'GAMEOVER';
           playGameOverSound();
         } else {
           // 撞到收集品 🌸 / 💩
-          if (item.score < 0) playPoopSound();
+          if (item.score < 0) {
+            playPoopSound();
+            player.hurtTimer = CONFIG.player.hurtDuration || 500;
+          }
           if (item.score > 0) playFlowerSound();
 
           if (item.score < 0 && score <= 0) {
@@ -419,7 +435,15 @@ function draw() {
   // 5. 繪製主角
   let playerY = player.lane * LANE_HEIGHT + LANE_HEIGHT / 2;
   
-  if (player.loadedImages.length > 0) {
+  // 決定是否顯示受傷狀態 (撞到非花朵物品或遊戲結束時)
+  let isHurt = player.hurtTimer > 0 || gameState === 'GAMEOVER';
+
+  if (isHurt && player.loadedHurtImage && player.loadedHurtImage.complete && player.loadedHurtImage.naturalWidth !== 0) {
+      ctx.drawImage(player.loadedHurtImage, PLAYER_X - EMOJI_SIZE/2, playerY - EMOJI_SIZE/2, EMOJI_SIZE, EMOJI_SIZE);
+  } else if (isHurt && CONFIG.player.hurtEmoji) {
+      ctx.font = `${EMOJI_SIZE}px sans-serif`;
+      ctx.fillText(CONFIG.player.hurtEmoji, PLAYER_X, playerY);
+  } else if (player.loadedImages.length > 0) {
       let img = player.loadedImages[player.frameIndex];
       // 確保圖片已經載入完成
       if (img && img.complete && img.naturalWidth !== 0) {
