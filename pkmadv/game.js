@@ -21,8 +21,20 @@ let nextSpawnDelay = 1000;
 
 let player = {
   lane: 1, // 0: 上, 1: 中, 2: 下
-  emoji: CONFIG.player.emoji
+  frameIndex: 0,
+  frameTimer: 0,
+  lastAnimTime: 0,
+  loadedImages: []
 };
+
+// 預載入圖片
+if (CONFIG.player.images && CONFIG.player.images.length > 0) {
+    CONFIG.player.images.forEach(src => {
+        let img = new Image();
+        img.src = src;
+        player.loadedImages.push(img);
+    });
+}
 
 let scoreFeedback = {
   active: false,
@@ -247,6 +259,19 @@ function update(now) {
 
   runAudio(); // 播放音樂
 
+  // 更新玩家動畫
+  if (!player.lastAnimTime) player.lastAnimTime = now;
+  let dt = now - player.lastAnimTime;
+  player.lastAnimTime = now;
+  player.frameTimer += dt;
+  if (player.frameTimer > (CONFIG.player.frameInterval || 150)) {
+      player.frameTimer = 0;
+      let frameCount = player.loadedImages.length > 0 ? player.loadedImages.length : (CONFIG.player.emojis ? CONFIG.player.emojis.length : 1);
+      if (frameCount > 0) {
+          player.frameIndex = (player.frameIndex + 1) % frameCount;
+      }
+  }
+
   // 動態更新速度 (每 3 分微微增加一點速度)
   currentSpeed = CONFIG.game.initialSpeed + Math.floor(Math.max(0, score) / 3) * 0.25;
 
@@ -393,8 +418,22 @@ function draw() {
 
   // 5. 繪製主角
   let playerY = player.lane * LANE_HEIGHT + LANE_HEIGHT / 2;
-  ctx.font = `${EMOJI_SIZE}px sans-serif`; // 確保主角大小固定，不受物品影響
-  ctx.fillText(player.emoji, PLAYER_X, playerY);
+  
+  if (player.loadedImages.length > 0) {
+      let img = player.loadedImages[player.frameIndex];
+      // 確保圖片已經載入完成
+      if (img && img.complete && img.naturalWidth !== 0) {
+          // 將圖片畫在中心點
+          ctx.drawImage(img, PLAYER_X - EMOJI_SIZE/2, playerY - EMOJI_SIZE/2, EMOJI_SIZE, EMOJI_SIZE);
+      }
+  } else if (CONFIG.player.emojis && CONFIG.player.emojis.length > 0) {
+      ctx.font = `${EMOJI_SIZE}px sans-serif`; // 確保主角大小固定
+      let currentEmoji = CONFIG.player.emojis[player.frameIndex];
+      ctx.fillText(currentEmoji, PLAYER_X, playerY);
+  } else if (CONFIG.player.emoji) {
+      ctx.font = `${EMOJI_SIZE}px sans-serif`;
+      ctx.fillText(CONFIG.player.emoji, PLAYER_X, playerY);
+  }
 
   // 6. 右上角顯示分數
   ctx.save();

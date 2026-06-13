@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +9,9 @@
     <!-- Outfit & Fredoka Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap"
+        rel="stylesheet">
     <style>
         /* Modern Design System & CSS Variables */
         :root {
@@ -144,13 +147,15 @@
         .card-pkmadv {
             border: 1px solid rgba(16, 185, 129, 0.15);
         }
+
         .card-pkmadv::before {
             background: linear-gradient(90deg, #10b981, #34d399);
         }
+
         .card-pkmadv:hover {
             transform: translateY(-8px);
             box-shadow: 0 20px 40px -15px rgba(16, 185, 129, 0.25),
-                        0 0 25px var(--pkmadv-glow);
+                0 0 25px var(--pkmadv-glow);
             border-color: rgba(16, 185, 129, 0.4);
         }
 
@@ -158,13 +163,15 @@
         .card-stair {
             border: 1px solid rgba(168, 85, 247, 0.15);
         }
+
         .card-stair::before {
             background: linear-gradient(90deg, #a855f7, #c084fc);
         }
+
         .card-stair:hover {
             transform: translateY(-8px);
             box-shadow: 0 20px 40px -15px rgba(168, 85, 247, 0.25),
-                        0 0 25px var(--stair-glow);
+                0 0 25px var(--stair-glow);
             border-color: rgba(168, 85, 247, 0.4);
         }
 
@@ -172,13 +179,15 @@
         .card-maze {
             border: 1px solid rgba(245, 158, 11, 0.15);
         }
+
         .card-maze::before {
             background: linear-gradient(90deg, #f59e0b, #fbbf24);
         }
+
         .card-maze:hover {
             transform: translateY(-8px);
             box-shadow: 0 20px 40px -15px rgba(245, 158, 11, 0.25),
-                        0 0 25px rgba(245, 158, 11, 0.25);
+                0 0 25px rgba(245, 158, 11, 0.25);
             border-color: rgba(245, 158, 11, 0.4);
         }
 
@@ -257,9 +266,11 @@
             font-weight: 800;
             font-size: 1.1rem;
         }
+
         .card-pkmadv .high-score-val {
             color: #34d399;
         }
+
         .card-stair .high-score-val {
             color: #c084fc;
         }
@@ -286,6 +297,7 @@
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
         }
+
         .card-pkmadv .play-btn:hover {
             background: linear-gradient(135deg, #059669 0%, #047857 100%);
             transform: scale(1.02);
@@ -296,6 +308,7 @@
             background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
             box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);
         }
+
         .card-stair .play-btn:hover {
             background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
             transform: scale(1.02);
@@ -306,6 +319,7 @@
             background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
             box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
         }
+
         .card-maze .play-btn:hover {
             background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
             transform: scale(1.02);
@@ -327,8 +341,13 @@
         }
 
         @keyframes bounce {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(-6px); }
+            0% {
+                transform: translateY(0);
+            }
+
+            100% {
+                transform: translateY(-6px);
+            }
         }
 
         /* Responsive */
@@ -336,23 +355,29 @@
             h1 {
                 font-size: 2.2rem;
             }
+
             .game-grid {
                 grid-template-columns: 1fr;
             }
         }
+
         @media (max-width: 480px) {
             h1 {
                 font-size: 1.8rem;
-                margin-top: 40px; /* Space for the top right button */
+                margin-top: 40px;
+                /* Space for the top right button */
             }
+
             .game-card {
                 padding: 20px;
             }
+
             .game-icon {
                 width: 55px;
                 height: 55px;
                 font-size: 2.2rem;
             }
+
             #bgmToggleBtn {
                 top: 10px !important;
                 right: 10px !important;
@@ -362,13 +387,16 @@
         }
     </style>
 </head>
+
 <body>
     <!-- Ambient Glow effects -->
     <div class="ambient-glow-1"></div>
     <div class="ambient-glow-2"></div>
 
     <div class="container">
-        <button id="bgmToggleBtn" style="position: fixed; top: 20px; right: 20px; z-index: 100; background: rgba(168, 85, 247, 0.4); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 12px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.3s; font-family: var(--font-body); font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🎶 背景音樂: 開</button>
+        <button id="bgmToggleBtn"
+            style="position: fixed; top: 20px; right: 20px; z-index: 100; background: rgba(168, 85, 247, 0.4); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 12px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.3s; font-family: var(--font-body); font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🎶
+            背景音樂: 開</button>
         <header>
             <h1 id="hubTitle">✨ 兒童創意遊戲庫 🎮</h1>
             <p class="subtitle" id="hubSubtitle">挑選一款喜歡的遊戲，點擊按鈕，即可開始你的精彩冒險旅程！</p>
@@ -382,7 +410,7 @@
                         <div class="game-icon">👧</div>
                         <div class="game-title-info">
                             <h2>Pikmin❤️採花去</h2>
-                            <span class="game-genre">2.5D 跑酷</span>
+                            <span class="game-genre">2D 跑酷</span>
                         </div>
                     </div>
                     <div style="margin-top: 15px;">
@@ -504,7 +532,7 @@
         let isBgmPlaying = true;
         let bgmTimeout = null;
         let bgmStep = 0;
-        
+
         const bgmToggleBtn = document.getElementById('bgmToggleBtn');
 
         function initAudioContext() {
@@ -530,7 +558,7 @@
         window.addEventListener('click', startBgmOnInteract);
         window.addEventListener('keydown', startBgmOnInteract);
         window.addEventListener('touchstart', startBgmOnInteract);
-        
+
         bgmToggleBtn.addEventListener('click', (e) => {
             e.stopPropagation(); // prevent triggering the window interaction
             if (isBgmPlaying) {
@@ -555,29 +583,30 @@
 
         function playHomeBgm() {
             if (!isBgmPlaying || !audioCtx) return;
-            
-            const noteDelay = 350; 
+
+            const noteDelay = 350;
             // Simple happy arpeggio melody
             const notes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63];
-            
+
             const osc = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-            
+
             osc.type = 'sine';
             osc.frequency.value = notes[bgmStep % notes.length];
-            
+
             gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (noteDelay / 1000) * 0.9);
-            
+
             osc.connect(gainNode);
             gainNode.connect(audioCtx.destination);
-            
+
             osc.start();
             osc.stop(audioCtx.currentTime + (noteDelay / 1000) * 0.9);
-            
+
             bgmStep++;
             bgmTimeout = setTimeout(playHomeBgm, noteDelay);
         }
     </script>
 </body>
+
 </html>

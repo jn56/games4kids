@@ -7,7 +7,12 @@ const CONFIG = {
         winScore: 20
     },
     player: {
-        emoji: '👧'
+        // 如果想使用自己準備的 3 張圖 (跨左腳、站立、跨右腳)，請將檔名填入下方陣列中，例如: 
+        // images: ['walk_left.png', 'walk_stand.png', 'walk_right.png'],
+        images: [], 
+        // 如果沒填寫圖檔，預設會使用 Emoji 來連續切換
+        emojis: ['🚶‍♀️', '🧍‍♀️', '🏃‍♀️'],
+        frameInterval: 150 // 動畫切換的速度 (毫秒)
     },
     items: [
         { type: 'flower', emoji: '🌸', score: 1, isObstacle: false, weight: 50 },
