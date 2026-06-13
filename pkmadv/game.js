@@ -30,10 +30,72 @@ let player = {
   loadedSprite: null
 };
 
-// 預載入 Sprite Sheet
+// 預載入 Sprite Sheet 並且自動去背與裁切
 if (CONFIG.player.spriteSheet) {
     let img = new Image();
+    img.onload = () => {
+        let offCanvas = document.createElement('canvas');
+        offCanvas.width = img.width;
+        offCanvas.height = img.height;
+        let offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
+        offCtx.drawImage(img, 0, 0);
+        
+        try {
+            let imgData = offCtx.getImageData(0, 0, img.width, img.height);
+            let data = imgData.data;
+            
+            // 假設左上角 [0,0] 的顏色為背景色 (去背)
+            let bgR = data[0], bgG = data[1], bgB = data[2];
+            let tolerance = 30; // 容差值
+            
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i], g = data[i+1], b = data[i+2];
+                // 若接近背景色，將透明度設為 0
+                if (Math.abs(r - bgR) < tolerance && Math.abs(g - bgG) < tolerance && Math.abs(b - bgB) < tolerance) {
+                    data[i+3] = 0;
+                }
+            }
+            offCtx.putImageData(imgData, 0, 0);
+            
+            // 自動計算每個動作的實際範圍 (Bounding Box) 解決大小不一致
+            let frames = CONFIG.player.spriteFrames || 1;
+            let frameHeight = img.height / frames;
+            player.spriteBounds = [];
+            
+            for (let f = 0; f < frames; f++) {
+                let startY = Math.floor(f * frameHeight);
+                let endY = Math.floor((f + 1) * frameHeight);
+                
+                let minX = img.width, maxX = 0, minY = img.height, maxY = 0;
+                let found = false;
+                
+                for (let y = startY; y < endY; y++) {
+                    for (let x = 0; x < img.width; x++) {
+                        let alpha = data[(y * img.width + x) * 4 + 3];
+                        if (alpha > 10) { // 非透明像素
+                            if (x < minX) minX = x;
+                            if (x > maxX) maxX = x;
+                            if (y < minY) minY = y;
+                            if (y > maxY) maxY = y;
+                            found = true;
+                        }
+                    }
+                }
+                
+                if (found) {
+                    player.spriteBounds.push({ x: minX, y: minY, w: maxX - minX + 1, h: Math.max(1, maxY - minY + 1) });
+                } else {
+                    player.spriteBounds.push({ x: 0, y: startY, w: img.width, h: frameHeight });
+                }
+            }
+            player.processedSprite = offCanvas;
+        } catch(e) {
+            console.error("Image processing failed:", e);
+            player.loadedSprite = img;
+        }
+    };
     img.src = CONFIG.player.spriteSheet;
+    // 降級備用
     player.loadedSprite = img;
 }
 
@@ -459,8 +521,23 @@ function draw() {
   } else if (isHurt && CONFIG.player.hurtEmoji) {
       ctx.font = `${EMOJI_SIZE}px sans-serif`;
       ctx.fillText(CONFIG.player.hurtEmoji, PLAYER_X, playerY);
+  } else if (player.processedSprite && player.spriteBounds && player.spriteBounds.length > 0) {
+      // 使用自動去背+裁切過的 Sprite
+      let bounds = player.spriteBounds[player.frameIndex % player.spriteBounds.length];
+      
+      // 以高度為基準等比例縮放 (放大一點點，1.3 倍)
+      let scale = (EMOJI_SIZE * 1.3) / bounds.h;
+      let drawW = bounds.w * scale;
+      let drawH = bounds.h * scale;
+      
+      // 繪製時底部對齊，確保不管原本圖案大小，腳踩在地上
+      ctx.drawImage(
+          player.processedSprite,
+          bounds.x, bounds.y, bounds.w, bounds.h,
+          PLAYER_X - drawW/2, playerY + EMOJI_SIZE/2 - drawH, drawW, drawH
+      );
   } else if (player.loadedSprite && player.loadedSprite.complete && player.loadedSprite.naturalHeight !== 0) {
-      // 使用 Sprite Sheet (整張圖裁切顯示)
+      // 使用 Sprite Sheet (整張圖裁切顯示) - 無去背版本 (降級方案)
       let img = player.loadedSprite;
       let frames = CONFIG.player.spriteFrames || 1;
       let frameHeight = img.naturalHeight / frames;
