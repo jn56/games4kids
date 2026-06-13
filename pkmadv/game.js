@@ -479,9 +479,14 @@ function draw() {
   } else if (player.loadedImages.length > 0) {
       let img = player.loadedImages[player.frameIndex];
       // 確保圖片已經載入完成
-      if (img && img.complete && img.naturalWidth !== 0) {
-          // 將圖片畫在中心點
-          ctx.drawImage(img, PLAYER_X - EMOJI_SIZE/2, playerY - EMOJI_SIZE/2, EMOJI_SIZE, EMOJI_SIZE);
+      if (img && img.complete && img.naturalHeight !== 0) {
+          // 放大 1.5 倍，並保持圖片原來的長寬比
+          let scale = (EMOJI_SIZE * 1.5) / img.naturalHeight;
+          let drawW = img.naturalWidth * scale;
+          let drawH = img.naturalHeight * scale;
+          
+          // 繪製時底部對齊，確保腳踩在走道上
+          ctx.drawImage(img, PLAYER_X - drawW/2, playerY + EMOJI_SIZE/2 - drawH, drawW, drawH);
       }
   } else if (CONFIG.player.emojis && CONFIG.player.emojis.length > 0) {
       ctx.font = `${EMOJI_SIZE}px sans-serif`; // 確保主角大小固定
