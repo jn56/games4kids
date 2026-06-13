@@ -8,7 +8,7 @@ const timerVal = document.getElementById('timerVal');
 const timerBadge = document.querySelector('.timer-badge');
 
 // Timer state
-let timeLeft = 60;
+let timeLeft = CONFIG.game.timeLimit;
 let timerInterval = null;
 
 // Audio synth BGM state
@@ -135,8 +135,8 @@ function playLoseSound() {
 }
 
 // Maze settings
-const cols = 10;
-const rows = 10;
+const cols = CONFIG.maze.cols;
+const rows = CONFIG.maze.rows;
 const w = canvas.width / cols;
 let grid = [];
 let current;
@@ -145,8 +145,8 @@ let goal;
 let isPlaying = true;
 
 // Player & Goal representations (Emojis)
-const playerEmoji = '🦊';
-const goalEmoji = '🏡';
+const playerEmoji = CONFIG.graphics.playerEmoji;
+const goalEmoji = CONFIG.graphics.goalEmoji;
 
 class Cell {
     constructor(i, j) {
@@ -159,7 +159,7 @@ class Cell {
     show() {
         const x = this.i * w;
         const y = this.j * w;
-        ctx.strokeStyle = '#059669'; // Dark Green walls
+        ctx.strokeStyle = CONFIG.graphics.wallColor; // Dark Green walls
         ctx.lineWidth = 4;
         ctx.lineCap = 'round';
 
@@ -171,7 +171,7 @@ class Cell {
         ctx.stroke();
 
         // Fill background of cell
-        ctx.fillStyle = '#d1fae5'; // Light green floor
+        ctx.fillStyle = CONFIG.graphics.floorColor; // Light green floor
         ctx.fillRect(x, y, w, w);
     }
 }
@@ -244,7 +244,7 @@ function drawGrid() {
     for (let i = 0; i < grid.length; i++) {
         const x = grid[i].i * w;
         const y = grid[i].j * w;
-        ctx.strokeStyle = '#047857';
+        ctx.strokeStyle = CONFIG.graphics.wallColor;
         ctx.lineWidth = 4;
         ctx.lineCap = 'round';
         ctx.beginPath();
@@ -256,7 +256,7 @@ function drawGrid() {
     }
 }
 
-const scaleFactor = 0.68;
+const scaleFactor = CONFIG.game.scaleFactor;
 
 function drawPlayer() {
     const px = player.i * w + w / 2;
@@ -331,7 +331,7 @@ function initGame() {
     goal = { i: cols - 1, j: rows - 1 };
     isPlaying = true;
     angle = 0; // Reset angle
-    timeLeft = 60; // Reset timer
+    timeLeft = CONFIG.game.timeLimit; // Reset timer
 
     congratsMsg.classList.add('hidden');
     gameOverMsg.classList.add('hidden');
@@ -532,8 +532,8 @@ function animate(timestamp) {
     lastTimestamp = timestamp;
 
     if (isPlaying) {
-        // Rotate slowly (0.15 radians per second)
-        angle += 0.5 * (dt / 1000);
+        // Rotate slowly
+        angle += CONFIG.game.rotationSpeed * (dt / 1000);
 
         // Check held keys for continuous movement
         if (timestamp - lastMoveTime > moveInterval) {

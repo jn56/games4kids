@@ -6,11 +6,11 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 // 遊戲參數設定
-const LANE_COUNT = 3;
+const LANE_COUNT = CONFIG.game.laneCount;
 const LANE_HEIGHT = canvas.height / LANE_COUNT;
-const PLAYER_X = 100; // 主角固定在畫面左側
-const EMOJI_SIZE = 45; // 尺寸大約 40px - 50px
-let currentSpeed = 2.5; // 物品向左移動速度 (動態調整)
+const PLAYER_X = CONFIG.game.playerX; // 主角固定在畫面左側
+const EMOJI_SIZE = CONFIG.game.emojiSize; // 尺寸大約 40px - 50px
+let currentSpeed = CONFIG.game.initialSpeed; // 物品向左移動速度 (動態調整)
 
 let score = 0;
 let highScore = localStorage.getItem('pkmadv_highScore') || 0;
@@ -21,7 +21,7 @@ let nextSpawnDelay = 1000;
 
 let player = {
   lane: 1, // 0: 上, 1: 中, 2: 下
-  emoji: '👧'
+  emoji: CONFIG.player.emoji
 };
 
 let scoreFeedback = {
@@ -32,12 +32,7 @@ let scoreFeedback = {
 };
 
 // 物品屬性 (加入權重，增加大便和樹的數量)
-const ITEM_TYPES = [
-  { type: 'flower', emoji: '🌸', score: 1, isObstacle: false, weight: 50 },
-  { type: 'poop', emoji: '💩', score: -1, isObstacle: false, weight: 45 },
-  { type: 'tree', emoji: '🌳', score: 0, isObstacle: true, weight: 35 },
-  { type: 'box', emoji: '📦', score: 0, isObstacle: true, weight: 15 }
-];
+const ITEM_TYPES = CONFIG.items;
 
 function getRandomItem() {
   let totalWeight = ITEM_TYPES.reduce((sum, item) => sum + item.weight, 0);
@@ -173,7 +168,7 @@ canvas.addEventListener('touchstart', (e) => {
   if (gameState === 'PLAYING') {
     let rect = canvas.getBoundingClientRect();
     let touchY = e.touches[0].clientY - rect.top;
-    if (touchY < canvas.height / 2) {
+    if (touchY < rect.height / 2) {
       if (player.lane > 0) player.lane--;
     } else {
       if (player.lane < LANE_COUNT - 1) player.lane++;
@@ -253,7 +248,7 @@ function update(now) {
   runAudio(); // 播放音樂
 
   // 動態更新速度 (每 3 分微微增加一點速度)
-  currentSpeed = 2.5 + Math.floor(Math.max(0, score) / 3) * 0.25;
+  currentSpeed = CONFIG.game.initialSpeed + Math.floor(Math.max(0, score) / 3) * 0.25;
 
   // 背景雲朵移動
   clouds.forEach(cloud => {
@@ -307,7 +302,7 @@ function update(now) {
             }
 
             // 檢查是否破關
-            if (score >= 20) {
+            if (score >= CONFIG.game.winScore) {
               gameState = 'WIN';
               playWinSound();
             }
