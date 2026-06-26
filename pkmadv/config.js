@@ -16,7 +16,6 @@ const CONFIG = {
         images: ['walk_left.png', 'walk_stand.png', 'walk_right.png'], 
         
         // 動畫切換速度 (數字越大越慢，預設約為 150)
-        frameInterval: 250,
         
         // 撞到花朵以外物品時的受傷圖檔 (可填寫檔名，例如 'hurt.png')
         hurtImage: '',
