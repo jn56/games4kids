@@ -185,7 +185,7 @@ function update(dt) {
         if (inactiveHoles.length > 0) {
             let h = inactiveHoles[Math.floor(Math.random() * inactiveHoles.length)];
             h.active = true;
-            h.timer = CONFIG.game.baseShowTime - (CONFIG.game.gameDuration - timeLeft)*15;
+            h.timer = CONFIG.game.baseShowTime - (CONFIG.game.gameDuration - timeLeft)*40;
             if (h.timer < CONFIG.game.minWaitTime) h.timer = CONFIG.game.minWaitTime;
             
             let r = Math.random();

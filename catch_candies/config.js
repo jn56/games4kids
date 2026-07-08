@@ -8,9 +8,9 @@ const CONFIG = {
         basketSpeed: 6,
         itemSize: 40,
         itemFallSpeed: 3,
-        spawnIntervalMin: 600,
-        spawnIntervalMax: 1500,
-        winScore: 50,
+        spawnIntervalMin: 300,
+        spawnIntervalMax: 800,
+        winScore: 100,
         bombPenalty: 5
     },
     items: [

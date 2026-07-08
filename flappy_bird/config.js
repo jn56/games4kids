@@ -4,7 +4,7 @@ const CONFIG = {
         jumpForce: -6,
         pipeSpeed: 3,
         pipeWidth: 60,
-        pipeGap: 180, // Very forgiving gap for kids
+        pipeGap: 240, // Very forgiving gap for kids
         spawnInterval: 100, // frames
         birdSize: 30
     },

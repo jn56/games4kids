@@ -197,11 +197,18 @@ function startGame() {
 function spawnItem(now) {
     const delay = Math.max(CONFIG.game.spawnIntervalMin, CONFIG.game.spawnIntervalMax - score * 20);
     if (now - lastSpawn > delay) {
-        let r = Math.random();
-        let selectedItem = CONFIG.items[0];
+        let isHighDifficulty = score >= 50;
+        let adjustedItems = CONFIG.items.map(item => {
+            let prob = item.probability;
+            if (isHighDifficulty && item.type === 'bomb') prob = prob * 3;
+            return { ...item, prob };
+        });
+        let totalProb = adjustedItems.reduce((sum, item) => sum + item.prob, 0);
+        let r = Math.random() * totalProb;
+        let selectedItem = adjustedItems[0];
         let cumulative = 0;
-        for (let item of CONFIG.items) {
-            cumulative += item.probability;
+        for (let item of adjustedItems) {
+            cumulative += item.prob;
             if (r <= cumulative) {
                 selectedItem = item;
                 break;

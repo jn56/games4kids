@@ -69,6 +69,7 @@ function playSound(type) {
 let bird = { x: 80, y: 300, velocity: 0 };
 let pipes = [];
 let frames = 0;
+let spawnTimer = 0;
 
 function startGame() {
     initAudio();
@@ -77,6 +78,7 @@ function startGame() {
     bird = { x: 80, y: 300, velocity: 0 };
     pipes = [];
     frames = 0;
+    spawnTimer = 0;
 }
 
 function flap() {
@@ -121,8 +123,12 @@ function update() {
         playSound('over');
     }
 
+    let speedMult = 1 + Math.floor(frames / 600) * 0.1;
+
     // Spawn pipes
-    if (frames % CONFIG.game.spawnInterval === 0) {
+    spawnTimer += speedMult;
+    if (spawnTimer >= CONFIG.game.spawnInterval) {
+        spawnTimer -= CONFIG.game.spawnInterval;
         let minHeight = 50;
         let maxHeight = canvas.height - CONFIG.game.pipeGap - minHeight;
         let topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1) + minHeight);
@@ -136,7 +142,7 @@ function update() {
 
     for (let i = pipes.length - 1; i >= 0; i--) {
         let p = pipes[i];
-        p.x -= CONFIG.game.pipeSpeed;
+        p.x -= CONFIG.game.pipeSpeed * speedMult;
 
         // Collision check (forgiving bounding box)
         let bx = bird.x;
@@ -158,6 +164,9 @@ function update() {
             if (score > highScore) {
                 highScore = score;
                 localStorage.setItem('flappy_bird_highScore', highScore);
+            }
+            if (score >= 100) {
+                state = 'WIN';
             }
         }
 
@@ -233,6 +242,13 @@ function draw() {
             ctx.fillStyle = '#fff';
             ctx.font = '20px "Fredoka", sans-serif';
             ctx.fillText('點擊或空白鍵重來', canvas.width/2, canvas.height/2 + 30);
+        } else if (state === 'WIN') {
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 40px "Fredoka", sans-serif';
+            ctx.fillText('恭喜過關 🎉', canvas.width/2, canvas.height/2 - 30);
+            ctx.fillStyle = '#fff';
+            ctx.font = '20px "Fredoka", sans-serif';
+            ctx.fillText('點擊或空白鍵再玩一次', canvas.width/2, canvas.height/2 + 30);
         }
     }
 }

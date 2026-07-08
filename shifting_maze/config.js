@@ -7,7 +7,7 @@ const CONFIG = {
         timeLimit: 60,
         shiftInterval: 5000,
         movingWallsCount: { min: 5, max: 10 },
-        spiderSpeed: 500 // ms per move
+        spiderSpeed: 700 // ms per move
     },
     graphics: {
         playerEmoji: '🧙',

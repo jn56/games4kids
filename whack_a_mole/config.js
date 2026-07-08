@@ -5,7 +5,7 @@ const CONFIG = {
         holeSize: 90,
         gap: 20,
         gameDuration: 30, // seconds
-        baseShowTime: 1200, // min time mole stays up
+        baseShowTime: 2000, // min time mole stays up
         minWaitTime: 400
     },
     entities: [
