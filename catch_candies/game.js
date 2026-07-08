@@ -312,6 +312,7 @@ function draw() {
     ctx.fillRect(basket.x + 5, basket.y + 5, basket.w - 10, 5);
 
     // Draw items
+    ctx.fillStyle = '#ffffff';
     ctx.font = `${CONFIG.game.itemSize}px Arial`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';

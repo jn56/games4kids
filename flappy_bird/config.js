@@ -1,6 +1,6 @@
 const CONFIG = {
     game: {
-        gravity: 0.4,
+        gravity: 0.25,
         jumpForce: -6,
         pipeSpeed: 3,
         pipeWidth: 60,

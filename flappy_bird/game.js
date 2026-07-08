@@ -90,8 +90,11 @@ function flap() {
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Space' || e.code === 'ArrowUp') {
-        initAudio();
-        flap();
+        e.preventDefault();
+        if (!e.repeat) {
+            initAudio();
+            flap();
+        }
     }
 });
 
@@ -234,10 +237,19 @@ function draw() {
     }
 }
 
-function loop() {
-    update();
-    draw();
+let lastTime = 0;
+const frameInterval = 1000 / 60; // 60 FPS
+
+function loop(timestamp) {
     requestAnimationFrame(loop);
+    if (!lastTime) lastTime = timestamp;
+    const elapsed = timestamp - lastTime;
+    
+    if (elapsed > frameInterval) {
+        lastTime = timestamp - (elapsed % frameInterval);
+        update();
+        draw();
+    }
 }
 
 requestAnimationFrame(loop);

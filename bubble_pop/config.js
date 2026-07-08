@@ -1,10 +1,10 @@
 const CONFIG = {
     game: {
-        cols: 8,
-        rows: 5,
-        bubbleSize: 40, // Diameter
+        cols: 10,
+        rows: 6,
+        bubbleSize: 32, // Diameter
         speed: 10,
-        winScore: 100
+        winScore: 300
     },
     colors: ['🔴', '🔵', '🟢', '🟡', '🟣'],
     ui: {

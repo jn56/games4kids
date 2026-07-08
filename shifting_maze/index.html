@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>動態迷宮 🌀</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="game-container">
+    <header class="game-header">
+      <div class="title-row">
+        <a href="../index.html" class="home-btn">🏠 返回</a>
+        <h1>動態迷宮 🌀</h1>
+      </div>
+      <p class="subtitle">幫助魔法師逃離這個每 5 秒就會變換路線的動態迷宮！</p>
+      <div class="info-bar">
+        <span class="timer-badge">⏱️ 剩餘時間: <span id="timerVal">60</span> 秒</span>
+      </div>
+    </header>
+
+    <div class="canvas-wrapper">
+      <canvas id="gameCanvas" width="560" height="560"></canvas>
+    </div>
+
+    <!-- Congrats overlay hidden by default -->
+    <div id="congratsMsg" class="hidden">
+      🎉 恭喜你逃出了！ 🎉<br>
+      <button id="restartBtn">再玩一次</button>
+    </div>
+
+    <!-- Game Over overlay hidden by default -->
+    <div id="gameOverMsg" class="hidden">
+      😢 時間到了！ 😢<br>
+      <span class="game-over-sub">魔法師被困在裡面了...</span>
+      <button id="retryBtn">再試一次</button>
+    </div>
+
+    <footer class="game-footer">
+      <div class="controls-guide">
+        <span class="key-badge">▲</span>
+        <span class="key-badge">▼</span>
+        <span class="key-badge">◀</span>
+        <span class="key-badge">▶</span>
+        <span>鍵盤或滑動螢幕來移動</span>
+      </div>
+      <div class="rules-guide">
+        <span class="rule-item">🧙 主角</span>
+        <span class="rule-item">🚪 出口</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
