@@ -26,17 +26,17 @@ const CONFIG = {
             name: "第三關：終極挑戰 👑"
         },
         {
-            cols: 33,
-            rows: 33,
+            cols: 55,
+            rows: 55,
             timeLimit: 0, // 0 = 無限時間
-            monsterCount: 8,
-            spiderCount: 2,
+            monsterCount: 72,
+            spiderCount: 18,
             name: "第四關：蜘蛛巢穴 🕷️"
         }
     ],
     // 玩家屬性
     player: {
-        height: 0.6,
+        height: 0.95,
         radius: 0.25,
         speed: 3.5,
         rotateSpeed: 2.2,
@@ -67,7 +67,7 @@ const CONFIG = {
     // 光波射擊屬性
     projectile: {
         speed: 12.0,
-        cooldown: 800,
+        cooldown: 100,
         radius: 0.1,
         maxRange: 15.0
     },
@@ -75,7 +75,7 @@ const CONFIG = {
     theme: {
         floorColor: "#0f172a",
         wallColor: "#0f2d19",
-        wallWireColor: "#15803d",
+        wallWireColor: "#86efac",
         skyColor: "#bae6fd",
         portalColor: "#db2777",
         monsterColor: "#f97316",

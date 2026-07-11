@@ -11,6 +11,12 @@ let totalTimeElapsed = 0;
 
 let timerInterval = null;
 
+// --- 終點與傳送門解鎖變數 ---
+let exitC = 0;
+let exitR = 0;
+let level4StunPoints = 0;
+let portalActive = true;
+
 // --- 蜘蛛怪物與蛛絲系統 ---
 let spiders = [];
 let webs = [];  // 蜘蛛吐出的蛛絲飛行物
@@ -71,8 +77,8 @@ function createHedgeTexture() {
     }
     ctx.globalAlpha = 1.0;
     
-    // 繪製粗黑色的邊框 (深黑綠色)，讓迷宮格線的邊緣立體且清晰可見，方便看清走道
-    ctx.strokeStyle = '#020f06';
+    // 繪製綠色的邊框，讓迷宮格線的邊緣立體且清晰可見，方便看清走道
+    ctx.strokeStyle = '#15803d';
     ctx.lineWidth = 14;
     ctx.strokeRect(0, 0, 256, 256);
     
@@ -359,19 +365,36 @@ function generateMaze(w, h) {
     }
 
     // 隨機打破一些內部牆壁，產生迴路/走道 (Braid Maze) 讓主角可以繞路
-    for (let r = 1; r < h - 1; r++) {
-        for (let c = 1; c < w - 1; c++) {
-            if (grid[r][c] === 1) { // 牆壁
-                // 檢查打通此牆是否會連接左右兩個通道，或上下兩個通道
-                const pathLeft = (grid[r][c - 1] === 0);
-                const pathRight = (grid[r][c + 1] === 0);
-                const pathUp = (grid[r - 1][c] === 0);
-                const pathDown = (grid[r + 1][c] === 0);
+    if (currentLevelIndex === 3) {
+        // 第四關 (蜘蛛巢穴)：清除所有內牆，改成散落的 1x1 柱子作為掩體 (非迷宮，無連續牆壁)
+        // 第一步：清空所有內部格子成通道 (0)
+        for (let r = 1; r < h - 1; r++) {
+            for (let c = 1; c < w - 1; c++) {
+                grid[r][c] = 0;
+            }
+        }
+        // 第二步：在偶數行、偶數列處以 45% 的機率放置獨立的 1x1 柱子牆壁作為掩體
+        for (let r = 2; r < h - 1; r += 2) {
+            for (let c = 2; c < w - 1; c += 2) {
+                if (Math.random() < 0.45) {
+                    grid[r][c] = 1;
+                }
+            }
+        }
+    } else {
+        // 普通關卡：以 15% 的機率打通內牆，保持精緻的迷宮長廊
+        for (let r = 1; r < h - 1; r++) {
+            for (let c = 1; c < w - 1; c++) {
+                if (grid[r][c] === 1) {
+                    const pathLeft = (grid[r][c - 1] === 0);
+                    const pathRight = (grid[r][c + 1] === 0);
+                    const pathUp = (grid[r - 1][c] === 0);
+                    const pathDown = (grid[r + 1][c] === 0);
 
-                if ((pathLeft && pathRight) || (pathUp && pathDown)) {
-                    // 以 15% 的機率打通此內牆，創造迴路
-                    if (Math.random() < 0.15) {
-                        grid[r][c] = 0;
+                    if ((pathLeft && pathRight) || (pathUp && pathDown)) {
+                        if (Math.random() < 0.15) {
+                            grid[r][c] = 0;
+                        }
                     }
                 }
             }
@@ -508,7 +531,7 @@ function initGameEngine() {
     let width = container.clientWidth || window.innerWidth || 800;
     let height = container.clientHeight || window.innerHeight || 500;
 
-    camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 100);
+    camera = new THREE.PerspectiveCamera(90, width / height, 0.1, 100);
     
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas3d'), antialias: true });
     renderer.setSize(width, height);
@@ -690,7 +713,7 @@ function buildLevel() {
 
     // 3. 建立灌木叢牆壁 (使用動態生成的葉子紋理，帶有深色外框，並添加小花小樹精靈)
     wallsGroup = new THREE.Group();
-    const wallGeom = new THREE.BoxGeometry(1, 1.2, 1);
+    const wallGeom = new THREE.BoxGeometry(1, 0.8, 1);
     
     const hedgeTex = createHedgeTexture();
     const wallMat = new THREE.MeshStandardMaterial({
@@ -712,7 +735,7 @@ function buildLevel() {
             if (mazeGrid[r][c] === 1) {
                 // 灌木叢方塊牆壁
                 const wall = new THREE.Mesh(wallGeom, wallMat);
-                wall.position.set(c + 0.5, 0.6, r + 0.5);
+                wall.position.set(c + 0.5, 0.4, r + 0.5);
                 wall.castShadow = true;
                 wall.receiveShadow = true;
                 wallsGroup.add(wall);
@@ -727,7 +750,7 @@ function buildLevel() {
                     const spriteMat = treeMaterials[Math.floor(Math.random() * treeMaterials.length)];
                     const treeSprite = new THREE.Sprite(spriteMat);
                     treeSprite.scale.set(0.65, 0.65, 1);
-                    treeSprite.position.set(c + 0.5, 1.45, r + 0.5); // 放在 1.2 高牆的上方
+                    treeSprite.position.set(c + 0.5, 1.05, r + 0.5); // 放在 0.8 高牆的上方
                     wallsGroup.add(treeSprite);
                 }
             }
@@ -735,44 +758,20 @@ function buildLevel() {
     }
     scene.add(wallsGroup);
 
-    // 4. 建立終點傳送門
-    const portalGroup = new THREE.Group();
-    const exitX = cols - 2 + 0.5;
-    const exitZ = rows - 2 + 0.5;
-    
-    // 圓柱傳送門主體
-    const portalGeom = new THREE.CylinderGeometry(0.35, 0.35, 1.1, 16, 1, true);
-    const portalMat = new THREE.MeshBasicMaterial({
-        color: CONFIG.theme.portalColor,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.6,
-        wireframe: true
-    });
-    const portalCylinder = new THREE.Mesh(portalGeom, portalMat);
-    portalCylinder.position.y = 0.55;
-    portalGroup.add(portalCylinder);
-
-    // 外圍懸浮發光圈圈
-    const torusGeom = new THREE.TorusGeometry(0.38, 0.03, 8, 24);
-    const torusMat = new THREE.MeshStandardMaterial({
-        color: CONFIG.theme.portalColor,
-        emissive: CONFIG.theme.portalColor,
-        emissiveIntensity: 1.0
-    });
-    const torus = new THREE.Mesh(torusGeom, torusMat);
-    torus.rotation.x = Math.PI / 2;
-    torus.position.y = 0.1;
-    portalGroup.add(torus);
-
-    portalMesh = portalGroup;
-    portalMesh.position.set(exitX, 0, exitZ);
-    scene.add(portalMesh);
-
-    // 終點光源
-    portalLight = new THREE.PointLight(CONFIG.theme.portalColor, 1.5, 3);
-    portalLight.position.set(exitX, 0.8, exitZ);
-    scene.add(portalLight);
+    // 4. 建立終點傳送門 (前三關直接生成；第四關需擊暈 20 隻怪物後才隨機生成)
+    if (currentLevelIndex !== 3) {
+        exitC = cols - 2;
+        exitR = rows - 2;
+        portalActive = true;
+        createPortalMeshAndLight(exitC, exitR);
+    } else {
+        exitC = -1;
+        exitR = -1;
+        portalActive = false;
+        level4StunPoints = 0;
+        // 更新關卡徽章名稱，顯示擊暈門檻進度
+        document.getElementById('levelNameBadge').textContent = `${level.name} (門: 0/20)`;
+    }
 
     // 5. 初始化玩家位置與朝向 (確保面對通道，而非牆面)
     player.x = 1.5;
@@ -989,8 +988,8 @@ function fireProjectile() {
     const projMat = new THREE.MeshBasicMaterial({ color: CONFIG.theme.shootColor });
     const mesh = new THREE.Mesh(projGeom, projMat);
 
-    // 發射起點 (相機高度稍微降低一點點)
-    mesh.position.set(player.x, CONFIG.player.height - 0.1, player.z);
+    // 發射起點 (固定高度 0.5，對齊小怪物與蜘蛛的身體中心，便於俯視觀察)
+    mesh.position.set(player.x, 0.5, player.z);
     scene.add(mesh);
 
     projectiles.push({
@@ -1149,10 +1148,10 @@ function checkWallCollision(px, pz, radius) {
 function updateCamera() {
     camera.position.set(player.x, CONFIG.player.height, player.z);
     
-    // 計算焦點 (相機面對的方向)
+    // 計算焦點 (相機面對的方向) - 微微向下偏 0.15，適配新的身高，形成微微的俯視視角
     const lookX = player.x + Math.cos(player.angle);
     const lookZ = player.z + Math.sin(player.angle);
-    camera.lookAt(lookX, CONFIG.player.height, lookZ);
+    camera.lookAt(lookX, CONFIG.player.height - 0.15, lookZ);
 }
 
 function updateLights() {
@@ -1162,10 +1161,10 @@ function updateLights() {
     if (flashlight && target) {
         flashlight.position.copy(camera.position);
         
-        // 燈光照向相機正前方
+        // 燈光照向相機偏下方正前方 (照向相機傾斜的角度，距離為 3 格，故高度調降 0.15 * 3 = 0.45)
         const lookX = player.x + Math.cos(player.angle) * 3;
         const lookZ = player.z + Math.sin(player.angle) * 3;
-        target.position.set(lookX, CONFIG.player.height, lookZ);
+        target.position.set(lookX, CONFIG.player.height - 0.45, lookZ);
     }
 }
 
@@ -1179,7 +1178,7 @@ function updateProjectiles(delta) {
         p.z += p.vz * delta;
         p.distanceTraveled += speed * delta;
 
-        p.mesh.position.set(p.x, CONFIG.player.height - 0.1, p.z);
+        p.mesh.position.set(p.x, 0.5, p.z);
 
         // 1. 射程耗盡
         if (p.distanceTraveled >= maxRange) {
@@ -1193,7 +1192,7 @@ function updateProjectiles(delta) {
         const gZ = Math.floor(p.z);
         if (gX < 0 || gX >= cols || gZ < 0 || gZ >= rows || mazeGrid[gZ][gX] === 1) {
             // 在撞擊處產生火花粒子
-            spawnSparkParticles(p.x, CONFIG.player.height - 0.1, p.z, CONFIG.theme.shootColor);
+            spawnSparkParticles(p.x, 0.5, p.z, CONFIG.theme.shootColor);
             scene.remove(p.mesh);
             projectiles.splice(i, 1);
             continue;
@@ -1244,6 +1243,9 @@ function updateProjectiles(delta) {
                 scene.remove(p.mesh);
                 projectiles.splice(i, 1);
                 hitSpider = true;
+
+                // 檢查第四關傳送門解鎖進度 (擊暈蜘蛛怪物算 2 點)
+                checkLevel4PortalUnlock(2);
                 break;
             }
         }
@@ -1264,6 +1266,9 @@ function stunMonster(m) {
         body.material.color.set(CONFIG.theme.monsterStunColor);
         body.material.emissive.set(CONFIG.theme.monsterStunColor);
     }
+
+    // 檢查第四關傳送門解鎖進度 (擊暈普通怪物算 1 點)
+    checkLevel4PortalUnlock(1);
 }
 
 function updateMonsters(delta, totalTime) {
@@ -1596,16 +1601,115 @@ function updateLivesUI() {
 }
 
 function checkPortalCollision() {
-    const exitX = cols - 2 + 0.5;
-    const exitZ = rows - 2 + 0.5;
+    if (!portalActive) return; // 傳送門未開啟時不能通關
+
+    const exitX = exitC + 0.5;
+    const exitZ = exitR + 0.5;
 
     const dx = player.x - exitX;
     const dz = player.z - exitZ;
     const dist = Math.sqrt(dx*dx + dz*dz);
 
-    // 進入傳送門 (距離小於 0.5)
+    // 進入傳送門 (距離小於 0.55)
     if (dist < 0.55) {
         completeLevel();
+    }
+}
+
+// 建立 3D 傳送門模型與發光光源
+function createPortalMeshAndLight(c, r) {
+    const exitX = c + 0.5;
+    const exitZ = r + 0.5;
+
+    const portalGroup = new THREE.Group();
+    
+    // 圓柱傳送門主體
+    const portalGeom = new THREE.CylinderGeometry(0.35, 0.35, 1.1, 16, 1, true);
+    const portalMat = new THREE.MeshBasicMaterial({
+        color: CONFIG.theme.portalColor,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.6,
+        wireframe: true
+    });
+    const portalCylinder = new THREE.Mesh(portalGeom, portalMat);
+    portalCylinder.position.y = 0.55;
+    portalGroup.add(portalCylinder);
+
+    // 外圍懸浮發光圈圈
+    const torusGeom = new THREE.TorusGeometry(0.38, 0.03, 8, 24);
+    const torusMat = new THREE.MeshStandardMaterial({
+        color: CONFIG.theme.portalColor,
+        emissive: CONFIG.theme.portalColor,
+        emissiveIntensity: 1.0
+    });
+    const torus = new THREE.Mesh(torusGeom, torusMat);
+    torus.rotation.x = Math.PI / 2;
+    torus.position.y = 0.1;
+    portalGroup.add(torus);
+
+    portalMesh = portalGroup;
+    portalMesh.position.set(exitX, 0, exitZ);
+    scene.add(portalMesh);
+
+    // 終點光源
+    portalLight = new THREE.PointLight(CONFIG.theme.portalColor, 1.5, 3);
+    portalLight.position.set(exitX, 0.8, exitZ);
+    scene.add(portalLight);
+}
+
+// 檢查第四關傳送門解鎖進度
+function checkLevel4PortalUnlock(pointsAdded) {
+    if (currentLevelIndex !== 3 || portalActive) return;
+    level4StunPoints += pointsAdded;
+    
+    const badge = document.getElementById('levelNameBadge');
+    if (level4StunPoints < 20) {
+        badge.textContent = `第四關：蜘蛛巢穴 (門: ${level4StunPoints}/20) 🕷️`;
+    } else {
+        portalActive = true;
+        badge.textContent = `第四關：蜘蛛巢穴 (門已開啟! 🚪) 🕷️`;
+        
+        // 隨機在一個空白位置生成終點傳送門
+        spawnLevel4PortalRandomly();
+    }
+}
+
+// 隨機生成第四關傳送門出口
+function spawnLevel4PortalRandomly() {
+    let attempts = 0;
+    let rc = cols - 2;
+    let rr = rows - 2;
+    const px = Math.floor(player.x);
+    const pz = Math.floor(player.z);
+    
+    while (attempts < 500) {
+        attempts++;
+        const tc = Math.floor(Math.random() * (cols - 2)) + 1;
+        const tr = Math.floor(Math.random() * (rows - 2)) + 1;
+        
+        // 確保不是牆壁且離玩家足夠遠
+        if (mazeGrid[tr][tc] === 0) {
+            const dist = Math.abs(tc - px) + Math.abs(tr - pz);
+            if (dist > 8) { // 至少離玩家 8 格遠，防開臉上
+                rc = tc;
+                rr = tr;
+                break;
+            }
+        }
+    }
+    
+    exitC = rc;
+    exitR = rr;
+    createPortalMeshAndLight(exitC, exitR);
+    
+    // 顯示大字公告與開啟音效
+    showLevelAnnouncement("傳送門已在隨機位置開啟！🚪");
+    playSound('shoot');
+    
+    // 如果當前開啟了提示，立刻重算並刷新金黃色導航箭頭
+    if (showHints) {
+        generatePathHints(px, pz);
     }
 }
 
@@ -1678,11 +1782,13 @@ function drawMinimap() {
         }
     }
 
-    // 2. 繪製終點綠色傳送門
-    minimapCtx.fillStyle = '#10b981';
-    minimapCtx.beginPath();
-    minimapCtx.arc((cols - 2 + 0.5) * cellW, (rows - 2 + 0.5) * cellH, cellW * 0.45, 0, Math.PI * 2);
-    minimapCtx.fill();
+    // 2. 繪製終點綠色傳送門 (僅在傳送門已解鎖激活時，在小地圖上畫出來)
+    if (portalActive) {
+        minimapCtx.fillStyle = '#10b981';
+        minimapCtx.beginPath();
+        minimapCtx.arc((exitC + 0.5) * cellW, (exitR + 0.5) * cellH, cellW * 0.45, 0, Math.PI * 2);
+        minimapCtx.fill();
+    }
 
     // 3. 繪製小怪物
     for (const m of monsters) {
@@ -1975,8 +2081,9 @@ function generatePathHints(startC, startR) {
     if (hintsGroup) scene.remove(hintsGroup);
     hintsGroup = new THREE.Group();
 
-    const exitC = cols - 2;
-    const exitR = rows - 2;
+    // 如果傳送門尚未解鎖開啟，不顯示任何導航箭頭
+    if (!portalActive) return;
+
     const path = findShortestPath(startC, startR, exitC, exitR);
     if (path.length <= 1) {
         scene.add(hintsGroup);
@@ -1990,10 +2097,6 @@ function generatePathHints(startC, startR) {
         const [c, r] = path[i];
         const [nc, nr] = path[i + 1];
 
-        const mesh = new THREE.Mesh(geom, mat);
-        mesh.position.set(c + 0.5, 0.12, r + 0.5);
-        mesh.rotation.x = -Math.PI / 2;
-
         const dx = nc - c;
         const dz = nr - r;
         let angle = 0;
@@ -2001,9 +2104,20 @@ function generatePathHints(startC, startR) {
         else if (dx === -1) angle = Math.PI / 2; // 西
         else if (dz === 1) angle = Math.PI; // 南
         else if (dz === -1) angle = 0; // 北
-        mesh.rotation.z = angle;
 
-        hintsGroup.add(mesh);
+        // 1. 在格子中心繪製一個金黃色箭頭
+        const mesh1 = new THREE.Mesh(geom, mat);
+        mesh1.position.set(c + 0.5, 0.12, r + 0.5);
+        mesh1.rotation.x = -Math.PI / 2;
+        mesh1.rotation.z = angle;
+        hintsGroup.add(mesh1);
+
+        // 2. 在格線的交界邊緣處額外繪製一個金黃色箭頭，使導航路徑更密集、流暢連貫
+        const mesh2 = new THREE.Mesh(geom, mat);
+        mesh2.position.set(c + 0.5 + dx * 0.5, 0.12, r + 0.5 + dz * 0.5);
+        mesh2.rotation.x = -Math.PI / 2;
+        mesh2.rotation.z = angle;
+        hintsGroup.add(mesh2);
     }
 
     scene.add(hintsGroup);
