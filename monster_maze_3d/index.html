@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D 迷宮大冒險 👾</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --accent: #d946ef;
+            --bg-dark: #020617;
+            --panel-bg: rgba(15, 23, 42, 0.6);
+            --border-glow: rgba(14, 165, 233, 0.3);
+            --text-light: #f8fafc;
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'Fredoka', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-family: var(--font-body);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        /* Ambient Glow effect */
+        .ambient-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.1) 0%, rgba(0,0,0,0) 70%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Main Game Layout Container */
+        .game-container {
+            position: relative;
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px var(--border-glow);
+            width: 96vw;
+            height: 94vh;
+            max-width: 960px;
+            max-height: 680px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* HUD top bar */
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            background: rgba(15, 23, 42, 0.75);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            flex-shrink: 0;
+            z-index: 20;
+        }
+
+        .hud-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-light);
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 1.4rem;
+            background: linear-gradient(to right, #38bdf8, #a855f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+        }
+
+        .level-badge {
+            background: rgba(168, 85, 247, 0.2);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            color: #d8b4fe;
+            padding: 2px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .hud-center {
+            display: flex;
+            gap: 20px;
+            font-size: 0.95rem;
+        }
+
+        .hud-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lives-container {
+            font-size: 1.1rem;
+            color: #f43f5e;
+            display: flex;
+            gap: 2px;
+        }
+
+        .hud-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #muteBtn {
+            background: rgba(14, 165, 233, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #muteBtn:hover {
+            background: rgba(14, 165, 233, 0.35);
+        }
+
+        /* 3D Viewport container */
+        .viewport-wrapper {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            background: #010409;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #canvas3d {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Overlay messages */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(2, 6, 23, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 24px;
+            z-index: 100;
+            padding: 30px;
+            text-align: center;
+            transition: opacity 0.3s ease;
+        }
+
+        .overlay.hidden {
+            display: none;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .overlay h2 {
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #38bdf8 0%, #d946ef 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 20px rgba(217, 70, 239, 0.25);
+        }
+
+        .overlay-desc {
+            font-size: 1.05rem;
+            color: #94a3b8;
+            max-width: 480px;
+            line-height: 1.6;
+        }
+
+        .overlay button {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            border: none;
+            color: white;
+            padding: 14px 32px;
+            border-radius: 14px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.35);
+            transition: all 0.2s;
+            font-family: var(--font-body);
+        }
+
+        .overlay button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5);
+        }
+
+        /* Controls guide in start menu */
+        .controls-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            text-align: left;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 16px 24px;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+        }
+
+        .ctrl-key {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 2px 8px;
+            border-radius: 6px;
+            color: white;
+            font-family: monospace;
+            font-weight: 700;
+        }
+
+        /* 2D Minimap Canvas Overlay */
+        .minimap-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 120px;
+            height: 120px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid rgba(14, 165, 233, 0.5);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            z-index: 30;
+            background: rgba(15, 23, 42, 0.85);
+            pointer-events: none;
+        }
+
+        #minimapCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Aiming Crosshair Overlay */
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px;
+            height: 16px;
+            pointer-events: none;
+            z-index: 25;
+            opacity: 0.6;
+        }
+
+        .crosshair::before, .crosshair::after {
+            content: '';
+            position: absolute;
+            background: #e11d48;
+        }
+
+        .crosshair::before {
+            top: 7px;
+            left: 0;
+            width: 16px;
+            height: 2px;
+        }
+
+        .crosshair::after {
+            top: 0;
+            left: 7px;
+            width: 2px;
+            height: 16px;
+        }
+
+        /* Shot cooldown progress bar */
+        .cooldown-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            z-index: 30;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        #cooldownProgress {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, #f43f5e, #e11d48);
+            transition: width 0.1s linear;
+        }
+
+        /* On-Screen Mobile Controls */
+        .mobile-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            padding: 0 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none;
+            z-index: 40;
+        }
+
+        /* Hide by default, show on touch devices */
+        .mobile-btn-group {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .mobile-btn-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .joy-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.7);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1.6rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: background 0.1s, transform 0.1s;
+        }
+
+        .joy-btn:active {
+            background: rgba(14, 165, 233, 0.6);
+            transform: scale(0.9);
+            border-color: #38bdf8;
+        }
+
+        .shoot-btn-wrapper {
+            pointer-events: auto;
+        }
+
+        .shoot-btn {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            background: rgba(225, 29, 72, 0.7);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(225, 29, 72, 0.4);
+            transition: background 0.1s, transform 0.1s;
+        }
+
+        .shoot-btn:active {
+            background: rgba(225, 29, 72, 0.95);
+            transform: scale(0.9);
+            box-shadow: 0 0 20px rgba(225, 29, 72, 0.7);
+        }
+
+        /* Media Query to show mobile buttons only on touch screen */
+        @media (hover: none) and (pointer: coarse) {
+            .mobile-btn-group {
+                display: flex;
+            }
+        }
+
+        /* Show mobile controls when touch-action is active or simulated */
+        .show-mobile-controls .mobile-btn-group {
+            display: flex;
+        }
+
+        /* Damage flash indicator */
+        .damage-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 68, 68, 0.35);
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+
+        .damage-flash.flash-active {
+            opacity: 1;
+        }
+
+        /* Level announcement overlay */
+        .level-announcement {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 80;
+            pointer-events: none;
+            background: rgba(15, 23, 42, 0.85);
+            border: 2px solid #a855f7;
+            padding: 15px 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(168, 85, 247, 0.4);
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .level-announcement.show-ann {
+            opacity: 1;
+            transform: translate(-50%, -45%);
+        }
+
+        .level-announcement h3 {
+            font-size: 1.8rem;
+            color: #e9d5ff;
+            margin-bottom: 5px;
+        }
+
+        .level-announcement p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-glow"></div>
+
+    <div class="game-container" id="gameContainer">
+        <!-- HUD Header -->
+        <header class="hud-header">
+            <div class="hud-left">
+                <a href="../index.html" class="back-btn">🏠 返回</a>
+                <h1>3D 迷宮大冒險</h1>
+                <span class="level-badge" id="levelNameBadge">載入中...</span>
+            </div>
+            
+            <div class="hud-center">
+                <div class="hud-item">
+                    <span>生命值:</span>
+                    <div class="lives-container" id="livesContainer">❤️❤️❤️❤️❤️</div>
+                </div>
+                <div class="hud-item">
+                    <span>⏱️ 時間:</span>
+                    <span id="timeVal" style="font-weight: 700; font-family: var(--font-display); font-size: 1.1rem; color: #38bdf8;">90</span>秒
+                </div>
+                <div class="hud-item">
+                    <span>💫 擊暈數:</span>
+                    <span id="stunCountVal" style="font-weight: 700; color: #d946ef; font-size: 1.1rem;">0</span>
+                </div>
+            </div>
+
+            <div class="hud-right">
+                <button id="muteBtn">🔊 音效: 開</button>
+            </div>
+        </header>
+
+        <!-- Viewport & Game Canvas -->
+        <div class="viewport-wrapper" id="viewport">
+            <canvas id="canvas3d"></canvas>
+            
+            <!-- Aiming crosshair -->
+            <div class="crosshair"></div>
+
+            <!-- Cooldown bar -->
+            <div class="cooldown-bar">
+                <div id="cooldownProgress"></div>
+            </div>
+
+            <!-- Minimap -->
+            <div class="minimap-container">
+                <canvas id="minimapCanvas" width="120" height="120"></canvas>
+            </div>
+
+            <!-- Mobile Controller UI -->
+            <div class="mobile-controls">
+                <!-- Left joystick/D-pad buttons -->
+                <div class="mobile-btn-group">
+                    <div class="mobile-btn-row">
+                        <div class="joy-btn" id="btnForward">▲</div>
+                    </div>
+                    <div class="mobile-btn-row">
+                        <div class="joy-btn" id="btnRotateLeft">◀</div>
+                        <div class="joy-btn" id="btnBackward">▼</div>
+                        <div class="joy-btn" id="btnRotateRight">▶</div>
+                    </div>
+                </div>
+
+                <!-- Right fire button -->
+                <div class="shoot-btn-wrapper">
+                    <div class="shoot-btn" id="btnShoot">💫 發射</div>
+                </div>
+            </div>
+
+            <!-- Damage Flash -->
+            <div class="damage-flash" id="damageFlash"></div>
+
+            <!-- Level Announcement -->
+            <div class="level-announcement" id="levelAnn">
+                <h3 id="levelAnnTitle">第一關</h3>
+                <p id="levelAnnDesc">避開怪物，找到發光傳送門！</p>
+            </div>
+        </div>
+
+        <!-- Start Overlay -->
+        <div class="overlay" id="startOverlay">
+            <h2>👾 3D 迷宮大冒險</h2>
+            <p class="overlay-desc">
+                歡迎來到神奇的 3D 立體迷宮！你的任務是找出發光的綠色傳送門逃出迷宮！途中會有可愛的 3D 小粉紅怪物靠近，快發射紅色眩光波將牠們擊暈，趁機通過！
+            </p>
+            
+            <div class="controls-list">
+                <div>前進 / 後退: <span class="ctrl-key">▲</span> / <span class="ctrl-key">▼</span> 或 <span class="ctrl-key">W</span> / <span class="ctrl-key">S</span></div>
+                <div>發射光波: <span class="ctrl-key">Space</span> (空白鍵)</div>
+                <div>左右旋轉: <span class="ctrl-key">◀</span> / <span class="ctrl-key">▶</span> 或 <span class="ctrl-key">A</span> / <span class="ctrl-key">D</span></div>
+                <div>行動裝置: <span class="ctrl-key">觸控螢幕按鍵</span></div>
+            </div>
+
+            <button id="startBtn">開始冒險 🚀</button>
+        </div>
+
+        <!-- Next Level Transition Overlay -->
+        <div class="overlay hidden" id="nextLevelOverlay">
+            <h2 style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">🎉 順利過關！</h2>
+            <p class="overlay-desc" id="nextLevelDesc">
+                太棒了！你成功的逃離了迷宮！下一關將會更大更具有挑戰性喔，準備好了嗎？
+            </p>
+            <button id="nextLevelBtn">進入下一關 ➡️</button>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div class="overlay hidden" id="gameOverOverlay">
+            <h2 style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);">😢 挑戰失敗</h2>
+            <p class="overlay-desc" id="gameOverDesc">
+                沒時間了或是愛心扣完了...小怪物好想跟你做朋友！別灰心，再試一次看看吧！
+            </p>
+            <button id="retryBtn">重新挑戰 🔄</button>
+        </div>
+
+        <!-- Game Victory Overlay -->
+        <div class="overlay hidden" id="victoryOverlay">
+            <h2 style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">🏆 終極大獲全勝！</h2>
+            <p class="overlay-desc" id="victoryDesc">
+                你太厲害了！成功逃離了所有的 3D 立體迷宮！你是真正的迷宮大師！
+            </p>
+            <div style="font-size: 1.2rem; margin: 10px 0; color: #fbbf24; font-weight: 700;">
+                總得分：<span id="finalScoreVal">0</span> 分
+            </div>
+            <button id="winRestartBtn">再玩一次 🎮</button>
+        </div>
+    </div>
+
+    <!-- Import Three.js -->
+    <script src="three.min.js"></script>
+    <script src="config.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
