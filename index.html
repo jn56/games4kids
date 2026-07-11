@@ -790,6 +790,42 @@
                     </a>
                 </div>
             </article>
+
+            <!-- Monster Maze 3D Game Card -->
+            <article class="game-card card-maze" id="cardMonsterMaze3d" style="border-color: rgba(168, 85, 247, 0.15);">
+                <div>
+                    <div class="card-header">
+                        <div class="game-icon">👾</div>
+                        <div class="game-title-info">
+                            <h2>3D 迷宮大冒險</h2>
+                            <span class="game-genre" style="background: rgba(168, 85, 247, 0.15); color: #d8b4fe;">第一人稱 3D</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <p class="game-description">以第一人稱探索奇幻的 3D 立體迷宮！發射光波擊暈靠近的粉紅怪物，尋找傳送門逃出迷宮！</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 10px;">
+                    <div class="game-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">遊玩難度：</span>
+                            <span class="meta-val" style="color: #a855f7;">★★☆ 中等</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">操控方式：</span>
+                            <span class="meta-val">方向鍵 / WASD / Space鍵</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">最高紀錄：</span>
+                            <span class="meta-val high-score-val" id="scoreMonsterMaze3d" style="color: #a855f7;">0</span>
+                        </div>
+                    </div>
+                    <a href="monster_maze_3d/index.html" class="play-btn" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);">
+                        <span>開始探險</span> 🚀
+                    </a>
+                </div>
+            </article>
         </main>
 
         <footer>
@@ -809,6 +845,7 @@
             const snakeHighScore = localStorage.getItem('hungry_snake_highScore') || 0;
             const simonHighScore = localStorage.getItem('simon_says_highScore') || 0;
             const flappyHighScore = localStorage.getItem('flappy_bird_highScore') || 0;
+            const monsterMaze3dHighScore = localStorage.getItem('monster_maze_3d_highScore') || 0;
 
             document.getElementById('scorePkmadv').textContent = pkmadvHighScore;
             document.getElementById('scoreStair').textContent = stairHighScore;
@@ -819,6 +856,7 @@
             document.getElementById('scoreSnake').textContent = snakeHighScore;
             document.getElementById('scoreSimon').textContent = simonHighScore;
             document.getElementById('scoreFlappy').textContent = flappyHighScore;
+            document.getElementById('scoreMonsterMaze3d').textContent = monsterMaze3dHighScore;
         });
 
         // BGM Synthesizer for Home Page

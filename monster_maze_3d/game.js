@@ -10,6 +10,11 @@ let stunCount = 0;
 let totalTimeElapsed = 0;
 
 let timerInterval = null;
+
+// --- 蜘蛛怪物與蛛絲系統 ---
+let spiders = [];
+let webs = [];  // 蜘蛛吐出的蛛絲飛行物
+let playerWebSlowTime = 0; // 玩家被蛛絲黏住的剩餘減速時間 (毫秒)
 let bgmInterval = null;
 let bgmStep = 0;
 
@@ -36,6 +41,9 @@ let lastShootTime = 0;
 // --- Three.js & Canvas 變數 ---
 let scene, camera, renderer;
 let clock;
+let ambientLight = null;
+let flashlight = null;
+let flashlightTarget = null;
 let mazeGrid = [];
 let cols = 0;
 let rows = 0;
@@ -47,8 +55,8 @@ function createHedgeTexture() {
     canvas.height = 256;
     const ctx = canvas.getContext('2d');
     
-    // 灌木叢深綠底色 (改為非常柔和的深森林綠)
-    ctx.fillStyle = '#0b3518';
+    // 灌木叢深綠底色 (使用配置檔定義的深綠色，與第一關保持一致)
+    ctx.fillStyle = CONFIG.theme.wallColor;
     ctx.fillRect(0, 0, 256, 256);
     
     // 繪製多重重疊的葉子 Emojis 🌿 🍃 (加入透明度 0.55 減少高亮刺眼度)
@@ -81,23 +89,25 @@ function createGrassTexture() {
     canvas.height = 256;
     const ctx = canvas.getContext('2d');
     
-    // 淺綠色草地
-    ctx.fillStyle = '#86efac';
+    // 地板改為深藍色底色 (原 #86efac 亮綠色)
+    ctx.fillStyle = '#0f172a';
     ctx.fillRect(0, 0, 256, 256);
     
-    // 繪製幸運草與草芽 Emojis 🍀 🌱
-    ctx.font = '30px Arial';
+    // 繪製微亮星星/光芒 Emojis ✨ 💫 代替原本的草叢植物 (降低透明度防止干擾視野)
+    ctx.font = '28px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    for (let i = 0; i < 18; i++) {
+    ctx.globalAlpha = 0.35;
+    for (let i = 0; i < 15; i++) {
         const x = Math.random() * 256;
         const y = Math.random() * 256;
-        ctx.fillText(Math.random() < 0.5 ? '🌱' : '🍀', x, y);
+        ctx.fillText(Math.random() < 0.5 ? '✨' : '💫', x, y);
     }
+    ctx.globalAlpha = 1.0;
     
-    // 繪製綠色格線邊框，讓迷宮地板有清晰的板塊格線
-    ctx.strokeStyle = '#22c55e';
-    ctx.lineWidth = 8;
+    // 繪製深藍色格線邊框，讓迷宮地板有清晰的板塊格線
+    ctx.strokeStyle = '#1e3a8a';
+    ctx.lineWidth = 10;
     ctx.strokeRect(0, 0, 256, 256);
     
     const texture = new THREE.CanvasTexture(canvas);
@@ -530,12 +540,16 @@ function setupInputListeners() {
         }
         if (e.code === 'Space') {
             e.preventDefault();
-            if (gameState === 'LEVEL_COMPLETE') {
-                nextLevel(); // 按空白鍵進入下一關
+            if (gameState === 'START') {
+                startGame(); // 按空白鍵直接開始冒險 (代替滑鼠點擊)
+            } else if (gameState === 'LEVEL_COMPLETE') {
+                nextLevel(); // 按空白鍵進入下一關 (代替滑鼠點擊)
             } else if (gameState === 'GAMEOVER') {
-                retryLevel(); // 按空白鍵重新挑戰同一關
+                retryLevel(); // 按空白鍵重新挑戰同一關 (代替滑鼠點擊)
+            } else if (gameState === 'VICTORY') {
+                startGame(); // 按空白鍵再玩一次 (代替滑鼠點擊)
             } else if (gameState === 'PLAYING') {
-                fireProjectile(); // 射擊光波
+                fireProjectile(); // 遊戲中射擊光波
             }
         }
         if (e.code === 'KeyH') {
@@ -589,9 +603,9 @@ function buildLevel() {
     
     // 更新 HUD
     document.getElementById('levelNameBadge').textContent = level.name;
-    document.getElementById('timeVal').textContent = timeLeft;
+    document.getElementById('timeVal').textContent = timeLeft === 0 ? '∞' : timeLeft;
     
-    // 清除舊有的 3D 物件
+    // 清除舊有的 3D 物件和燈光，防止多次切換關卡導致光照無限疊加而讓牆壁變白/變淡
     if (wallsGroup) scene.remove(wallsGroup);
     if (floorMesh) scene.remove(floorMesh);
     if (ceilingMesh) scene.remove(ceilingMesh);
@@ -599,6 +613,9 @@ function buildLevel() {
     if (portalLight) scene.remove(portalLight);
     if (sunMesh) scene.remove(sunMesh);
     if (cloudsGroup) scene.remove(cloudsGroup);
+    if (ambientLight) { scene.remove(ambientLight); ambientLight = null; }
+    if (flashlight) { scene.remove(flashlight); flashlight = null; }
+    if (flashlightTarget) { scene.remove(flashlightTarget); flashlightTarget = null; }
     if (hintsGroup) {
         scene.remove(hintsGroup);
         hintsGroup = null;
@@ -609,6 +626,11 @@ function buildLevel() {
     
     monsters.forEach(m => scene.remove(m.mesh));
     monsters.length = 0;
+    spiders.forEach(s => scene.remove(s.mesh));
+    spiders.length = 0;
+    webs.forEach(w => scene.remove(w.mesh));
+    webs.length = 0;
+    playerWebSlowTime = 0;
     projectiles.forEach(p => scene.remove(p.mesh));
     projectiles.length = 0;
 
@@ -616,7 +638,7 @@ function buildLevel() {
     if (renderer) renderer.setClearColor(CONFIG.theme.skyColor);
     if (scene) {
         scene.background = new THREE.Color(CONFIG.theme.skyColor);
-        scene.fog = new THREE.FogExp2(CONFIG.theme.skyColor, 0.05); // 稍微調低霧氣，讓天空更清晰
+        scene.fog = new THREE.FogExp2(CONFIG.theme.skyColor, 0.015); // 將霧氣濃度從 0.05 降為 0.015，避免大關卡遠處牆壁被藍色霧氣染白/褪色，保持深綠色
     }
 
     // 建立天空裝飾 (大太陽與白雲，幫助玩家定位方向)
@@ -680,11 +702,7 @@ function buildLevel() {
     const neonLineMat = new THREE.LineBasicMaterial({ color: CONFIG.theme.wallWireColor });
     const edges = new THREE.EdgesGeometry(wallGeom); // 移至外部，避免重複創建造成 WebGL 崩潰
     
-    // 預先生成小花和小樹的紋理與材質（移至外部以大幅節省材質編譯開銷）
-    const flowerEmojis = ['🌸', '🌻', '🌷', '🌹', '🌼'];
-    const flowerTextures = flowerEmojis.map(emoji => createEmojiSpriteTexture(emoji));
-    const flowerMaterials = flowerTextures.map(tex => new THREE.SpriteMaterial({ map: tex, transparent: true }));
-    
+    // 預先生成小樹的紋理與材質（移至外部以大幅節省材質編譯開銷）
     const treeEmojis = ['🌳', '🌲', '🌴'];
     const treeTextures = treeEmojis.map(emoji => createEmojiSpriteTexture(emoji));
     const treeMaterials = treeTextures.map(tex => new THREE.SpriteMaterial({ map: tex, transparent: true }));
@@ -703,30 +721,6 @@ function buildLevel() {
                 const line = new THREE.LineSegments(edges, neonLineMat);
                 line.position.copy(wall.position);
                 wallsGroup.add(line);
-
-                // 隨機在灌木叢牆的四個側面加入 1-2 朵立體小花精靈 (共享材質以防崩潰)
-                const flowerCount = Math.floor(Math.random() * 2) + 1;
-                for (let f = 0; f < flowerCount; f++) {
-                    const spriteMat = flowerMaterials[Math.floor(Math.random() * flowerMaterials.length)];
-                    const flowerSprite = new THREE.Sprite(spriteMat);
-                    flowerSprite.scale.set(0.22, 0.22, 1);
-                    
-                    const side = Math.floor(Math.random() * 4);
-                    // 將 offset 改為 0.63 (原 0.51)，使花朵廣告看板看板旋轉時不會被牆壁截斷/遮擋
-                    const offset = 0.63;
-                    const randY = Math.random() * 0.8 + 0.2; // 隨機高度
-                    const randOffset = (Math.random() - 0.5) * 0.6; // 隨機水平偏移
-                    
-                    let fx = c + 0.5;
-                    let fz = r + 0.5;
-                    if (side === 0) { fx += randOffset; fz += offset; }
-                    else if (side === 1) { fx += randOffset; fz -= offset; }
-                    else if (side === 2) { fx += offset; fz += randOffset; }
-                    else if (side === 3) { fx -= offset; fz += randOffset; }
-                    
-                    flowerSprite.position.set(fx, randY, fz);
-                    wallsGroup.add(flowerSprite);
-                }
 
                 // 有 25% 的機率在灌木叢頂部生長出一棵 3D 小樹精靈 (共享材質)
                 if (Math.random() < 0.25) {
@@ -780,16 +774,30 @@ function buildLevel() {
     portalLight.position.set(exitX, 0.8, exitZ);
     scene.add(portalLight);
 
-    // 5. 初始化玩家位置
+    // 5. 初始化玩家位置與朝向 (確保面對通道，而非牆面)
     player.x = 1.5;
     player.z = 1.5;
-    player.angle = 0.0; // 預設面向右 (+X)
+    
+    // 檢測東側 (row 1, col 2) 或南側 (row 2, col 1) 哪一個是走道 (0)
+    if (mazeGrid[1][2] === 0) {
+        player.angle = 0.0; // 東邊是通道，面向右方 (+X)
+    } else if (mazeGrid[2][1] === 0) {
+        player.angle = Math.PI / 2; // 南邊是通道，面向下方 (+Z)
+    } else {
+        player.angle = 0.0; // 預設防呆
+    }
+    
     player.invulnerable = false;
     player.invulnerableTime = 0;
     updateCamera();
 
     // 6. 生成小怪物
     spawnMonsters(level.monsterCount);
+
+    // 6b. 生成蜘蛛 (第四關及以後)
+    if (level.spiderCount && level.spiderCount > 0) {
+        spawnSpiders(level.spiderCount);
+    }
 
     // 7. 設置關卡燈光
     setupLights();
@@ -800,11 +808,11 @@ function buildLevel() {
 
 function setupLights() {
     // 全域明亮的陽光環境光 (從 0.15 加強至 0.8)，營造明亮的花園氛圍
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
     scene.add(ambientLight);
 
     // 玩家手電筒 (SpotLight)：作為溫和的輔助補光 (強度從 1.8 減弱至 0.5)
-    const flashlight = new THREE.SpotLight(0xffffff, 0.5, 12, Math.PI / 5, 0.5, 1);
+    flashlight = new THREE.SpotLight(0xffffff, 0.5, 12, Math.PI / 5, 0.5, 1);
     flashlight.castShadow = true;
     flashlight.shadow.mapSize.width = 512;
     flashlight.shadow.mapSize.height = 512;
@@ -812,7 +820,7 @@ function setupLights() {
     scene.add(flashlight);
 
     // 手電筒目標，用於定向
-    const flashlightTarget = new THREE.Object3D();
+    flashlightTarget = new THREE.Object3D();
     flashlightTarget.name = "flashlightTarget";
     scene.add(flashlightTarget);
     flashlight.target = flashlightTarget;
@@ -850,6 +858,99 @@ function spawnMonsters(count) {
                     stunTime: 0,
                     patrolCooldown: 0,
                     bobOffset: Math.random() * Math.PI * 2 // 隨機漂浮起點
+                });
+                spawned++;
+            }
+        }
+    }
+}
+
+// 創建一個 3D 蜘蛛怪物 (深紫色球體 + 8 條細長蜘蛛腿 + 紅色眼睛)
+function createSpiderMesh() {
+    const spiderGroup = new THREE.Group();
+
+    // 1. 身體 (扁平橢球)
+    const bodyGeom = new THREE.SphereGeometry(CONFIG.spider.radius, 16, 12);
+    const bodyMat = new THREE.MeshStandardMaterial({
+        color: CONFIG.theme.spiderColor,
+        roughness: 0.3,
+        metalness: 0.2,
+        emissive: CONFIG.theme.spiderColor,
+        emissiveIntensity: 0.2
+    });
+    const body = new THREE.Mesh(bodyGeom, bodyMat);
+    body.scale.set(1, 0.6, 1.2); // 壓扁成蜘蛛體型
+    body.name = "body";
+    spiderGroup.add(body);
+
+    // 2. 紅色眼睛 (6 個小紅點)
+    const eyeGeom = new THREE.SphereGeometry(0.04, 6, 6);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const eyePositions = [
+        [-0.1, 0.05, 0.32], [0.1, 0.05, 0.32],
+        [-0.16, 0.08, 0.28], [0.16, 0.08, 0.28],
+        [-0.06, 0.1, 0.30], [0.06, 0.1, 0.30]
+    ];
+    for (const [ex, ey, ez] of eyePositions) {
+        const eye = new THREE.Mesh(eyeGeom, eyeMat);
+        eye.position.set(ex, ey, ez);
+        spiderGroup.add(eye);
+    }
+
+    // 3. 八條蜘蛛腿 (使用圓柱體)
+    const legGeom = new THREE.CylinderGeometry(0.02, 0.015, 0.55, 6);
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x2d1b4e, roughness: 0.5 });
+    const legAngles = [-0.7, -0.35, 0.35, 0.7]; // 前後四個角度
+    for (let side = -1; side <= 1; side += 2) { // 左右兩側
+        for (const angle of legAngles) {
+            const leg = new THREE.Mesh(legGeom, legMat);
+            leg.position.set(side * 0.25, -0.05, angle * 0.4);
+            leg.rotation.z = side * 0.8; // 向外張開
+            leg.rotation.x = angle * 0.3;
+            spiderGroup.add(leg);
+        }
+    }
+
+    // 4. 頂部蛛絲標誌 (小白球)
+    const silkGeom = new THREE.SphereGeometry(0.06, 8, 8);
+    const silkMat = new THREE.MeshBasicMaterial({ color: CONFIG.theme.spiderWebColor, transparent: true, opacity: 0.7 });
+    const silkBall = new THREE.Mesh(silkGeom, silkMat);
+    silkBall.position.set(0, -0.2, -0.35);
+    spiderGroup.add(silkBall);
+
+    return spiderGroup;
+}
+
+function spawnSpiders(count) {
+    let spawned = 0;
+    let attempts = 0;
+
+    while (spawned < count && attempts < 200) {
+        attempts++;
+        const gx = Math.floor(Math.random() * (cols - 2)) + 1;
+        const gz = Math.floor(Math.random() * (rows - 2)) + 1;
+
+        if (mazeGrid[gz][gx] === 0) {
+            const dx = (gx + 0.5) - player.x;
+            const dz = (gz + 0.5) - player.z;
+            const dist = Math.sqrt(dx*dx + dz*dz);
+
+            if (dist > CONFIG.monster.spawnSafeRange + 2) { // 蜘蛛生成距離更遠一些
+                const mesh = createSpiderMesh();
+                mesh.position.set(gx + 0.5, 0.3, gz + 0.5);
+                scene.add(mesh);
+
+                spiders.push({
+                    mesh: mesh,
+                    x: gx + 0.5,
+                    z: gz + 0.5,
+                    targetX: gx + 0.5,
+                    targetZ: gz + 0.5,
+                    state: 'PATROL',
+                    stunTime: 0,
+                    patrolCooldown: 0,
+                    bobOffset: Math.random() * Math.PI * 2,
+                    lastWebTime: 0 // 上次吐絲時間
                 });
                 spawned++;
             }
@@ -933,8 +1034,20 @@ function update(delta) {
     // 3. 更新光球發射軌跡與碰撞
     updateProjectiles(delta);
 
+    // 3b. 更新蛛絲飛行物
+    updateWebs(delta);
+
+    // 3c. 更新玩家蛛絲減速狀態
+    if (playerWebSlowTime > 0) {
+        playerWebSlowTime -= delta * 1000;
+        if (playerWebSlowTime < 0) playerWebSlowTime = 0;
+    }
+
     // 4. 更新小怪物 AI 與漂浮動畫
     updateMonsters(delta, performance.now() / 1000);
+
+    // 4b. 更新蜘蛛 AI 與吐絲攻擊
+    updateSpiders(delta, performance.now() / 1000);
 
     // 5. 更新粒子系統
     updateParticles(delta);
@@ -971,7 +1084,11 @@ function handlePlayerMovement(delta) {
 
     // 移動位置
     if (moveF !== 0) {
-        const speed = CONFIG.player.speed * delta;
+        let speed = CONFIG.player.speed * delta;
+        // 被蛛絲黏住時減速
+        if (playerWebSlowTime > 0) {
+            speed *= CONFIG.spider.webSlowFactor;
+        }
         const dx = Math.cos(player.angle) * moveF * speed;
         const dz = Math.sin(player.angle) * moveF * speed;
 
@@ -1085,16 +1202,15 @@ function updateProjectiles(delta) {
         // 3. 撞擊小怪物
         let hitMonster = false;
         for (const m of monsters) {
-            if (m.state === 'STUNNED') continue; // 已暈眩不重複擊中
+            if (m.state === 'STUNNED') continue;
 
             const dx = p.x - m.x;
             const dz = p.z - m.z;
             const dist = Math.sqrt(dx*dx + dz*dz);
 
             if (dist < CONFIG.monster.radius + CONFIG.projectile.radius) {
-                // 擊暈怪物！
                 stunMonster(m);
-                spawnSparkParticles(m.x, 0.4, m.z, "#ffff00", 15); // 黃色發光粒子
+                spawnSparkParticles(m.x, 0.4, m.z, "#ffff00", 15);
                 scene.remove(p.mesh);
                 projectiles.splice(i, 1);
                 hitMonster = true;
@@ -1102,6 +1218,36 @@ function updateProjectiles(delta) {
             }
         }
         if (hitMonster) continue;
+
+        // 4. 撞擊蜘蛛
+        let hitSpider = false;
+        for (const s of spiders) {
+            if (s.state === 'STUNNED') continue;
+
+            const dx = p.x - s.x;
+            const dz = p.z - s.z;
+            const dist = Math.sqrt(dx*dx + dz*dz);
+
+            if (dist < CONFIG.spider.radius + CONFIG.projectile.radius) {
+                // 擊暈蜘蛛！
+                s.state = 'STUNNED';
+                s.stunTime = CONFIG.spider.stunDuration;
+                playSound('hit');
+                stunCount++;
+                document.getElementById('stunCountVal').textContent = stunCount;
+                const body = s.mesh.getObjectByName("body");
+                if (body) {
+                    body.material.color.set(CONFIG.theme.monsterStunColor);
+                    body.material.emissive.set(CONFIG.theme.monsterStunColor);
+                }
+                spawnSparkParticles(s.x, 0.3, s.z, "#c084fc", 15);
+                scene.remove(p.mesh);
+                projectiles.splice(i, 1);
+                hitSpider = true;
+                break;
+            }
+        }
+        if (hitSpider) continue;
     }
 }
 
@@ -1231,6 +1377,186 @@ function updateMonsters(delta, totalTime) {
         // 5. 碰觸玩家受傷檢測
         if (distToPlayer < CONFIG.monster.radius + CONFIG.player.radius) {
             triggerPlayerDamage();
+        }
+    }
+}
+
+// --- 蜘蛛 AI 與吐絲攻擊系統 ---
+function updateSpiders(delta, totalTime) {
+    const pGridX = Math.floor(player.x);
+    const pGridY = Math.floor(player.z);
+    const now = performance.now();
+
+    for (const s of spiders) {
+        const body = s.mesh.getObjectByName("body");
+
+        // 1. 處理眩暈狀態
+        if (s.state === 'STUNNED') {
+            s.stunTime -= delta * 1000;
+            s.mesh.rotation.y += 10 * delta;
+            if (Math.random() < 0.12) {
+                spawnSparkParticles(s.x, 0.5, s.z, "#c084fc", 1);
+            }
+            if (s.stunTime <= 0) {
+                s.state = 'PATROL';
+                s.mesh.rotation.y = 0;
+                if (body) {
+                    body.material.color.set(CONFIG.theme.spiderColor);
+                    body.material.emissive.set(CONFIG.theme.spiderColor);
+                }
+            }
+            continue;
+        }
+
+        // 2. 判斷與玩家的距離
+        const dx = player.x - s.x;
+        const dz = player.z - s.z;
+        const distToPlayer = Math.sqrt(dx*dx + dz*dz);
+
+        if (distToPlayer < CONFIG.spider.detectRange) {
+            s.state = 'CHASE';
+        } else if (s.state === 'CHASE' && distToPlayer > CONFIG.spider.detectRange + 2) {
+            s.state = 'PATROL';
+        }
+
+        // 3. 移動邏輯 (與普通怪物相似，但速度不同)
+        const distToTarget = Math.sqrt((s.targetX - s.x)**2 + (s.targetZ - s.z)**2);
+
+        if (distToTarget < 0.05) {
+            s.x = s.targetX;
+            s.z = s.targetZ;
+            s.mesh.position.x = s.x;
+            s.mesh.position.z = s.z;
+
+            const sGridX = Math.floor(s.x);
+            const sGridY = Math.floor(s.z);
+
+            if (s.state === 'CHASE') {
+                const nextStep = getNextStepBFS(sGridX, sGridY, pGridX, pGridY);
+                if (nextStep) {
+                    s.targetX = nextStep.x + 0.5;
+                    s.targetZ = nextStep.y + 0.5;
+                }
+            } else {
+                s.patrolCooldown -= delta;
+                if (s.patrolCooldown <= 0) {
+                    const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+                    const validDirs = [];
+                    for (const [ddx, ddy] of dirs) {
+                        const nx = sGridX + ddx;
+                        const ny = sGridY + ddy;
+                        if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && mazeGrid[ny][nx] === 0) {
+                            validDirs.push({ x: nx + 0.5, z: ny + 0.5 });
+                        }
+                    }
+                    if (validDirs.length > 0) {
+                        const selected = validDirs[Math.floor(Math.random() * validDirs.length)];
+                        s.targetX = selected.x;
+                        s.targetZ = selected.z;
+                    }
+                    s.patrolCooldown = Math.random() * 2 + 1;
+                }
+            }
+        } else {
+            const currentSpeed = s.state === 'CHASE' ? CONFIG.spider.chaseSpeed : CONFIG.spider.speed;
+            const step = currentSpeed * delta;
+            const mx = s.targetX - s.x;
+            const mz = s.targetZ - s.z;
+            const length = Math.sqrt(mx*mx + mz*mz);
+            s.x += (mx / length) * step;
+            s.z += (mz / length) * step;
+            s.mesh.position.x = s.x;
+            s.mesh.position.z = s.z;
+            s.mesh.lookAt(s.targetX, s.mesh.position.y, s.targetZ);
+        }
+
+        // 4. 蜘蛛低矮爬行擺動動畫
+        s.mesh.position.y = 0.25 + Math.sin(totalTime * 3.0 + s.bobOffset) * 0.04;
+
+        // 5. 吐絲攻擊！當追逐狀態且玩家在偵測範圍內，且冷卻完畢
+        if (s.state === 'CHASE' && distToPlayer < CONFIG.spider.detectRange && distToPlayer > 1.0) {
+            if (now - s.lastWebTime > CONFIG.spider.webCooldown) {
+                s.lastWebTime = now;
+                fireWeb(s);
+            }
+        }
+
+        // 6. 碰觸玩家受傷檢測
+        if (distToPlayer < CONFIG.spider.radius + CONFIG.player.radius) {
+            triggerPlayerDamage();
+        }
+    }
+}
+
+// 蜘蛛吐絲！朝玩家方向發射蛛絲球
+function fireWeb(spider) {
+    playSound('shoot'); // 使用相同音效
+
+    const dx = player.x - spider.x;
+    const dz = player.z - spider.z;
+    const dist = Math.sqrt(dx*dx + dz*dz);
+    const dirX = dx / dist;
+    const dirZ = dz / dist;
+
+    // 灰白色蛛絲球
+    const webGeom = new THREE.SphereGeometry(0.12, 8, 8);
+    const webMat = new THREE.MeshBasicMaterial({
+        color: CONFIG.theme.spiderWebColor,
+        transparent: true,
+        opacity: 0.85
+    });
+    const mesh = new THREE.Mesh(webGeom, webMat);
+    mesh.position.set(spider.x, 0.35, spider.z);
+    scene.add(mesh);
+
+    webs.push({
+        mesh: mesh,
+        x: spider.x,
+        z: spider.z,
+        vx: dirX * CONFIG.spider.webSpeed,
+        vz: dirZ * CONFIG.spider.webSpeed,
+        distanceTraveled: 0
+    });
+}
+
+// 更新蛛絲飛行物
+function updateWebs(delta) {
+    for (let i = webs.length - 1; i >= 0; i--) {
+        const w = webs[i];
+        const speed = CONFIG.spider.webSpeed;
+
+        w.x += w.vx * delta;
+        w.z += w.vz * delta;
+        w.distanceTraveled += speed * delta;
+        w.mesh.position.set(w.x, 0.35, w.z);
+
+        // 1. 最大射程 (10 格)
+        if (w.distanceTraveled >= 10.0) {
+            scene.remove(w.mesh);
+            webs.splice(i, 1);
+            continue;
+        }
+
+        // 2. 撞牆消失
+        const gX = Math.floor(w.x);
+        const gZ = Math.floor(w.z);
+        if (gX < 0 || gX >= cols || gZ < 0 || gZ >= rows || mazeGrid[gZ][gX] === 1) {
+            scene.remove(w.mesh);
+            webs.splice(i, 1);
+            continue;
+        }
+
+        // 3. 命中玩家 → 減速效果！
+        const pdx = w.x - player.x;
+        const pdz = w.z - player.z;
+        const pdist = Math.sqrt(pdx*pdx + pdz*pdz);
+        if (pdist < CONFIG.player.radius + 0.12) {
+            playerWebSlowTime = CONFIG.spider.webSlowDuration;
+            spawnSparkParticles(player.x, CONFIG.player.height, player.z, CONFIG.theme.spiderWebColor, 10);
+            playSound('damage');
+            scene.remove(w.mesh);
+            webs.splice(i, 1);
+            continue;
         }
     }
 }
@@ -1366,6 +1692,14 @@ function drawMinimap() {
         minimapCtx.fill();
     }
 
+    // 3b. 繪製蜘蛛 (深紫色，暈眩時藍色)
+    for (const s of spiders) {
+        minimapCtx.fillStyle = s.state === 'STUNNED' ? '#3b82f6' : '#7c3aed';
+        minimapCtx.beginPath();
+        minimapCtx.arc(s.x * cellW, s.z * cellH, cellW * 0.45, 0, Math.PI * 2);
+        minimapCtx.fill();
+    }
+
     // 4. 繪製玩家方向指針與小紅點
     const px = player.x * cellW;
     const pz = player.z * cellH;
@@ -1417,8 +1751,16 @@ function startGame() {
 
 function startTimer() {
     if (timerInterval) clearInterval(timerInterval);
+    const level = CONFIG.levels[currentLevelIndex];
     timerInterval = setInterval(() => {
         if (gameState !== 'PLAYING') return;
+
+        // timeLimit === 0 代表無限時間 (第四關)
+        if (level.timeLimit === 0) {
+            totalTimeElapsed++;
+            document.getElementById('timeVal').textContent = '∞';
+            return; // 不倒數，不會因時間到而失敗
+        }
 
         timeLeft--;
         totalTimeElapsed++;
@@ -1528,8 +1870,8 @@ function createArrowTexture() {
     canvas.height = 128;
     const ctx = canvas.getContext('2d');
     
-    // 繪製一個精緻的亮綠色指路箭頭
-    ctx.fillStyle = 'rgba(34, 197, 94, 0.85)';
+    // 繪製一個精緻的亮金黃色指路箭頭
+    ctx.fillStyle = 'rgba(255, 215, 0, 0.98)';
     ctx.beginPath();
     ctx.moveTo(64, 15);   // 箭頭頂點
     ctx.lineTo(20, 75);   // 左下角
@@ -1649,7 +1991,7 @@ function generatePathHints(startC, startR) {
         const [nc, nr] = path[i + 1];
 
         const mesh = new THREE.Mesh(geom, mat);
-        mesh.position.set(c + 0.5, 0.015, r + 0.5);
+        mesh.position.set(c + 0.5, 0.12, r + 0.5);
         mesh.rotation.x = -Math.PI / 2;
 
         const dx = nc - c;
