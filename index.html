@@ -826,6 +826,42 @@
                     </a>
                 </div>
             </article>
+
+            <!-- 3D Dice Simulator Game Card -->
+            <article class="game-card card-dice" id="cardDice3d" style="border-color: rgba(251, 191, 36, 0.15);">
+                <div>
+                    <div class="card-header">
+                        <div class="game-icon">🎲</div>
+                        <div class="game-title-info">
+                            <h2>3D 骰子模擬器</h2>
+                            <span class="game-genre" style="background: rgba(251, 191, 36, 0.15); color: #fde047;">3D 模擬</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <p class="game-description">一個非常真實且精緻的 3D 立體骰子模擬器！點擊按鈕或按下空白鍵拋擲，骰子會帥氣地在空中翻滾並隨機落下一面喔！</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 10px;">
+                    <div class="game-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">遊玩難度：</span>
+                            <span class="meta-val" style="color: #fbbf24;">★☆☆ 簡單</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">操控方式：</span>
+                            <span class="meta-val">空白鍵 或 點擊畫面</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">累積投擲：</span>
+                            <span class="meta-val high-score-val" id="scoreDice3d" style="color: #fbbf24;">0</span>
+                        </div>
+                    </div>
+                    <a href="dice_3d/index.html" class="play-btn" style="background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2); color: #000;">
+                        <span>拋擲骰子</span> 🎲
+                    </a>
+                </div>
+            </article>
         </main>
 
         <footer>
@@ -846,6 +882,7 @@
             const simonHighScore = localStorage.getItem('simon_says_highScore') || 0;
             const flappyHighScore = localStorage.getItem('flappy_bird_highScore') || 0;
             const monsterMaze3dHighScore = localStorage.getItem('monster_maze_3d_highScore') || 0;
+            const dice3dRollsCount = localStorage.getItem('rollsCount') || 0;
 
             document.getElementById('scorePkmadv').textContent = pkmadvHighScore;
             document.getElementById('scoreStair').textContent = stairHighScore;
@@ -857,6 +894,7 @@
             document.getElementById('scoreSimon').textContent = simonHighScore;
             document.getElementById('scoreFlappy').textContent = flappyHighScore;
             document.getElementById('scoreMonsterMaze3d').textContent = monsterMaze3dHighScore;
+            document.getElementById('scoreDice3d').textContent = dice3dRollsCount;
         });
 
         // BGM Synthesizer for Home Page
