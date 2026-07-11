@@ -91,14 +91,16 @@
             text-decoration: none;
             background: rgba(255, 255, 255, 0.08);
             color: var(--text-light);
-            padding: 6px 14px;
+            width: 38px;
+            height: 38px;
             border-radius: 10px;
-            font-size: 0.85rem;
+            font-size: 1.2rem;
             font-weight: 600;
             border: 1px solid rgba(255, 255, 255, 0.1);
             transition: all 0.2s;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
         }
 
         .back-btn:hover {
@@ -157,12 +159,16 @@
             background: rgba(14, 165, 233, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
-            padding: 6px 12px;
+            width: 38px;
+            height: 38px;
             border-radius: 10px;
-            font-size: 0.85rem;
+            font-size: 1.2rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         #muteBtn:hover {
@@ -499,7 +505,7 @@
         <!-- HUD Header -->
         <header class="hud-header">
             <div class="hud-left">
-                <a href="../index.html" class="back-btn">🏠 返回</a>
+                <a href="../index.html" class="back-btn" title="返回大廳">🏠</a>
                 <h1>3D 迷宮大冒險</h1>
                 <span class="level-badge" id="levelNameBadge">載入中...</span>
             </div>
@@ -520,7 +526,7 @@
             </div>
 
             <div class="hud-right">
-                <button id="muteBtn">🔊 音效: 開</button>
+                <button id="muteBtn" title="切換音效">🔊</button>
             </div>
         </header>
 

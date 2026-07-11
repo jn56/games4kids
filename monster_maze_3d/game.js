@@ -47,22 +47,24 @@ function createHedgeTexture() {
     canvas.height = 256;
     const ctx = canvas.getContext('2d');
     
-    // 灌木叢深綠底色
-    ctx.fillStyle = '#15803d';
+    // 灌木叢深綠底色 (改為非常柔和的深森林綠)
+    ctx.fillStyle = '#0b3518';
     ctx.fillRect(0, 0, 256, 256);
     
-    // 繪製多重重疊的葉子 Emojis 🌿 🍃 以形成樹籬灌木叢紋理
+    // 繪製多重重疊的葉子 Emojis 🌿 🍃 (加入透明度 0.55 減少高亮刺眼度)
     ctx.font = '34px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.globalAlpha = 0.55;
     for (let i = 0; i < 35; i++) {
         const x = Math.random() * 256;
         const y = Math.random() * 256;
         ctx.fillText(Math.random() < 0.5 ? '🌿' : '🍃', x, y);
     }
+    ctx.globalAlpha = 1.0;
     
-    // 繪製粗黑色的邊框，讓迷宮格線的邊緣立體且清晰可見，方便看清走道
-    ctx.strokeStyle = '#052e16';
+    // 繪製粗黑色的邊框 (深黑綠色)，讓迷宮格線的邊緣立體且清晰可見，方便看清走道
+    ctx.strokeStyle = '#020f06';
     ctx.lineWidth = 14;
     ctx.strokeRect(0, 0, 256, 256);
     
@@ -127,6 +129,8 @@ let floorMesh = null;
 let ceilingMesh = null;
 let portalMesh = null;
 let portalLight = null;
+let sunMesh = null;        // 新增全域太陽精靈
+let cloudsGroup = null;    // 新增全域雲朵組精靈
 const monsters = [];
 const projectiles = [];
 const particles = [];
@@ -153,11 +157,11 @@ muteBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     isMuted = !isMuted;
     if (isMuted) {
-        muteBtn.textContent = '🔇 音效: 關';
+        muteBtn.textContent = '🔇';
         muteBtn.style.background = 'rgba(255, 255, 255, 0.1)';
         stopBGM();
     } else {
-        muteBtn.textContent = '🔊 音效: 開';
+        muteBtn.textContent = '🔊';
         muteBtn.style.background = 'rgba(14, 165, 233, 0.2)';
         initAudio();
         if (gameState === 'PLAYING') startBGM();
@@ -526,7 +530,16 @@ function setupInputListeners() {
         }
         if (e.code === 'Space') {
             e.preventDefault();
-            fireProjectile();
+            if (gameState === 'LEVEL_COMPLETE') {
+                nextLevel(); // 按空白鍵進入下一關
+            } else if (gameState === 'GAMEOVER') {
+                retryLevel(); // 按空白鍵重新挑戰同一關
+            } else if (gameState === 'PLAYING') {
+                fireProjectile(); // 射擊光波
+            }
+        }
+        if (e.code === 'KeyH') {
+            togglePathHints(); // 按 H 切換路徑提示箭頭
         }
     });
 
@@ -584,6 +597,15 @@ function buildLevel() {
     if (ceilingMesh) scene.remove(ceilingMesh);
     if (portalMesh) scene.remove(portalMesh);
     if (portalLight) scene.remove(portalLight);
+    if (sunMesh) scene.remove(sunMesh);
+    if (cloudsGroup) scene.remove(cloudsGroup);
+    if (hintsGroup) {
+        scene.remove(hintsGroup);
+        hintsGroup = null;
+    }
+    showHints = false;
+    lastPlayerGridX = -1;
+    lastPlayerGridZ = -1;
     
     monsters.forEach(m => scene.remove(m.mesh));
     monsters.length = 0;
@@ -594,8 +616,38 @@ function buildLevel() {
     if (renderer) renderer.setClearColor(CONFIG.theme.skyColor);
     if (scene) {
         scene.background = new THREE.Color(CONFIG.theme.skyColor);
-        scene.fog = new THREE.FogExp2(CONFIG.theme.skyColor, 0.06); // 明亮大晴天，減少霧氣密度
+        scene.fog = new THREE.FogExp2(CONFIG.theme.skyColor, 0.05); // 稍微調低霧氣，讓天空更清晰
     }
+
+    // 建立天空裝飾 (大太陽與白雲，幫助玩家定位方向)
+    // 1. 太陽：放在 X 和 Z 正向的極遠高處 (當作指南針)
+    const sunTexture = createEmojiSpriteTexture('🌞');
+    const sunMaterial = new THREE.SpriteMaterial({ map: sunTexture, transparent: true });
+    sunMesh = new THREE.Sprite(sunMaterial);
+    sunMesh.scale.set(2.5, 2.5, 1);
+    sunMesh.position.set(cols * 1.5, 8.5, rows * 1.5);
+    scene.add(sunMesh);
+
+    // 2. 雲朵群：隨機分佈在天空上空
+    cloudsGroup = new THREE.Group();
+    const cloudTexture = createEmojiSpriteTexture('☁️');
+    const cloudMaterial = new THREE.SpriteMaterial({ map: cloudTexture, transparent: true, opacity: 0.85 });
+    
+    const cloudCount = Math.floor(Math.random() * 7) + 12; // 12-18 朵雲
+    for (let i = 0; i < cloudCount; i++) {
+        const cloudSprite = new THREE.Sprite(cloudMaterial);
+        const size = Math.random() * 1.4 + 0.8;
+        cloudSprite.scale.set(size, size * 0.55, 1); // 扁平可愛狀
+        
+        // 隨機分佈高度與範圍
+        const cx = (Math.random() - 0.3) * cols * 1.6;
+        const cy = Math.random() * 1.8 + 5.5;
+        const cz = (Math.random() - 0.3) * rows * 1.6;
+        
+        cloudSprite.position.set(cx, cy, cz);
+        cloudsGroup.add(cloudSprite);
+    }
+    scene.add(cloudsGroup);
 
     // 1. 生成 2D 迷宮矩陣
     mazeGrid = generateMaze(cols, rows);
@@ -660,7 +712,8 @@ function buildLevel() {
                     flowerSprite.scale.set(0.22, 0.22, 1);
                     
                     const side = Math.floor(Math.random() * 4);
-                    const offset = 0.51; // 稍微凸出表面
+                    // 將 offset 改為 0.63 (原 0.51)，使花朵廣告看板看板旋轉時不會被牆壁截斷/遮擋
+                    const offset = 0.63;
                     const randY = Math.random() * 0.8 + 0.2; // 隨機高度
                     const randOffset = (Math.random() - 0.5) * 0.6; // 隨機水平偏移
                     
@@ -865,6 +918,17 @@ function update(delta) {
 
     // 2. 處理玩家控制與碰撞
     handlePlayerMovement(delta);
+
+    // 更新路徑提示箭頭 (若啟用了提示，且玩家走到了新格子)
+    if (showHints) {
+        const pGridX = Math.floor(player.x);
+        const pGridZ = Math.floor(player.z);
+        if (pGridX !== lastPlayerGridX || pGridZ !== lastPlayerGridZ) {
+            lastPlayerGridX = pGridX;
+            lastPlayerGridZ = pGridZ;
+            generatePathHints(pGridX, pGridZ);
+        }
+    }
 
     // 3. 更新光球發射軌跡與碰撞
     updateProjectiles(delta);
@@ -1429,10 +1493,184 @@ function endGame(win) {
     }
 }
 
+// --- 關卡失敗重新挑戰同一關 ---
+function retryLevel() {
+    initAudio();
+    
+    // 不重置關卡索引 (currentLevelIndex)，重設生命與介面，並重建當前關卡
+    lives = CONFIG.player.maxLives;
+    updateLivesUI();
+    
+    document.getElementById('startOverlay').classList.add('hidden');
+    document.getElementById('nextLevelOverlay').classList.add('hidden');
+    document.getElementById('gameOverOverlay').classList.add('hidden');
+    document.getElementById('victoryOverlay').classList.add('hidden');
+
+    buildLevel();
+    
+    gameState = 'PLAYING';
+    startBGM();
+    startTimer();
+}
+
+// --- 地板路徑導航提示系統 (按 H 鍵觸發) ---
+let showHints = false;
+let lastPlayerGridX = -1;
+let lastPlayerGridZ = -1;
+let hintsGroup = null;
+let arrowTexture = null;
+let arrowMaterial = null;
+
+function createArrowTexture() {
+    if (arrowTexture) return arrowTexture;
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    
+    // 繪製一個精緻的亮綠色指路箭頭
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.85)';
+    ctx.beginPath();
+    ctx.moveTo(64, 15);   // 箭頭頂點
+    ctx.lineTo(20, 75);   // 左下角
+    ctx.lineTo(50, 75);   // 左內凹
+    ctx.lineTo(50, 115);  // 底左
+    ctx.lineTo(78, 115);  // 底右
+    ctx.lineTo(78, 75);   // 右內凹
+    ctx.lineTo(108, 75);  // 右下角
+    ctx.closePath();
+    ctx.fill();
+    
+    arrowTexture = new THREE.CanvasTexture(canvas);
+    arrowTexture.needsUpdate = true;
+    return arrowTexture;
+}
+
+function getArrowMaterial() {
+    if (arrowMaterial) return arrowMaterial;
+    const tex = createArrowTexture();
+    arrowMaterial = new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        depthWrite: false, // 防止與地板網格產生深度衝突/閃爍 (z-fighting)
+        side: THREE.DoubleSide
+    });
+    return arrowMaterial;
+}
+
+function togglePathHints() {
+    if (gameState !== 'PLAYING') return;
+    
+    showHints = !showHints;
+    if (!showHints) {
+        if (hintsGroup) {
+            scene.remove(hintsGroup);
+            hintsGroup = null;
+        }
+        lastPlayerGridX = -1;
+        lastPlayerGridZ = -1;
+    } else {
+        const pGridX = Math.floor(player.x);
+        const pGridZ = Math.floor(player.z);
+        lastPlayerGridX = pGridX;
+        lastPlayerGridZ = pGridZ;
+        generatePathHints(pGridX, pGridZ);
+    }
+}
+
+// 尋找從目前格子到終點的 BFS 最短路徑
+function findShortestPath(startC, startR, exitC, exitR) {
+    if (startC === exitC && startR === exitR) return [];
+
+    const queue = [[startC, startR]];
+    const visited = {};
+    visited[`${startC},${startR}`] = null;
+
+    const dirs = [
+        [0, -1], // 北
+        [1, 0],  // 東
+        [0, 1],  // 南
+        [-1, 0]  // 西
+    ];
+
+    let found = false;
+    while (queue.length > 0) {
+        const [c, r] = queue.shift();
+        if (c === exitC && r === exitR) {
+            found = true;
+            break;
+        }
+
+        for (const [dc, dr] of dirs) {
+            const nc = c + dc;
+            const nr = r + dr;
+            if (nc >= 0 && nc < cols && nr >= 0 && nr < rows) {
+                if (mazeGrid[nr][nc] === 0) {
+                    const key = `${nc},${nr}`;
+                    if (!(key in visited)) {
+                        visited[key] = [c, r];
+                        queue.push([nc, nr]);
+                    }
+                }
+            }
+        }
+    }
+
+    if (!found) return [];
+
+    const path = [];
+    let curr = [exitC, exitR];
+    while (curr) {
+        path.push(curr);
+        const key = `${curr[0]},${curr[1]}`;
+        curr = visited[key];
+    }
+    path.reverse();
+    return path;
+}
+
+function generatePathHints(startC, startR) {
+    if (hintsGroup) scene.remove(hintsGroup);
+    hintsGroup = new THREE.Group();
+
+    const exitC = cols - 2;
+    const exitR = rows - 2;
+    const path = findShortestPath(startC, startR, exitC, exitR);
+    if (path.length <= 1) {
+        scene.add(hintsGroup);
+        return;
+    }
+
+    const geom = new THREE.PlaneGeometry(0.35, 0.35);
+    const mat = getArrowMaterial();
+
+    for (let i = 0; i < path.length - 1; i++) {
+        const [c, r] = path[i];
+        const [nc, nr] = path[i + 1];
+
+        const mesh = new THREE.Mesh(geom, mat);
+        mesh.position.set(c + 0.5, 0.015, r + 0.5);
+        mesh.rotation.x = -Math.PI / 2;
+
+        const dx = nc - c;
+        const dz = nr - r;
+        let angle = 0;
+        if (dx === 1) angle = -Math.PI / 2; // 東
+        else if (dx === -1) angle = Math.PI / 2; // 西
+        else if (dz === 1) angle = Math.PI; // 南
+        else if (dz === -1) angle = 0; // 北
+        mesh.rotation.z = angle;
+
+        hintsGroup.add(mesh);
+    }
+
+    scene.add(hintsGroup);
+}
+
 // 綁定覆蓋層按鈕點擊事件
 document.getElementById('startBtn').addEventListener('click', startGame);
 document.getElementById('nextLevelBtn').addEventListener('click', nextLevel);
-document.getElementById('retryBtn').addEventListener('click', startGame);
+document.getElementById('retryBtn').addEventListener('click', retryLevel);
 document.getElementById('winRestartBtn').addEventListener('click', startGame);
 
 

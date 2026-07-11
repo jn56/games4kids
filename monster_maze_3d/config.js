@@ -4,22 +4,22 @@ const CONFIG = {
         {
             cols: 11,
             rows: 11,
-            timeLimit: 90, // 秒
+            timeLimit: 150, // 秒 (已增加 60 秒)
             monsterCount: 2,
             name: "第一關：初試身手 🧱"
         },
         {
             cols: 23,
             rows: 23,
-            timeLimit: 180, // 秒
+            timeLimit: 240, // 秒 (已增加 60 秒)
             monsterCount: 5,
             name: "第二關：迷宮高手 🌀"
         },
         {
-            cols: 45,
-            rows: 45,
-            timeLimit: 300, // 秒
-            monsterCount: 12,
+            cols: 33,
+            rows: 33,
+            timeLimit: 300, // 秒 (已增加 60 秒)
+            monsterCount: 8,
             name: "第三關：終極挑戰 👑"
         }
     ],
@@ -32,11 +32,11 @@ const CONFIG = {
         maxLives: 5,          // 初始愛心數
         hitCooldown: 1500     // 受傷無敵時間 (毫秒)
     },
-    // 小怪物屬性 (調慢速度，讓小朋友更容易閃避)
+    // 小怪物屬性
     monster: {
         radius: 0.3,          // 怪物碰撞半徑
-        speed: 0.6,           // 巡邏速度 (原 1.0)
-        chaseSpeed: 1.2,      // 追逐速度 (原 2.0)
+        speed: 0.6,           // 巡邏速度
+        chaseSpeed: 1.2,      // 追逐速度
         detectRange: 4.5,     // 發現玩家的距離
         stunDuration: 4000,    // 擊暈時間 (毫秒)
         spawnSafeRange: 3.0   // 初始生成時距離玩家的安全距離
@@ -48,14 +48,14 @@ const CONFIG = {
         radius: 0.1,          // 光球半徑
         maxRange: 15.0        // 最大射程
     },
-    // 明亮可愛風配色 (以草綠、天藍、鮮豔花朵色為主)
+    // 明亮可愛風配色
     theme: {
         floorColor: "#86efac",       // 淺綠色草地
-        wallColor: "#16a34a",        // 翠綠色灌木叢牆壁
-        wallWireColor: "#4ade80",    // 牆壁邊緣發光線條
+        wallColor: "#0f2d19",        // 深綠色灌木叢牆壁
+        wallWireColor: "#15803d",    // 牆壁邊緣改成舒服的深綠色線條 (原 #4ade80 刺眼綠)
         skyColor: "#bae6fd",         // 天藍色天空
         portalColor: "#db2777",      // 桃紅色終點傳送門
-        monsterColor: "#f97316",     // 亮橘色小怪物 (對比明顯)
+        monsterColor: "#f97316",     // 亮橘色小怪物
         monsterStunColor: "#a855f7", // 紫色 (暈眩時)
         shootColor: "#fbbf24"        // 閃亮金黃色發光光波
     }
