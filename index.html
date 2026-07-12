@@ -862,6 +862,42 @@
                     </a>
                 </div>
             </article>
+
+            <!-- 3D Animal Tag Game Card -->
+            <article class="game-card card-maze" id="cardAnimalTag3d" style="border-color: rgba(16, 185, 129, 0.15);">
+                <div>
+                    <div class="card-header">
+                        <div class="game-icon">🐈</div>
+                        <div class="game-title-info">
+                            <h2>3D 森林抓迷藏</h2>
+                            <span class="game-genre" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">3D 動作</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <p class="game-description">化身森林守護者，以第一人稱視角在寬廣的 3D 森林廣場中追逐逃跑的可愛小兔子、頑皮貓咪與活潑狗狗，將牠們全部安全收容吧！</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 10px;">
+                    <div class="game-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">遊玩難度：</span>
+                            <span class="meta-val" style="color: #10b981;">★★☆ 中等</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">操控方式：</span>
+                            <span class="meta-val">方向鍵 / WASD / Shift或Space</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">累積收容：</span>
+                            <span class="meta-val high-score-val" id="scoreAnimalTag3d" style="color: #10b981;">0</span>
+                        </div>
+                    </div>
+                    <a href="animal_tag_3d/index.html" class="play-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">
+                        <span>開始抓迷藏</span> 🌲
+                    </a>
+                </div>
+            </article>
         </main>
 
         <footer>
@@ -883,6 +919,7 @@
             const flappyHighScore = localStorage.getItem('flappy_bird_highScore') || 0;
             const monsterMaze3dHighScore = localStorage.getItem('monster_maze_3d_highScore') || 0;
             const dice3dRollsCount = localStorage.getItem('rollsCount') || 0;
+            const animalTagCatches = localStorage.getItem('animalTagCatches') || 0;
 
             document.getElementById('scorePkmadv').textContent = pkmadvHighScore;
             document.getElementById('scoreStair').textContent = stairHighScore;
@@ -895,6 +932,7 @@
             document.getElementById('scoreFlappy').textContent = flappyHighScore;
             document.getElementById('scoreMonsterMaze3d').textContent = monsterMaze3dHighScore;
             document.getElementById('scoreDice3d').textContent = dice3dRollsCount;
+            document.getElementById('scoreAnimalTag3d').textContent = animalTagCatches;
         });
 
         // BGM Synthesizer for Home Page

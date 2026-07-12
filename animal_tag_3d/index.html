@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D 森林抓迷藏 🐈</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #0b1329;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-color: #10b981;
+            --accent-glow: rgba(16, 185, 129, 0.25);
+            --pkmadv-accent: #a855f7;
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'Fredoka', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            font-family: var(--font-body);
+            min-height: 100vh;
+            width: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Ambient Glowing Background */
+        .ambient-glow {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
+            top: -10%;
+            left: -10%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 1200px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 2;
+            padding: 15px;
+        }
+
+        /* HUD Header */
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .hud-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: var(--text-light);
+            text-decoration: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all 0.25s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.1);
+        }
+
+        .hud-left h1 {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .level-badge {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34d399;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .hud-center {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .hud-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hud-right {
+            display: flex;
+            gap: 8px;
+        }
+
+        .hud-right button {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            cursor: pointer;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-family: var(--font-body);
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .hud-right button:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        /* Viewport Wrapper */
+        .viewport-wrapper {
+            flex: 1;
+            background: radial-gradient(circle at center, #062f1c 0%, #030f0a 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 80px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        #canvas3d {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Stamina Bar */
+        .stamina-container {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 250px;
+            height: 14px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .stamina-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+            box-shadow: 0 0 10px rgba(52, 211, 153, 0.6);
+            transition: width 0.1s linear;
+        }
+
+        .stamina-label {
+            position: absolute;
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #fff;
+            left: 50%;
+            transform: translateX(-50%);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+
+        /* Minimap Overlay */
+        .minimap-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            padding: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+
+        #minimapCanvas {
+            display: block;
+            border-radius: 12px;
+            background: #020704;
+        }
+
+        /* Overlays */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11, 19, 41, 0.85);
+            backdrop-filter: blur(16px);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+            transition: opacity 0.4s ease;
+        }
+
+        .overlay.hidden {
+            display: none !important;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .overlay h2 {
+            font-family: var(--font-display);
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+        }
+
+        .overlay-desc {
+            max-width: 500px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .controls-list {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 15px 25px;
+            max-width: 450px;
+            width: 100%;
+            margin-bottom: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        .ctrl-key {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+
+        .overlay button {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            color: #000;
+            font-family: var(--font-body);
+            font-weight: 700;
+            font-size: 1.05rem;
+            padding: 12px 30px;
+            border-radius: 14px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            transition: all 0.25s;
+        }
+
+        .overlay button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+        }
+
+        /* 歡樂動態過關特效與 Emoji */
+        #confettiCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            display: none;
+        }
+
+        .emoji-parade {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 18px;
+            margin: 15px 0 25px 0;
+            font-size: 2.8rem;
+            user-select: none;
+        }
+
+        .bounce-emoji {
+            display: inline-block;
+            animation: emojiBounce 1.0s infinite ease-in-out alternate;
+        }
+
+        @keyframes emojiBounce {
+            0% {
+                transform: translateY(0) scale(1) rotate(-5deg);
+            }
+            100% {
+                transform: translateY(-24px) scale(1.25) rotate(15deg);
+                text-shadow: 0 10px 15px rgba(251, 191, 36, 0.45);
+            }
+        }
+
+        .victory-title {
+            animation: victoryGlow 1.5s infinite alternate ease-in-out;
+            font-size: 2.6rem !important;
+            font-weight: 900 !important;
+            margin-bottom: 20px !important;
+        }
+
+        @keyframes victoryGlow {
+            0% {
+                text-shadow: 0 0 10px rgba(251, 191, 36, 0.3), 0 0 20px rgba(251, 191, 36, 0.1);
+                transform: scale(1.0);
+            }
+            100% {
+                text-shadow: 0 0 25px rgba(251, 191, 36, 0.75), 0 0 40px rgba(245, 158, 11, 0.4);
+                transform: scale(1.05);
+            }
+        }
+
+        .victory-btn {
+            background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%) !important;
+            box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4) !important;
+            animation: btnPulse 1.6s infinite alternate ease-in-out;
+            color: #000 !important;
+        }
+
+        .victory-btn:hover {
+            box-shadow: 0 8px 25px rgba(251, 191, 36, 0.6) !important;
+        }
+
+        @keyframes btnPulse {
+            0% { transform: translateY(0) scale(1.0); }
+            100% { transform: translateY(-3px) scale(1.06); }
+        }
+
+        /* Level Announcement */
+        .level-announcement {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            border: 2px solid var(--accent-color);
+            padding: 15px 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(16, 185, 129, 0.25);
+            text-align: center;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .level-announcement.show-ann {
+            opacity: 1;
+            transform: translate(-50%, -45%);
+        }
+
+        .level-announcement h3 {
+            font-size: 1.8rem;
+            color: #34d399;
+            margin-bottom: 5px;
+        }
+
+        .level-announcement p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Floating +1 score bubble */
+        .score-bubble {
+            position: absolute;
+            color: #34d399;
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 1.8rem;
+            pointer-events: none;
+            z-index: 20;
+            animation: floatUp 0.8s forwards ease-out;
+            text-shadow: 0 2px 10px rgba(16, 185, 129, 0.5);
+        }
+
+        /* Mobile Controller UI */
+        .mobile-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            padding: 0 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .mobile-btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            pointer-events: auto;
+        }
+
+        .mobile-btn-row {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .joy-btn {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            width: 54px;
+            height: 54px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            user-select: none;
+            cursor: pointer;
+        }
+
+        .joy-btn:active {
+            background: rgba(16, 185, 129, 0.3);
+            border-color: var(--accent-color);
+        }
+
+        .dash-btn-wrapper {
+            pointer-events: auto;
+        }
+
+        .dash-btn {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            font-weight: 700;
+            user-select: none;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .dash-btn:active {
+            background: rgba(16, 185, 129, 0.3);
+            border-color: var(--accent-color);
+            transform: scale(0.95);
+        }
+
+        /* Screen flash on catch */
+        .catch-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(52, 211, 153, 0.12);
+            z-index: 15;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        .catch-flash.active {
+            opacity: 1;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.8); opacity: 1; }
+            100% { transform: translateY(-80px) scale(1.1); opacity: 0; }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translate(-50%, 0); }
+            50% { transform: translate(-50%, -6px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-glow"></div>
+    <canvas id="confettiCanvas"></canvas>
+
+    <div class="game-container">
+        <!-- HUD Header -->
+        <header class="hud-header">
+            <div class="hud-left">
+                <a href="../index.html" class="back-btn" title="返回大廳">🏠</a>
+                <h1>3D 森林抓迷藏</h1>
+                <span class="level-badge" id="levelNameBadge">載入中...</span>
+            </div>
+            
+            <div class="hud-center">
+                <div class="hud-item">
+                    <span>🎯 目標：</span>
+                    <span id="targetVal" style="font-weight: 700; color: #34d399;">抓到 10 隻動物</span>
+                </div>
+                <div class="hud-item">
+                    <span>🏃‍♂️ 進度：</span>
+                    <span id="caughtVal" style="font-weight: 700; color: #fbbf24; font-size: 1.1rem;">0 / 10</span>
+                </div>
+                <div class="hud-item">
+                    <span>⏱️ 時間：</span>
+                    <span id="timeVal" style="font-weight: 700; color: #38bdf8; font-size: 1.1rem;">無限</span>
+                </div>
+            </div>
+
+            <div class="hud-right">
+                <button id="muteBtn" title="切換音效">🔊 音效: 開</button>
+            </div>
+        </header>
+
+        <!-- ViewportWrapper -->
+        <div class="viewport-wrapper" id="viewport">
+            <canvas id="canvas3d"></canvas>
+            
+            <!-- Stamina Bar -->
+            <div class="stamina-container">
+                <div class="stamina-fill" id="staminaFill"></div>
+                <div class="stamina-label">🏃‍♂️ Dash 耐力值</div>
+            </div>
+
+            <!-- Minimap -->
+            <div class="minimap-container">
+                <canvas id="minimapCanvas" width="130" height="130"></canvas>
+            </div>
+
+            <!-- Mobile Controls -->
+            <div class="mobile-controls">
+                <div class="mobile-btn-group">
+                    <div class="mobile-btn-row">
+                        <div class="joy-btn" id="btnForward">▲</div>
+                    </div>
+                    <div class="mobile-btn-row">
+                        <div class="joy-btn" id="btnLeft">◀</div>
+                        <div class="joy-btn" id="btnBackward">▼</div>
+                        <div class="joy-btn" id="btnRight">▶</div>
+                    </div>
+                </div>
+
+                <div class="dash-btn-wrapper">
+                    <div class="dash-btn" id="btnDash">⚡ 奔跑</div>
+                </div>
+            </div>
+
+            <!-- Catch Visual Flash -->
+            <div class="catch-flash" id="catchFlash"></div>
+
+            <!-- Level Transition Announcement -->
+            <div class="level-announcement" id="levelAnn">
+                <h3 id="levelAnnTitle">第一關</h3>
+                <p id="levelAnnDesc">快去抓住奔跑的小兔子！</p>
+            </div>
+        </div>
+
+        <!-- Start Overlay -->
+        <div class="overlay" id="startOverlay">
+            <h2>🐈 3D 森林抓迷藏 🐕</h2>
+            <p class="overlay-desc">
+                歡迎來到神奇的 3D 森林！這裡有許多可愛的小動物正在四處捉迷藏。你的任務是找出並抓住牠們！當你靠近時，動物們會因為害羞而逃跑，快點加速追上牠們吧！
+            </p>
+            
+            <div class="controls-list">
+                <div>移動 / 轉向: <span class="ctrl-key">▲</span><span class="ctrl-key">▼</span><span class="ctrl-key">◀</span><span class="ctrl-key">▶</span> 或 <span class="ctrl-key">W</span><span class="ctrl-key">S</span><span class="ctrl-key">A</span><span class="ctrl-key">D</span></div>
+                <div>加速奔跑 (消耗耐力): <span class="ctrl-key">Shift</span> 或 <span class="ctrl-key">Space</span> (空白鍵)</div>
+                <div>行動裝置: <span class="ctrl-key">螢幕虛擬按鍵</span></div>
+                <div>提示功能: 靠近動物時，地圖上會標記點；動物碰到牆壁會轉彎。</div>
+            </div>
+
+            <button id="startBtn">開始遊戲 🌲</button>
+        </div>
+
+        <!-- Level Complete Transition Overlay -->
+        <div class="overlay hidden" id="nextLevelOverlay">
+            <h2 class="victory-title" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">🎉 順利過關！ 🎉</h2>
+            
+            <!-- 歡樂跳動的動物與慶祝 Emoji -->
+            <div class="emoji-parade">
+                <span class="bounce-emoji">🐇</span>
+                <span class="bounce-emoji" style="animation-delay: 0.15s;">🐈</span>
+                <span class="bounce-emoji" style="animation-delay: 0.3s;">🐕</span>
+                <span class="bounce-emoji" style="animation-delay: 0.45s;">🌟</span>
+                <span class="bounce-emoji" style="animation-delay: 0.6s;">🎈</span>
+            </div>
+
+            <p class="overlay-desc" id="nextLevelDesc">
+                太棒了！你成功的抓到了足夠的動物！下一關的動物會跑得更快、更容易隱藏喔！
+            </p>
+            <button id="nextLevelBtn" class="victory-btn">進入下一關 ➡️</button>
+        </div>
+
+        <!-- Game Victory Overlay -->
+        <div class="overlay hidden" id="victoryOverlay">
+            <h2 class="victory-title" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">🏆 終極大獲全勝！ 🏆</h2>
+            
+            <!-- 終極大勝利歡樂跳動 Emoji -->
+            <div class="emoji-parade">
+                <span class="bounce-emoji">👑</span>
+                <span class="bounce-emoji" style="animation-delay: 0.1s;">🐇</span>
+                <span class="bounce-emoji" style="animation-delay: 0.2s;">🐈</span>
+                <span class="bounce-emoji" style="animation-delay: 0.3s;">🐕</span>
+                <span class="bounce-emoji" style="animation-delay: 0.4s;">🎉</span>
+                <span class="bounce-emoji" style="animation-delay: 0.5s;">✨</span>
+            </div>
+
+            <p class="overlay-desc">
+                你太厲害了！成功完成了森林裡所有的收容任務，成為了最棒的動物守護者！
+            </p>
+            <button id="winRestartBtn" class="victory-btn">再玩一次 🎮</button>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div class="overlay hidden" id="gameOverOverlay">
+            <h2 style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);">😢 時間到了！</h2>
+            <p class="overlay-desc">
+                很可惜，300 秒的森林收容時間已經走完，小動物們隱藏得太好了... 別灰心，再挑戰一次看看！
+            </p>
+            <button id="retryBtn">重新挑戰 🔄</button>
+        </div>
+    </div>
+
+    <!-- Import Three.js -->
+    <script src="three.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
