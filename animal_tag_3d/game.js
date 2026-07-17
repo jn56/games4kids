@@ -1658,7 +1658,7 @@ function setupInputListeners() {
     }
 
 
-    const joystickZone = document.getElementById('joystickZone');
+    const joystickZone = document.getElementById('joystickTouchArea');
     const joystickBase = document.getElementById('joystickBase');
     const joystickKnob = document.getElementById('joystickKnob');
 
