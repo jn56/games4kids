@@ -1,4 +1,4 @@
-// --- Web Audio API 音效合成器 ---
+
 let audioCtx = null;
 let soundEnabled = true;
 
@@ -67,13 +67,13 @@ function playSound(type) {
             osc.start(time);
             osc.stop(time + 0.23);
         } else if (type === 'dog') {
-            // 可愛的小狗雙聲汪汪音效 (Double yip-yip puppy bark)
+
             const playYip = (delay, pitch) => {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                osc.type = 'triangle'; // 採用三角波，音色更溫和可愛
+                osc.type = 'triangle';
                 
-                // 快速向上的頻率掃描 (從基音向上衝，模擬小奶狗的 yip 聲)
+
                 osc.frequency.setValueAtTime(pitch, time + delay);
                 osc.frequency.exponentialRampToValueAtTime(pitch * 1.6, time + delay + 0.07);
                 
@@ -86,8 +86,8 @@ function playSound(type) {
                 osc.stop(time + delay + 0.08);
             };
 
-            playYip(0, 480);       // 第一聲汪 (較低)
-            playYip(0.08, 560);    // 第二聲汪 (較高且急促)
+            playYip(0, 480);
+            playYip(0.08, 560);
         } else if (type === 'gameover') {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
@@ -121,7 +121,7 @@ function playSound(type) {
     }
 }
 
-// --- 遊戲組態設定 (CONFIG) ---
+
 const CONFIG = {
     levels: [
         {
@@ -165,7 +165,7 @@ const CONFIG = {
         normalSpeed: 3.8,
         dashSpeed: 6.2,
         height: 0.95,
-        radius: 0.28
+        radius: 0.18
     },
     animals: {
         rabbit: { speed: 1.5, fleeSpeed: 3.5, detectRange: 5.5, radius: 0.28, color: '#f8fafc' },
@@ -174,7 +174,7 @@ const CONFIG = {
     }
 };
 
-// --- 全局變數 ---
+
 let scene, camera, renderer;
 let clock;
 let currentLevelIndex = 0;
@@ -184,9 +184,17 @@ let cols = 0, rows = 0;
 let wallsGroup = null;
 let treesGroup = null;
 let playerMesh = null;
-let sunLight = null; // 全局陽光變數以利跟隨玩家移動
+let sunLight = null;
 
-// 玩家屬性
+
+let joystickActive = false;
+let joystickTouchId = null;
+let joystickStartX = 0;
+let joystickStartY = 0;
+let joystickX = 0;
+let joystickY = 0;
+
+
 const player = {
     x: 1.5,
     z: 1.5,
@@ -195,7 +203,7 @@ const player = {
     isDashing: false
 };
 
-// 輸入狀態
+
 const keys = {
     forward: false,
     backward: false,
@@ -207,7 +215,7 @@ const keys = {
 let touchActive = false;
 let minimapCanvas, minimapCtx;
 
-// 動物與粒子
+
 let animals = [];
 let particles = [];
 let caughtCount = 0;
@@ -215,7 +223,7 @@ let levelTimeLeft = 300;
 let totalTimeElapsed = 0;
 let timerInterval = null;
 
-// --- 初始化入口 ---
+
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
     initGameEngine();
 } else {
@@ -228,8 +236,8 @@ function initGameEngine() {
     let height = container.clientHeight || window.innerHeight || 500;
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color('#bae6fd'); // 晴朗白天天空 (天空藍)
-    scene.fog = new THREE.FogExp2('#bae6fd', 0.035); // 清亮白天遠霧
+    scene.background = new THREE.Color('#bae6fd');
+    scene.fog = new THREE.FogExp2('#bae6fd', 0.035);
 
     camera = new THREE.PerspectiveCamera(90, width / height, 0.1, 100);
     camera.position.set(player.x, CONFIG.player.height, player.z);
@@ -244,18 +252,18 @@ function initGameEngine() {
     minimapCanvas = document.getElementById('minimapCanvas');
     minimapCtx = minimapCanvas.getContext('2d');
 
-    // 1. 基礎環境光源 (增亮)
+
     const ambientLight = new THREE.AmbientLight('#ffffff', 0.7);
     scene.add(ambientLight);
 
-    // 2. 太陽光定向光源
+
     sunLight = new THREE.DirectionalLight('#fffbeb', 1.1);
     sunLight.position.set(20, 35, 10);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 1024;
     sunLight.shadow.mapSize.height = 1024;
     
-    // 設定合適的陰影相機圍繞範圍 (跟隨玩家後只需涵蓋 44x44 的可視區即可，能提供更高的陰影解析度)
+
     sunLight.shadow.camera.left = -22;
     sunLight.shadow.camera.right = 22;
     sunLight.shadow.camera.top = 22;
@@ -263,19 +271,19 @@ function initGameEngine() {
     sunLight.shadow.camera.near = 0.5;
     sunLight.shadow.camera.far = 100;
     
-    // 將偏置 (bias) 調整為極小值，防止陰影與物體底部脫離 (修正 Peter Panning 導致的浮空破圖黑線)
+
     sunLight.shadow.bias = -0.00005;
     scene.add(sunLight);
-    scene.add(sunLight.target); // 確保目標點被加入場景，以便進行動態跟隨移動
+    scene.add(sunLight.target);
 
-    // 3. 耀眼大太陽模型
+
     const sunGeom = new THREE.SphereGeometry(2.8, 16, 16);
     const sunMat = new THREE.MeshBasicMaterial({ color: '#fef08a' });
     const sunMesh = new THREE.Mesh(sunGeom, sunMat);
     sunMesh.position.set(20, 26, -30);
     scene.add(sunMesh);
 
-    // 4. 立體雲朵生成
+
     function createCloud(x, y, z) {
         const cloudGroup = new THREE.Group();
         const cloudMat = new THREE.MeshLambertMaterial({ color: '#ffffff', transparent: true, opacity: 0.92 });
@@ -308,7 +316,7 @@ function initGameEngine() {
     createCloud(5, 18, 6);
     createCloud(38, 16, 25);
 
-    // 5. 玩家前方補光燈 (極淡)
+
     const flashlight = new THREE.SpotLight('#ffffff', 0.15, 15, Math.PI / 6, 0.5, 1.0);
     flashlight.name = "flashlight";
     scene.add(flashlight);
@@ -318,7 +326,7 @@ function initGameEngine() {
     scene.add(flashlightTarget);
     flashlight.target = flashlightTarget;
 
-    // 6. 創建主角模型
+
     playerMesh = createPlayerMesh();
     scene.add(playerMesh);
 
@@ -326,75 +334,74 @@ function initGameEngine() {
     setupUIEvents();
 }
 
-// 創建低多邊形 (Low-poly) 主角人類模型
+
 function createPlayerMesh() {
     const group = new THREE.Group();
-    
-    // 身體/連帽衛衣 (亮藍色 - 縮短高度: 寬 0.20, 高由 0.44 縮短至 0.30, 深 0.14)
-    const bodyGeom = new THREE.BoxGeometry(0.20, 0.30, 0.14);
+
+    const bodyGeom = new THREE.BoxGeometry(0.14, 0.30, 0.10);
     const bodyMat = new THREE.MeshStandardMaterial({ color: '#2563eb', roughness: 0.7 });
     const body = new THREE.Mesh(bodyGeom, bodyMat);
     body.name = "playerBody";
-    body.position.y = 0.43; // 配合短身體，中心上移至 0.43 (範圍: 0.28 至 0.58)
+    body.position.y = 0.43;
     body.castShadow = true;
     group.add(body);
 
-    // 頭部 (膚色球體 - 半徑 0.05，使頭部直徑 0.10 剛好為身寬 0.20 的一半)
-    const headGeom = new THREE.SphereGeometry(0.05, 8, 8);
+
+    const headGeom = new THREE.SphereGeometry(0.038, 8, 8);
     const headMat = new THREE.MeshStandardMaterial({ color: '#fed7aa', roughness: 0.8 });
     const head = new THREE.Mesh(headGeom, headMat);
-    head.position.set(0, 0.65, 0); // 頸部頂端為 0.58，頭心設在 0.65 剛好接合 (總身高不變)
+    head.position.set(0, 0.65, 0);
     head.castShadow = true;
     group.add(head);
 
-    // 棕色短頭髮 (主髮型盒 - 包裹後側)
-    const hairGeom = new THREE.BoxGeometry(0.11, 0.05, 0.10);
+
+    const hairGeom = new THREE.BoxGeometry(0.08, 0.04, 0.08);
     const hairMat = new THREE.MeshStandardMaterial({ color: '#78350f', roughness: 0.9 });
     const hair = new THREE.Mesh(hairGeom, hairMat);
-    hair.position.set(0, 0.685, -0.015);
+    hair.position.set(0, 0.678, -0.012);
     group.add(hair);
 
-    // 瀏海髮線
-    const bangsGeom = new THREE.BoxGeometry(0.11, 0.02, 0.03);
+
+    const bangsGeom = new THREE.BoxGeometry(0.08, 0.016, 0.024);
     const bangs = new THREE.Mesh(bangsGeom, hairMat);
-    bangs.position.set(0, 0.70, 0.025);
+    bangs.position.set(0, 0.69, 0.02);
     group.add(bangs);
 
-    // 褲子雙腿 (深灰圓柱 - 拉長腿部: 腿高由 0.24 增加至 0.34, 腿徑 0.025)
-    const legGeom = new THREE.CylinderGeometry(0.025, 0.022, 0.34, 6);
+
+    const legGeom = new THREE.CylinderGeometry(0.018, 0.015, 0.34, 6);
     const pantsMat = new THREE.MeshStandardMaterial({ color: '#1e293b', roughness: 0.8 });
     
     const leftLeg = new THREE.Mesh(legGeom, pantsMat);
     leftLeg.name = "leftLeg";
-    leftLeg.position.set(-0.05, 0.17, 0); // 中心位置上移至 0.17 (範圍: 0 至 0.34)
+    leftLeg.position.set(-0.035, 0.17, 0);
     leftLeg.castShadow = true;
     group.add(leftLeg);
 
     const rightLeg = new THREE.Mesh(legGeom, pantsMat);
     rightLeg.name = "rightLeg";
-    rightLeg.position.set(0.06, 0.17, 0);
+    rightLeg.position.set(0.035, 0.17, 0);
     rightLeg.castShadow = true;
     group.add(rightLeg);
 
-    // 雙手 (藍色手臂 - 粗度設為 0.032, 掛接中心 0.44)
-    const armGeom = new THREE.CylinderGeometry(0.032, 0.028, 0.26, 6);
+
+    const armGeom = new THREE.CylinderGeometry(0.022, 0.018, 0.26, 6);
     
     const leftArm = new THREE.Mesh(armGeom, bodyMat);
     leftArm.name = "leftArm";
-    leftArm.position.set(-0.135, 0.44, 0);
+    leftArm.position.set(-0.09, 0.44, 0);
     leftArm.castShadow = true;
     group.add(leftArm);
 
     const rightArm = new THREE.Mesh(armGeom, bodyMat);
     rightArm.name = "rightArm";
-    rightArm.position.set(0.135, 0.44, 0);
+    rightArm.position.set(0.09, 0.44, 0);
     rightArm.castShadow = true;
     group.add(rightArm);
 
     return group;
 }
 
-// --- 3D 地圖與關卡組建 ---
+
 function buildLevel() {
     if (wallsGroup) scene.remove(wallsGroup);
     if (treesGroup) scene.remove(treesGroup);
@@ -466,6 +473,9 @@ function buildLevel() {
                 const isBoundary = (r === 0 || r === rows - 1 || c === 0 || c === cols - 1);
                 
                 if (!isBoundary && Math.random() < 0.35) {
+
+                    mazeGrid[r][c] = 2;
+
                     const tree = new THREE.Group();
                     
                     const trunk = new THREE.Mesh(trunkGeom, trunkMat);
@@ -488,7 +498,7 @@ function buildLevel() {
                     wallsGroup.add(wall);
 
                     const line = new THREE.LineSegments(edges, neonLineMat);
-                    // 稍微調高 0.002 防止底部邊線與地面 (y=0) 產生深度衝突 (Z-fighting)
+
                     line.position.set(c + 0.5, 0.402, r + 0.5);
                     wallsGroup.add(line);
                 }
@@ -509,24 +519,26 @@ function buildLevel() {
 
     levelTimeLeft = 300;
     document.getElementById('timeVal').textContent = `${levelTimeLeft} 秒`;
+    if (typeof syncMobileHUD === 'function') syncMobileHUD();
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
         if (gameState === 'PLAYING') {
             levelTimeLeft--;
             document.getElementById('timeVal').textContent = `${levelTimeLeft} 秒`;
+            if (typeof syncMobileHUD === 'function') syncMobileHUD();
             if (levelTimeLeft <= 0) {
                 gameOver();
             }
         }
     }, 1000);
 
-    // 啟動關卡背景音樂
+
     if (gameState === 'PLAYING') {
         startBGM();
     }
 }
 
-// --- 動物生成 ---
+
 function spawnLevelAnimals(level) {
     const spawnedPositions = [];
 
@@ -605,7 +617,7 @@ function spawnLevelAnimals(level) {
     }
 }
 
-// 建立 3D 可愛小兔子模型
+
 function createRabbit3D() {
     const group = new THREE.Group();
     
@@ -682,7 +694,7 @@ function createRabbit3D() {
     return group;
 }
 
-// 建立 3D 可愛小貓咪模型
+
 function createCat3D() {
     const group = new THREE.Group();
 
@@ -805,7 +817,7 @@ function createCat3D() {
     return group;
 }
 
-// 建立 3D 可愛柴犬模型
+
 function createDog3D() {
     const group = new THREE.Group();
 
@@ -911,7 +923,7 @@ function createDog3D() {
     return group;
 }
 
-// --- 核心邏輯更新 ---
+
 function animate() {
     requestAnimationFrame(animate);
 
@@ -933,8 +945,9 @@ function animate() {
 
 function handlePlayerInput(delta) {
     const isRunningInput = keys.dash;
+    const isMovingInput = joystickActive ? (Math.abs(joystickX) > 0.15 || Math.abs(joystickY) > 0.15) : (keys.forward || keys.backward || keys.left || keys.right);
     
-    if (isRunningInput && player.stamina > 0 && (keys.forward || keys.backward || keys.left || keys.right)) {
+    if (isRunningInput && player.stamina > 0 && isMovingInput) {
         if (!player.isDashing) {
             player.isDashing = true;
             playSound('dash');
@@ -954,12 +967,17 @@ function handlePlayerInput(delta) {
     }
 
     let moveF = 0;
-    if (keys.forward) moveF += 1;
-    if (keys.backward) moveF -= 1;
-
     let rotY = 0;
-    if (keys.left) rotY -= 1;
-    if (keys.right) rotY += 1;
+
+    if (joystickActive) {
+        moveF = -joystickY;
+        rotY = joystickX;
+    } else {
+        if (keys.forward) moveF += 1;
+        if (keys.backward) moveF -= 1;
+        if (keys.left) rotY -= 1;
+        if (keys.right) rotY += 1;
+    }
 
     const rotateSpeed = 2.4;
     player.angle += rotY * rotateSpeed * delta;
@@ -985,7 +1003,7 @@ function handlePlayerInput(delta) {
         playerMesh.position.set(player.x, 0, player.z);
         playerMesh.rotation.y = Math.PI / 2 - player.angle;
 
-        const isMoving = (keys.forward || keys.backward || keys.left || keys.right);
+        const isMoving = joystickActive ? (Math.abs(joystickX) > 0.1 || Math.abs(joystickY) > 0.1) : (keys.forward || keys.backward || keys.left || keys.right);
         const swingSpeed = player.isDashing ? 16 : 9;
         const amplitude = player.isDashing ? 0.65 : 0.4;
         
@@ -1017,7 +1035,7 @@ function handlePlayerInput(delta) {
     updateCamera();
     updateFlashlight();
 
-    // 讓定向陽光及陰影相機的投影中心跟隨主角，防止遠處的陰影因超出投影邊界而被裁切 (Clipping)
+
     if (sunLight) {
         sunLight.target.position.set(player.x, 0, player.z);
         sunLight.position.set(player.x + 20, 35, player.z + 10);
@@ -1025,9 +1043,9 @@ function handlePlayerInput(delta) {
 }
 
 function updateCamera() {
-    // 移至更靠近主角身後且向上移，使畫面有一點俯視
-    const distBehind = 0.44; // 距離主角身後 0.44 格 (比 0.28 稍遠，遠離相機)
-    const camHeight = 0.98;  // 高度移高至 0.98 格 (維持一樣的俯視角度比)
+
+    const distBehind = 0.44;
+    const camHeight = 0.98;
     
     const rawCamX = player.x - Math.cos(player.angle) * distBehind;
     const rawCamZ = player.z - Math.sin(player.angle) * distBehind;
@@ -1041,7 +1059,7 @@ function updateCamera() {
     camera.lookAt(lookX, 0.18, lookZ);
 }
 
-// 綁定相機前方補光燈
+
 function updateFlashlight() {
     const flashlight = scene.getObjectByName("flashlight");
     const target = scene.getObjectByName("flashlightTarget");
@@ -1062,19 +1080,69 @@ function checkWallCollision(x, z, radius) {
 
     for (let r = gridZ - 1; r <= gridZ + 1; r++) {
         for (let c = gridX - 1; c <= gridX + 1; c++) {
-            if (r >= 0 && r < rows && c >= 0 && c < cols && mazeGrid[r][c] === 1) {
-                const closestX = Math.max(c, Math.min(x, c + 1));
-                const closestZ = Math.max(r, Math.min(z, r + 1));
-
-                const dx = x - closestX;
-                const dz = z - closestZ;
-                const dist = Math.sqrt(dx*dx + dz*dz);
+            if (r >= 0 && r < rows && c >= 0 && c < cols) {
+                const cellType = mazeGrid[r][c];
                 
-                if (dist < radius) return true;
+                if (cellType === 1) {
+
+                    const closestX = Math.max(c + 0.1, Math.min(x, c + 0.9));
+                    const closestZ = Math.max(r + 0.1, Math.min(z, r + 0.9));
+
+                    const dx = x - closestX;
+                    const dz = z - closestZ;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+                    
+                    if (dist < radius) return true;
+                } else if (cellType === 2) {
+
+                    const treeX = c + 0.5;
+                    const treeZ = r + 0.5;
+                    const dx = x - treeX;
+                    const dz = z - treeZ;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+                    
+                    const treeCollisionRadius = 0.10;
+                    if (dist < (treeCollisionRadius + radius)) {
+                        return true;
+                    }
+                }
             }
         }
     }
     return false;
+}
+
+
+function findSmartFleeDirection(a, fleeX, fleeZ, radius) {
+
+    const angles = [
+        0, 
+        Math.PI / 6, -Math.PI / 6, 
+        Math.PI / 3, -Math.PI / 3, 
+        Math.PI / 2, -Math.PI / 2, 
+        2 * Math.PI / 3, -2 * Math.PI / 3,
+        5 * Math.PI / 6, -5 * Math.PI / 6,
+        Math.PI
+    ];
+    const baseAngle = Math.atan2(fleeZ, fleeX);
+    const lookahead = 0.8;
+
+    for (let i = 0; i < angles.length; i++) {
+        const testAngle = baseAngle + angles[i];
+        const testX = Math.cos(testAngle);
+        const testZ = Math.sin(testAngle);
+
+        const targetX = a.x + testX * lookahead;
+        const targetZ = a.z + testZ * lookahead;
+
+
+        if (!checkWallCollision(targetX, targetZ, radius)) {
+            return { x: testX, z: testZ };
+        }
+    }
+
+
+    return { x: fleeX, z: fleeZ };
 }
 
 function updateAnimalsAI(delta, totalTime) {
@@ -1097,9 +1165,12 @@ function updateAnimalsAI(delta, totalTime) {
             let fleeX = dxToPlayer / distToPlayer;
             let fleeZ = dzToPlayer / distToPlayer;
 
+
+            const smartDir = findSmartFleeDirection(a, fleeX, fleeZ, cfg.radius);
+
             const currentSpeed = cfg.fleeSpeed;
-            a.vx = fleeX * currentSpeed;
-            a.vz = fleeZ * currentSpeed;
+            a.vx = smartDir.x * currentSpeed;
+            a.vz = smartDir.z * currentSpeed;
 
             if (Math.random() < 0.003) {
                 playSound(a.type);
@@ -1206,7 +1277,7 @@ function catchAnimal(index) {
     }
 }
 
-// 補獲閃光與 +1 特效
+
 function triggerCatchFlash() {
     const flash = document.getElementById('catchFlash');
     flash.classList.add('active');
@@ -1230,18 +1301,79 @@ function spawnScoreBubble() {
     }, 800);
 }
 
+const ChineseNumerals = ['一', '二', '三', '四', '五', '六'];
+
+function showToast(message) {
+    const oldToast = document.getElementById('hudToast');
+    if (oldToast) oldToast.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'hudToast';
+    toast.style.position = 'absolute';
+    toast.style.top = '70px';
+    toast.style.left = '50%';
+    toast.style.transform = 'translateX(-50%)';
+    toast.style.background = 'rgba(15, 23, 42, 0.85)';
+    toast.style.color = '#fff';
+    toast.style.padding = '8px 18px';
+    toast.style.borderRadius = '12px';
+    toast.style.border = '1px solid rgba(56, 189, 248, 0.3)';
+    toast.style.boxShadow = '0 8px 20px rgba(0,0,0,0.4), 0 0 10px rgba(56, 189, 248, 0.1)';
+    toast.style.fontSize = '0.9rem';
+    toast.style.fontWeight = '600';
+    toast.style.zIndex = '9999';
+    toast.style.pointerEvents = 'none';
+    toast.style.transition = 'opacity 0.3s, transform 0.3s';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translate(-50%, -10px)';
+    
+    toast.textContent = message;
+    const container = document.getElementById('viewport');
+    if (container) {
+        container.appendChild(toast);
+    }
+
+    toast.offsetHeight;
+
+    toast.style.opacity = '1';
+    toast.style.transform = 'translate(-50%, 0)';
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translate(-50%, -10px)';
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 2800);
+}
+
+function syncMobileHUD() {
+    const level = CONFIG.levels[currentLevelIndex];
+    if (!level) return;
+    const chLevel = ChineseNumerals[currentLevelIndex] || (currentLevelIndex + 1);
+    
+    const mLvl = document.getElementById('mobileLevelVal');
+    const mCgt = document.getElementById('mobileCaughtVal');
+    const mTim = document.getElementById('mobileTimeVal');
+    
+    if (mLvl) mLvl.textContent = `第${chLevel}關`;
+    if (mCgt) mCgt.textContent = `${caughtCount}/${level.targetCount}`;
+    if (mTim) mTim.textContent = levelTimeLeft;
+}
+
 function updateProgressUI() {
     const level = CONFIG.levels[currentLevelIndex];
     document.getElementById('caughtVal').textContent = `${caughtCount} / ${level.targetCount}`;
+    syncMobileHUD();
 }
 
-// --- 關卡與結算控制 ---
+
 function completeLevel() {
     gameState = 'LEVEL_COMPLETE';
     playSound('victory');
     if (timerInterval) clearInterval(timerInterval);
 
-    // 停止背景音樂並啟動歡樂五彩紙花慶祝特效
+
     stopBGM();
     startConfetti();
 
@@ -1262,7 +1394,7 @@ function completeLevel() {
 }
 
 function startNextLevel() {
-    // 停止紙花特效與背景音樂
+
     stopConfetti();
     stopBGM();
     document.getElementById('nextLevelOverlay').classList.add('hidden');
@@ -1275,7 +1407,7 @@ function startNextLevel() {
 }
 
 function restartGame() {
-    // 停止紙花特效與背景音樂
+
     stopConfetti();
     stopBGM();
     document.getElementById('victoryOverlay').classList.add('hidden');
@@ -1291,12 +1423,12 @@ function gameOver() {
     gameState = 'GAMEOVER';
     if (timerInterval) clearInterval(timerInterval);
     playSound('gameover');
-    stopBGM(); // 停止背景音樂
+    stopBGM();
     document.getElementById('gameOverOverlay').classList.remove('hidden');
 }
 
 function restartLevel() {
-    // 確保停止任何紙花特效
+
     stopConfetti();
     document.getElementById('gameOverOverlay').classList.add('hidden');
     buildLevel();
@@ -1335,7 +1467,7 @@ function updateParticles(delta) {
     }
 }
 
-// 2D 小地圖繪製
+
 function drawMinimap() {
     minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
     if (!mazeGrid.length) return;
@@ -1346,11 +1478,23 @@ function drawMinimap() {
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             if (mazeGrid[r][c] === 1) {
+
                 minimapCtx.fillStyle = '#065f46';
-            } else {
+                minimapCtx.fillRect(c * cellW, r * cellH, cellW, cellH);
+            } else if (mazeGrid[r][c] === 2) {
+
                 minimapCtx.fillStyle = '#022c22';
+                minimapCtx.fillRect(c * cellW, r * cellH, cellW, cellH);
+                
+                minimapCtx.fillStyle = '#16a34a';
+                minimapCtx.beginPath();
+                minimapCtx.arc((c + 0.5) * cellW, (r + 0.5) * cellH, cellW * 0.3, 0, Math.PI * 2);
+                minimapCtx.fill();
+            } else {
+
+                minimapCtx.fillStyle = '#022c22';
+                minimapCtx.fillRect(c * cellW, r * cellH, cellW, cellH);
             }
-            minimapCtx.fillRect(c * cellW, r * cellH, cellW, cellH);
         }
     }
 
@@ -1390,7 +1534,7 @@ function drawMinimap() {
     minimapCtx.stroke();
 }
 
-// 綠野格子地板紋理
+
 function createGrassTexture() {
     const canvas = document.createElement('canvas');
     canvas.width = 128;
@@ -1416,7 +1560,7 @@ function createGrassTexture() {
     return texture;
 }
 
-// 灌木牆貼圖
+
 function createHedgeTexture() {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
@@ -1444,7 +1588,7 @@ function createHedgeTexture() {
     return texture;
 }
 
-// 鍵盤輸入監聽
+
 function setupInputListeners() {
     window.addEventListener('keydown', (e) => {
         switch (e.code) {
@@ -1499,39 +1643,123 @@ function setupInputListeners() {
         }
     });
 
-    const btnForward = document.getElementById('btnForward');
-    const btnBackward = document.getElementById('btnBackward');
-    const btnLeft = document.getElementById('btnLeft');
-    const btnRight = document.getElementById('btnRight');
-    const btnDash = document.getElementById('btnDash');
 
-    function bindMobileBtn(element, keyName) {
-        if (!element) return;
-        element.addEventListener('touchstart', (e) => {
-            keys[keyName] = true;
+    const btnDash = document.getElementById('btnDash');
+    if (btnDash) {
+        btnDash.addEventListener('touchstart', (e) => {
+            keys.dash = true;
             touchActive = true;
             e.preventDefault();
         });
-        element.addEventListener('touchend', (e) => {
-            keys[keyName] = false;
+        btnDash.addEventListener('touchend', (e) => {
+            keys.dash = false;
             e.preventDefault();
         });
     }
 
-    bindMobileBtn(btnForward, 'forward');
-    bindMobileBtn(btnBackward, 'backward');
-    bindMobileBtn(btnLeft, 'left');
-    bindMobileBtn(btnRight, 'right');
-    bindMobileBtn(btnDash, 'dash');
+
+    const joystickZone = document.getElementById('joystickZone');
+    const joystickBase = document.getElementById('joystickBase');
+    const joystickKnob = document.getElementById('joystickKnob');
+
+    if (joystickZone && joystickBase && joystickKnob) {
+
+        const maxRadius = 45;
+
+        joystickZone.addEventListener('touchstart', (e) => {
+            if (joystickActive) return;
+            
+            const touch = e.changedTouches[0];
+            joystickTouchId = touch.identifier;
+            joystickActive = true;
+            touchActive = true;
+            
+
+            joystickZone.classList.add('active');
+
+
+            const rect = joystickBase.getBoundingClientRect();
+            joystickStartX = rect.left + rect.width / 2;
+            joystickStartY = rect.top + rect.height / 2;
+
+            updateJoystick(touch.clientX, touch.clientY);
+            e.preventDefault();
+        }, { passive: false });
+
+        joystickZone.addEventListener('touchmove', (e) => {
+            if (!joystickActive) return;
+            
+
+            for (let i = 0; i < e.touches.length; i++) {
+                if (e.touches[i].identifier === joystickTouchId) {
+                    updateJoystick(e.touches[i].clientX, e.touches[i].clientY);
+                    break;
+                }
+            }
+            e.preventDefault();
+        }, { passive: false });
+
+        const endJoystick = (e) => {
+            if (!joystickActive) return;
+            
+
+            let isJoystickRelease = false;
+            if (e.changedTouches) {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === joystickTouchId) {
+                        isJoystickRelease = true;
+                        break;
+                    }
+                }
+            } else {
+                isJoystickRelease = true;
+            }
+
+            if (isJoystickRelease) {
+                joystickActive = false;
+                joystickTouchId = null;
+                joystickX = 0;
+                joystickY = 0;
+                
+
+                joystickZone.classList.remove('active');
+                joystickKnob.style.left = '50%';
+                joystickKnob.style.top = '50%';
+            }
+        };
+
+        joystickZone.addEventListener('touchend', endJoystick, { passive: false });
+        joystickZone.addEventListener('touchcancel', endJoystick, { passive: false });
+
+        function updateJoystick(clientX, clientY) {
+            let dx = clientX - joystickStartX;
+            let dy = clientY - joystickStartY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+
+            if (dist > maxRadius) {
+                dx = (dx / dist) * maxRadius;
+                dy = (dy / dist) * maxRadius;
+            }
+
+
+            joystickKnob.style.left = `calc(50% + ${dx}px)`;
+            joystickKnob.style.top = `calc(50% + ${dy}px)`;
+
+
+            joystickX = dx / maxRadius;
+            joystickY = dy / maxRadius;
+        }
+    }
 }
 
-// UI 按鈕綁定
+
 function setupUIEvents() {
     document.getElementById('startBtn').addEventListener('click', () => {
         document.getElementById('startOverlay').classList.add('hidden');
         initAudio();
         currentLevelIndex = 0;
-        gameState = 'PLAYING'; // 先設為播放狀態，以利 buildLevel 正常觸發背景音樂
+        gameState = 'PLAYING';
         buildLevel();
         animate();
 
@@ -1561,9 +1789,19 @@ function setupUIEvents() {
             stopBGM();
         }
     });
+
+    const mobileInfoBtn = document.getElementById('mobileInfoBtn');
+    if (mobileInfoBtn) {
+        mobileInfoBtn.addEventListener('click', () => {
+            const chLevel = ChineseNumerals[currentLevelIndex] || (currentLevelIndex + 1);
+            const levelName = `第${chLevel}關`;
+            const infoText = `森林守護者，加油！🐾 目前是「${levelName}」，你已成功收容 ${caughtCount} 隻調皮的小傢伙（目標 ${CONFIG.levels[currentLevelIndex].targetCount} 隻），時間還剩 ${levelTimeLeft} 秒喔！快快追上牠們吧！❤️`;
+            showToast(infoText);
+        });
+    }
 }
 
-// 視窗縮放
+
 window.addEventListener('resize', () => {
     const container = document.getElementById('viewport');
     if (!container || !renderer || !camera) return;
@@ -1576,7 +1814,7 @@ window.addEventListener('resize', () => {
     renderer.setSize(width, height);
 });
 
-// --- 歡樂過關紙花特效 (Canvas Confetti Effect) ---
+
 let confettiActive = false;
 let confettiParticles = [];
 const confettiColors = ['#f43f5e', '#ec4899', '#8b5cf6', '#3b82f6', '#06b6d4', '#10b981', '#eab308', '#f97316'];
@@ -1595,7 +1833,7 @@ function startConfetti() {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // 生成五彩紙花粒子 (150 個)
+
     for (let i = 0; i < 150; i++) {
         confettiParticles.push({
             x: Math.random() * canvas.width,
@@ -1637,7 +1875,7 @@ function startConfetti() {
             ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
             ctx.stroke();
 
-            // 落地後循環回頂部
+
             if (p.y > canvas.height + 20) {
                 p.y = -20;
                 p.x = Math.random() * canvas.width;
@@ -1651,28 +1889,28 @@ function stopConfetti() {
     confettiActive = false;
 }
 
-// --- 歡樂背景音樂合成器 (Level-Specific Procedural BGM Synthesizer) ---
+
 let bgmInterval = null;
 let bgmIndex = 0;
 
-// 每一關專屬的快樂童謠旋律與節奏音符
+
 const levelBGMNotes = [
-    // 第一關：追逐小兔兔 (C大調，輕快跳躍)
+
     [523.25, 659.25, 783.99, 659.25, 698.46, 880.00, 783.99, 659.25, 587.33, 698.46, 659.25, 523.25, 493.88, 587.33, 523.25, 0],
-    // 第二關：淘氣貓咪 (D大調，微升音階，節奏稍慢悠閒)
+
     [587.33, 739.99, 880.00, 739.99, 783.99, 987.77, 880.00, 739.99, 659.25, 783.99, 739.99, 587.33, 554.37, 659.25, 587.33, 0],
-    // 第三關：狗狗大賽跑 (E大調，節奏加快，運動奔跑感)
+
     [659.25, 783.99, 987.77, 783.99, 880.00, 1046.50, 987.77, 783.99, 739.99, 880.00, 783.99, 659.25, 587.33, 739.99, 659.25, 0],
-    // 第四關：森林大集合 (C大調完整和弦分解，熱鬧歡樂)
+
     [523.25, 783.99, 659.25, 783.99, 698.46, 880.00, 783.99, 1046.50, 880.00, 783.99, 698.46, 659.25, 587.33, 493.88, 523.25, 0]
 ];
 
-// 每一關對應的音符播放間隔毫秒數 (BPM 速度)
+
 const levelBGMSpeeds = [
-    280, // 第一關: 280ms/拍 (活潑)
-    330, // 第二關: 330ms/拍 (悠閒貓咪)
-    215, // 第三關: 215ms/拍 (熱烈奔跑)
-    240  // 第四關: 240ms/拍 (熱鬧大集合)
+    280,
+    330,
+    215,
+    240
 ];
 
 function startBGM() {
@@ -1683,13 +1921,13 @@ function startBGM() {
 
     bgmIndex = 0;
     
-    // 獲取當前關卡的音符與播放速度
+
     const notes = levelBGMNotes[currentLevelIndex] || levelBGMNotes[0];
     const speed = levelBGMSpeeds[currentLevelIndex] || levelBGMSpeeds[0];
-    const noteDuration = (speed / 1000) * 0.95; // 稍短於間隔時間以利音符斷音 (Staccato)
+    const noteDuration = (speed / 1000) * 0.95;
 
     const playNextNote = () => {
-        // 如果非播放狀態或已被靜音，立刻自我停播
+
         if (gameState !== 'PLAYING' || !soundEnabled) {
             stopBGM();
             return;
@@ -1701,11 +1939,11 @@ function startBGM() {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 
-                // 採用溫和圓潤的三角波，具有 8-bit 木琴般舒服的懷舊質感
+
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(note, audioCtx.currentTime);
                 
-                // 設定極淡的主動音量，作為適宜的背景音，不吵雜 (Max 0.05)
+
                 gain.gain.setValueAtTime(0.0, audioCtx.currentTime);
                 gain.gain.linearRampToValueAtTime(0.045, audioCtx.currentTime + 0.02);
                 gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + noteDuration);
@@ -1723,7 +1961,7 @@ function startBGM() {
         bgmIndex = (bgmIndex + 1) % notes.length;
     };
 
-    // 啟動定時調用
+
     bgmInterval = setInterval(playNextNote, speed);
 }
 
