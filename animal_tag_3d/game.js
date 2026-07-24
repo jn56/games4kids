@@ -1790,6 +1790,51 @@ function setupUIEvents() {
         }
     });
 
+    function toggleFullscreen() {
+        const doc = document;
+        const docEl = doc.documentElement;
+        const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+        const exitFS = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+        const isFS = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+
+        if (!isFS) {
+            if (requestFS) {
+                requestFS.call(docEl).catch(() => {
+                    showToast("提示：您的瀏覽器限制全螢幕模式 📱");
+                });
+            } else {
+                showToast("提示：您的瀏覽器限制全螢幕模式 📱");
+            }
+        } else {
+            if (exitFS) {
+                exitFS.call(doc).catch(() => {});
+            }
+        }
+    }
+
+    const mobileFullscreenBtn = document.getElementById('mobileFullscreenBtn');
+    if (mobileFullscreenBtn) {
+        mobileFullscreenBtn.addEventListener('click', toggleFullscreen);
+    }
+
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    if (fullscreenBtn) {
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+    }
+
+    const updateFSButtons = () => {
+        const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+        if (mobileFullscreenBtn) {
+            mobileFullscreenBtn.style.color = isFS ? '#34d399' : '#a855f7';
+        }
+        if (fullscreenBtn) {
+            fullscreenBtn.textContent = isFS ? '⛶ 退出全螢幕' : '⛶ 全螢幕';
+        }
+    };
+
+    document.addEventListener('fullscreenchange', updateFSButtons);
+    document.addEventListener('webkitfullscreenchange', updateFSButtons);
+
     const mobileInfoBtn = document.getElementById('mobileInfoBtn');
     if (mobileInfoBtn) {
         mobileInfoBtn.addEventListener('click', () => {

@@ -551,6 +551,22 @@
             #mobileInfoBtn:active {
                 transform: scale(1.2);
             }
+            #mobileFullscreenBtn {
+                background: none;
+                border: none;
+                color: #a855f7;
+                font-size: 1.1rem;
+                cursor: pointer;
+                padding: 0 4px;
+                margin-left: 2px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.15s;
+            }
+            #mobileFullscreenBtn:active {
+                transform: scale(1.2);
+            }
             .back-btn {
                 width: 32px;
                 height: 32px;
@@ -668,7 +684,8 @@
             <span id="mobileLevelVal" style="color: #34d399;">第二關</span>
             <span id="mobileCaughtVal" style="color: #fbbf24;">0/10</span>
             <span id="mobileTimeVal" style="color: #38bdf8;">300</span>
-            <button id="mobileInfoBtn">ⓘ</button>
+            <button id="mobileInfoBtn" title="關卡資訊">ⓘ</button>
+            <button id="mobileFullscreenBtn" title="全螢幕模式">⛶</button>
         </header>
 
         <header class="hud-header">
@@ -694,6 +711,7 @@
             </div>
 
             <div class="hud-right">
+                <button id="fullscreenBtn" title="切換全螢幕">⛶ 全螢幕</button>
                 <button id="muteBtn" title="切換音效">🔊 音效: 開</button>
             </div>
         </header>
