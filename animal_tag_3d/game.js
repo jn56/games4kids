@@ -1803,6 +1803,7 @@ function setupUIEvents() {
 
 
 window.addEventListener('resize', () => {
+    if (typeof setAppHeight === 'function') setAppHeight();
     const container = document.getElementById('viewport');
     if (!container || !renderer || !camera) return;
 
@@ -1812,6 +1813,9 @@ window.addEventListener('resize', () => {
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
+});
+window.addEventListener('orientationchange', () => {
+    if (typeof setAppHeight === 'function') setAppHeight();
 });
 
 

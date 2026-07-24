@@ -2,13 +2,22 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>3D 森林抓迷藏 🐈</title>
     
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        function setAppHeight() {
+            document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+        }
+        window.addEventListener('resize', setAppHeight);
+        window.addEventListener('orientationchange', setAppHeight);
+        setAppHeight();
+    </script>
 
     <style>
         :root {
@@ -28,11 +37,21 @@
             padding: 0;
         }
 
+        html {
+            height: 100vh;
+            height: 100dvh;
+            height: var(--app-height, 100vh);
+            overflow: hidden;
+        }
+
         body {
             background-color: var(--bg-color);
             color: var(--text-light);
             font-family: var(--font-body);
-            min-height: 100vh;
+            height: 100vh;
+            height: 100dvh;
+            height: var(--app-height, 100vh);
+            min-height: -webkit-fill-available;
             width: 100%;
             overflow: hidden;
             display: flex;
@@ -57,11 +76,15 @@
             width: 100%;
             max-width: 1200px;
             height: 100vh;
+            height: 100dvh;
+            height: var(--app-height, 100vh);
+            height: -webkit-fill-available;
             display: flex;
             flex-direction: column;
             position: relative;
             z-index: 2;
             padding: 15px;
+            box-sizing: border-box;
         }
 
         
@@ -164,6 +187,7 @@
         
         .viewport-wrapper {
             flex: 1;
+            min-height: 0;
             background: radial-gradient(circle at center, #062f1c 0%, #030f0a 100%);
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 24px;
@@ -243,6 +267,8 @@
             left: 0;
             width: 100%;
             height: 100%;
+            overflow-y: auto;
+            max-height: 100%;
             background: rgba(11, 19, 41, 0.85);
             backdrop-filter: blur(16px);
             z-index: 100;
@@ -284,21 +310,20 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 16px;
             padding: 15px 25px;
-            max-width: 450px;
-            width: 100%;
             margin-bottom: 25px;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            text-align: left;
             font-size: 0.9rem;
+            color: var(--text-light);
         }
 
         .ctrl-key {
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            padding: 2px 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 6px;
+            padding: 2px 8px;
+            margin: 0 2px;
             font-family: var(--font-display);
             font-weight: 700;
             font-size: 0.8rem;
@@ -310,8 +335,8 @@
             color: #000;
             font-family: var(--font-body);
             font-weight: 700;
-            font-size: 1.05rem;
-            padding: 12px 30px;
+            font-size: 1.1rem;
+            padding: 12px 36px;
             border-radius: 14px;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
@@ -337,109 +362,85 @@
 
         .emoji-parade {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 18px;
-            margin: 15px 0 25px 0;
-            font-size: 2.8rem;
-            user-select: none;
+            gap: 15px;
+            font-size: 2.2rem;
+            margin-bottom: 15px;
         }
 
         .bounce-emoji {
             display: inline-block;
-            animation: emojiBounce 1.0s infinite ease-in-out alternate;
+            animation: bounce 1.2s infinite ease-in-out;
         }
 
-        @keyframes emojiBounce {
-            0% {
-                transform: translateY(0) scale(1) rotate(-5deg);
-            }
-            100% {
-                transform: translateY(-24px) scale(1.25) rotate(15deg);
-                text-shadow: 0 10px 15px rgba(251, 191, 36, 0.45);
-            }
+        @keyframes bounce {
+            0%, 100% { transform: translate(-50%, 0); }
+            50% { transform: translate(-50%, -6px); }
         }
 
         .victory-title {
-            animation: victoryGlow 1.5s infinite alternate ease-in-out;
-            font-size: 2.6rem !important;
-            font-weight: 900 !important;
-            margin-bottom: 20px !important;
+            animation: victoryGlow 2s infinite alternate;
         }
 
         @keyframes victoryGlow {
-            0% {
-                text-shadow: 0 0 10px rgba(251, 191, 36, 0.3), 0 0 20px rgba(251, 191, 36, 0.1);
-                transform: scale(1.0);
-            }
-            100% {
-                text-shadow: 0 0 25px rgba(251, 191, 36, 0.75), 0 0 40px rgba(245, 158, 11, 0.4);
-                transform: scale(1.05);
-            }
+            0% { filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.5)); transform: scale(1); }
+            100% { filter: drop-shadow(0 0 25px rgba(52, 211, 153, 0.9)); transform: scale(1.05); }
         }
 
         .victory-btn {
-            background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%) !important;
-            box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4) !important;
-            animation: btnPulse 1.6s infinite alternate ease-in-out;
-            color: #000 !important;
-        }
-
-        .victory-btn:hover {
-            box-shadow: 0 8px 25px rgba(251, 191, 36, 0.6) !important;
+            animation: btnPulse 1.5s infinite;
         }
 
         @keyframes btnPulse {
-            0% { transform: translateY(0) scale(1.0); }
-            100% { transform: translateY(-3px) scale(1.06); }
+            0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
+            50% { transform: scale(1.05); box-shadow: 0 8px 25px rgba(16, 185, 129, 0.6); }
         }
 
         
         .level-announcement {
             position: absolute;
-            top: 40%;
+            top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%) scale(0.8);
             background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(8px);
-            border: 2px solid var(--accent-color);
-            padding: 15px 40px;
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(52, 211, 153, 0.4);
             border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(16, 185, 129, 0.25);
+            padding: 20px 40px;
             text-align: center;
-            z-index: 50;
-            opacity: 0;
             pointer-events: none;
-            transition: opacity 0.5s ease, transform 0.5s ease;
+            z-index: 20;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
         }
 
-        .level-announcement.show-ann {
+        .level-announcement.active {
             opacity: 1;
-            transform: translate(-50%, -45%);
+            transform: translate(-50%, -50%) scale(1);
         }
 
         .level-announcement h3 {
+            font-family: var(--font-display);
             font-size: 1.8rem;
             color: #34d399;
             margin-bottom: 5px;
         }
 
         .level-announcement p {
-            color: var(--text-muted);
+            color: #94a3b8;
             font-size: 0.95rem;
         }
 
         
         .score-bubble {
             position: absolute;
-            color: #34d399;
-            font-family: var(--font-display);
+            color: #facc15;
+            font-size: 1.5rem;
             font-weight: 800;
-            font-size: 1.8rem;
             pointer-events: none;
-            z-index: 20;
-            animation: floatUp 0.8s forwards ease-out;
-            text-shadow: 0 2px 10px rgba(16, 185, 129, 0.5);
+            z-index: 25;
+            animation: floatUp 0.8s ease-out forwards;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
         }
 
         
@@ -493,16 +494,21 @@
             100% { transform: translateY(-80px) scale(1.1); opacity: 0; }
         }
 
-        @keyframes bounce {
-            0%, 100% { transform: translate(-50%, 0); }
-            50% { transform: translate(-50%, -6px); }
-        }
-
         .mobile-hud-header {
             display: none;
         }
 
         @media (max-width: 768px) {
+            .game-container {
+                padding: 4px;
+                padding-top: max(4px, env(safe-area-inset-top));
+                padding-bottom: max(4px, env(safe-area-inset-bottom));
+                padding-left: max(4px, env(safe-area-inset-left));
+                padding-right: max(4px, env(safe-area-inset-right));
+            }
+            .viewport-wrapper {
+                border-radius: 16px;
+            }
             .hud-header {
                 display: none !important;
             }
@@ -516,7 +522,7 @@
                 backdrop-filter: blur(12px);
                 border: 1px solid rgba(255, 255, 255, 0.08);
                 border-radius: 20px;
-                margin-bottom: 12px;
+                margin-bottom: 6px;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
                 font-family: var(--font-display);
                 font-weight: 700;
@@ -545,38 +551,6 @@
             #mobileInfoBtn:active {
                 transform: scale(1.2);
             }
-            .hud-left {
-                width: 50%;
-                gap: 6px;
-            }
-            .hud-left h1 {
-                display: none; 
-            }
-            .hud-right {
-                width: 50%;
-                display: flex;
-                justify-content: flex-end;
-            }
-            .hud-center {
-                width: 100%;
-                justify-content: space-between;
-                gap: 4px;
-                margin-top: 2px;
-            }
-            .hud-item {
-                flex: 1;
-                justify-content: center;
-                padding: 4px 6px;
-                font-size: 0.78rem;
-                gap: 3px;
-                background: rgba(255, 255, 255, 0.02);
-                border-radius: 8px;
-                white-space: nowrap;
-            }
-            .level-badge {
-                padding: 2px 8px;
-                font-size: 0.75rem;
-            }
             .back-btn {
                 width: 32px;
                 height: 32px;
@@ -584,10 +558,10 @@
             }
             
             .stamina-container {
-                bottom: 15px; 
+                bottom: max(10px, env(safe-area-inset-bottom));
                 left: 50%;
                 transform: translateX(-50%);
-                width: 130px;
+                width: 120px;
                 height: 10px;
                 border-radius: 6px;
                 z-index: 5;
@@ -618,8 +592,8 @@
                 align-items: center;
                 justify-content: center;
                 position: absolute;
-                bottom: 25px;
-                left: 25px;
+                bottom: max(15px, env(safe-area-inset-bottom));
+                left: max(15px, env(safe-area-inset-left));
                 pointer-events: none;
             }
             .joystick-knob {
@@ -642,8 +616,8 @@
             .dash-btn-wrapper {
                 display: block !important;
                 position: absolute;
-                bottom: 25px;
-                right: 25px;
+                bottom: max(15px, env(safe-area-inset-bottom));
+                right: max(15px, env(safe-area-inset-right));
                 pointer-events: auto;
                 z-index: 100;
             }
