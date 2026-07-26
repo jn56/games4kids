@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>3D 皮克敏模型展演 🌸</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        function setAppHeight() {
+            document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+        }
+        window.addEventListener('resize', setAppHeight);
+        window.addEventListener('orientationchange', setAppHeight);
+        setAppHeight();
+    </script>
+
+    <style>
+        :root {
+            --bg-color: #080d1a;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-color: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.25);
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'Fredoka', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            height: 100vh;
+            height: 100dvh;
+            height: var(--app-height, 100vh);
+            overflow: hidden;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            font-family: var(--font-body);
+            height: 100vh;
+            height: 100dvh;
+            height: var(--app-height, 100vh);
+            min-height: -webkit-fill-available;
+            width: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .ambient-glow {
+            position: absolute;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, rgba(168, 85, 247, 0.05) 50%, rgba(0, 0, 0, 0) 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 1200px;
+            height: 100vh;
+            height: 100dvh;
+            height: var(--app-height, 100vh);
+            height: -webkit-fill-available;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 2;
+            padding: 12px;
+            box-sizing: border-box;
+        }
+
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 18px;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .hud-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: var(--text-light);
+            text-decoration: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all 0.25s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.1);
+        }
+
+        .hud-left h1 {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #38bdf8 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hud-right {
+            display: flex;
+            gap: 8px;
+        }
+
+        .hud-right button {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            cursor: pointer;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-family: var(--font-body);
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .hud-right button:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .mobile-hud-header {
+            display: none;
+        }
+
+        .viewport-wrapper {
+            flex: 1;
+            min-height: 0;
+            background: radial-gradient(circle at center, #0f172a 0%, #030712 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 80px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.5);
+            touch-action: none;
+            user-select: none;
+        }
+
+        #canvas3d {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .action-status-badge {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #38bdf8;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            pointer-events: none;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .drag-hint {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 4px 12px;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .control-bar {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .action-buttons-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .action-btn {
+            flex: 1;
+            max-width: 160px;
+            padding: 12px 10px;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1.5px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            color: #fff;
+            font-family: var(--font-body);
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            border-color: rgba(56, 189, 248, 0.5);
+            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.3);
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+
+        .action-btn.active {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            border-color: #38bdf8;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+            color: #fff;
+        }
+
+        .btn-fold-arms {
+            background: linear-gradient(135deg, rgba(244, 63, 94, 0.2) 0%, rgba(225, 29, 72, 0.1) 100%);
+            border-color: rgba(244, 63, 94, 0.3);
+        }
+        .btn-fold-arms.active {
+            background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+            box-shadow: 0 0 20px rgba(244, 63, 94, 0.5);
+            color: #fff;
+        }
+
+        .btn-jump {
+            background: linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(202, 138, 4, 0.1) 100%);
+            border-color: rgba(234, 179, 8, 0.3);
+        }
+        .btn-jump.active {
+            background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+            color: #000;
+            box-shadow: 0 0 20px rgba(234, 179, 8, 0.5);
+        }
+
+        .btn-crouch {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(147, 51, 234, 0.1) 100%);
+            border-color: rgba(168, 85, 247, 0.3);
+        }
+        .btn-crouch.active {
+            background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+        }
+
+        .btn-run {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.1) 100%);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+        .btn-run.active {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+        }
+
+        .rotation-controls-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .rot-btn {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 6px 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.15s;
+            user-select: none;
+        }
+
+        .rot-btn:active {
+            background: rgba(56, 189, 248, 0.2);
+            color: #38bdf8;
+            transform: scale(0.95);
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 6px;
+                padding-top: max(6px, env(safe-area-inset-top));
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+                padding-left: max(6px, env(safe-area-inset-left));
+                padding-right: max(6px, env(safe-area-inset-right));
+            }
+            .hud-header {
+                display: none !important;
+            }
+            .mobile-hud-header {
+                display: flex !important;
+                justify-content: space-between;
+                align-items: center;
+                padding: 6px 12px;
+                background: rgba(15, 23, 42, 0.75);
+                backdrop-filter: blur(12px);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 16px;
+                margin-bottom: 6px;
+            }
+            .mobile-hud-title {
+                font-family: var(--font-display);
+                font-size: 0.95rem;
+                font-weight: 700;
+                color: #38bdf8;
+            }
+            .mobile-hud-actions {
+                display: flex;
+                gap: 6px;
+            }
+            .mobile-hud-actions button {
+                background: none;
+                border: none;
+                color: #f8fafc;
+                font-size: 1.1rem;
+                cursor: pointer;
+                padding: 2px 6px;
+            }
+            .viewport-wrapper {
+                border-radius: 16px;
+            }
+            .action-btn {
+                padding: 10px 6px;
+                font-size: 0.85rem;
+                border-radius: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-glow"></div>
+
+    <div class="game-container">
+        
+        <header class="mobile-hud-header">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <a href="../index.html" class="back-btn" style="width:30px; height:30px; font-size:0.85rem;" title="返回大廳">🏠</a>
+                <span class="mobile-hud-title">3D 藍色皮克敏展演 🌸</span>
+            </div>
+            <div class="mobile-hud-actions">
+                <button id="mobileMuteBtn" title="切換音效">🔊</button>
+                <button id="mobileFullscreenBtn" title="全螢幕模式">⛶</button>
+            </div>
+        </header>
+
+        <header class="hud-header">
+            <div class="hud-left">
+                <a href="../index.html" class="back-btn" title="返回大廳">🏠</a>
+                <h1>3D 藍色皮克敏展演 🌸</h1>
+            </div>
+            <div class="hud-right">
+                <button id="fullscreenBtn" title="切換全螢幕">⛶ 全螢幕</button>
+                <button id="muteBtn" title="切換音效">🔊 音效: 開</button>
+            </div>
+        </header>
+
+        
+        <div class="viewport-wrapper" id="viewport">
+            <canvas id="canvas3d"></canvas>
+
+            <div class="action-status-badge" id="statusBadge">
+                <span id="statusIcon">🌸</span>
+                <span id="statusText">當前動作：藍色皮克敏 站立 (Idle)</span>
+            </div>
+
+            <div class="drag-hint">
+                ↔️ 左右拖曳畫面 或 按鍵盤 ←/→ 旋轉皮克敏
+            </div>
+        </div>
+
+        
+        <div class="control-bar">
+            <div class="action-buttons-row">
+                <button class="action-btn active" id="btnIdle">
+                    <span>🧍</span> 站立
+                </button>
+                <button class="action-btn btn-fold-arms" id="btnFoldArms">
+                    <span>🙅</span> 抱胸
+                </button>
+                <button class="action-btn btn-jump" id="btnJump">
+                    <span>🦘</span> 跳躍
+                </button>
+                <button class="action-btn btn-crouch" id="btnCrouch">
+                    <span>🧘</span> 蹲下
+                </button>
+                <button class="action-btn btn-run" id="btnRun">
+                    <span>🏃</span> 奔跑
+                </button>
+            </div>
+
+            <div class="rotation-controls-row">
+                <button class="rot-btn" id="btnRotateLeft">
+                    <span>◄</span> 向左旋轉 (A / ←)
+                </button>
+                <button class="rot-btn" id="btnRotateRight">
+                    向右旋轉 (D / →) <span>►</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="three.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
