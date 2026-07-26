@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>3D 森林抓迷藏 🐈</title>
+    
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        function setAppHeight() {
+            document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+        }
+        window.addEventListener('resize', setAppHeight);
+        window.addEventListener('orientationchange', setAppHeight);
+        setAppHeight();
+    </script>
+
+    <style>
+        :root {
+            --bg-color: #0b1329;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-color: #10b981;
+            --accent-glow: rgba(16, 185, 129, 0.25);
+            --pkmadv-accent: #a855f7;
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'Fredoka', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            height: 100vh;
+            height: 100dvh;
+            height: var(--app-height, 100vh);
+            overflow: hidden;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            font-family: var(--font-body);
+            height: 100vh;
+            height: 100dvh;
+            height: var(--app-height, 100vh);
+            min-height: -webkit-fill-available;
+            width: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        
+        .ambient-glow {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
+            top: -10%;
+            left: -10%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 1200px;
+            height: 100vh;
+            height: 100dvh;
+            height: var(--app-height, 100vh);
+            height: -webkit-fill-available;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 2;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .hud-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: var(--text-light);
+            text-decoration: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all 0.25s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.1);
+        }
+
+        .hud-left h1 {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .level-badge {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34d399;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .hud-center {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .hud-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hud-right {
+            display: flex;
+            gap: 8px;
+        }
+
+        .hud-right button {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            cursor: pointer;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-family: var(--font-body);
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .hud-right button:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        
+        .viewport-wrapper {
+            flex: 1;
+            min-height: 0;
+            background: radial-gradient(circle at center, #062f1c 0%, #030f0a 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 80px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        #canvas3d {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        
+        .stamina-container {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 250px;
+            height: 14px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .stamina-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+            box-shadow: 0 0 10px rgba(52, 211, 153, 0.6);
+            transition: width 0.1s linear;
+        }
+
+        .stamina-label {
+            position: absolute;
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #fff;
+            left: 50%;
+            transform: translateX(-50%);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+
+        
+        .minimap-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            padding: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+
+        #minimapCanvas {
+            display: block;
+            border-radius: 12px;
+            background: #020704;
+        }
+
+        
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11, 19, 41, 0.85);
+            backdrop-filter: blur(16px);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+            transition: opacity 0.4s ease;
+        }
+
+        .overlay h2, .overlay .overlay-desc {
+            margin-bottom: 20px;
+        }
+
+        .overlay-clear {
+            background: transparent !important;
+            backdrop-filter: none !important;
+            justify-content: flex-end !important;
+            padding-bottom: 40px !important;
+        }
+
+        .overlay-clear h2 {
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            text-shadow: none !important;
+            color: #ffffff;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+        
+        .overlay-clear .overlay-desc {
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        /* Side-by-side flex container for victory texts and buttons */
+        .overlay-clear-content {
+            display: flex;
+            align-items: stretch;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .overlay-clear-content h2, .overlay-clear-content p, .overlay-clear-content button {
+            margin: 0;
+        }
+
+        .overlay.hidden {
+            display: none !important;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .overlay h2 {
+            font-family: var(--font-display);
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+        }
+
+        .overlay-desc {
+            max-width: 500px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .controls-list {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 15px 25px;
+            margin-bottom: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .ctrl-key {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 2px 8px;
+            margin: 0 2px;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+
+        .overlay button {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #000;
+            font-family: var(--font-body);
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+        }
+
+        .overlay button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+        }
+
+        
+        #confettiCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            display: none;
+        }
+
+        .emoji-parade {
+            display: flex;
+            gap: 15px;
+            font-size: 2.2rem;
+            margin-bottom: 15px;
+        }
+
+        .bounce-emoji {
+            display: inline-block;
+            animation: bounce 1.2s infinite ease-in-out;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translate(-50%, 0); }
+            50% { transform: translate(-50%, -6px); }
+        }
+
+        .victory-title {
+            animation: victoryGlow 2s infinite alternate;
+        }
+
+        @keyframes victoryGlow {
+            0% { filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.5)); transform: scale(1); }
+            100% { filter: drop-shadow(0 0 25px rgba(52, 211, 153, 0.9)); transform: scale(1.05); }
+        }
+
+        .victory-btn {
+            animation: btnPulse 1.5s infinite;
+        }
+
+        @keyframes btnPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
+            50% { transform: scale(1.05); box-shadow: 0 8px 25px rgba(16, 185, 129, 0.6); }
+        }
+
+        
+        .level-announcement {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(52, 211, 153, 0.4);
+            border-radius: 20px;
+            padding: 20px 40px;
+            text-align: center;
+            pointer-events: none;
+            z-index: 20;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .level-announcement.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .level-announcement h3 {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            color: #34d399;
+            margin-bottom: 5px;
+        }
+
+        .level-announcement p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+
+        
+        .score-bubble {
+            position: absolute;
+            color: #facc15;
+            font-size: 1.5rem;
+            font-weight: 800;
+            pointer-events: none;
+            z-index: 25;
+            animation: floatUp 0.8s ease-out forwards;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        
+        .joystick-touch-area, .dash-btn-wrapper, .jump-btn-wrapper {
+            display: none;
+        }
+
+        .dash-btn {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            font-weight: 700;
+            user-select: none;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .dash-btn:active {
+            background: rgba(16, 185, 129, 0.3);
+            border-color: var(--accent-color);
+            transform: scale(0.95);
+        }
+
+        
+        .catch-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(52, 211, 153, 0.12);
+            z-index: 15;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        .catch-flash.active {
+            opacity: 1;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.8); opacity: 1; }
+            100% { transform: translateY(-80px) scale(1.1); opacity: 0; }
+        }
+
+        .mobile-hud-header {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 4px;
+                padding-top: max(4px, env(safe-area-inset-top));
+                padding-bottom: max(4px, env(safe-area-inset-bottom));
+                padding-left: max(4px, env(safe-area-inset-left));
+                padding-right: max(4px, env(safe-area-inset-right));
+            }
+            .viewport-wrapper {
+                border-radius: 16px;
+            }
+            .hud-header {
+                display: none !important;
+            }
+            .mobile-hud-header {
+                display: flex !important;
+                justify-content: center;
+                align-items: center;
+                gap: 12px;
+                padding: 6px 16px;
+                background: rgba(15, 23, 42, 0.65);
+                backdrop-filter: blur(12px);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 20px;
+                margin-bottom: 6px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+                font-family: var(--font-display);
+                font-weight: 700;
+                font-size: 1.05rem;
+                color: #f8fafc;
+                width: max-content;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .hud-sep {
+                color: rgba(255, 255, 255, 0.4);
+            }
+            #mobileInfoBtn {
+                background: none;
+                border: none;
+                color: #38bdf8;
+                font-size: 1.15rem;
+                cursor: pointer;
+                padding: 0 4px;
+                margin-left: 2px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.15s;
+            }
+            #mobileInfoBtn:active {
+                transform: scale(1.2);
+            }
+            #mobileFullscreenBtn {
+                background: none;
+                border: none;
+                color: #a855f7;
+                font-size: 1.1rem;
+                cursor: pointer;
+                padding: 0 4px;
+                margin-left: 2px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.15s;
+            }
+            #mobileFullscreenBtn:active {
+                transform: scale(1.2);
+            }
+            .back-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 0.95rem;
+            }
+            
+            .stamina-container {
+                bottom: max(10px, env(safe-area-inset-bottom));
+                left: 50%;
+                transform: translateX(-50%);
+                width: 120px;
+                height: 10px;
+                border-radius: 6px;
+                z-index: 5;
+            }
+            .stamina-label {
+                font-size: 0.52rem;
+            }
+            .joystick-touch-area {
+                display: block !important;
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 220px;
+                height: 220px;
+                pointer-events: auto;
+                user-select: none;
+                touch-action: none;
+                z-index: 100;
+            }
+            .joystick-base {
+                width: 90px;
+                height: 90px;
+                border-radius: 50%;
+                background: rgba(15, 23, 42, 0.45);
+                border: 2px solid rgba(56, 189, 248, 0.4);
+                box-shadow: 0 0 15px rgba(56, 189, 248, 0.2), inset 0 0 10px rgba(56, 189, 248, 0.1);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: absolute;
+                bottom: max(15px, env(safe-area-inset-bottom));
+                left: max(15px, env(safe-area-inset-left));
+                pointer-events: none;
+            }
+            .joystick-knob {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(224, 242, 254, 0.85) 60%, rgba(56, 189, 248, 0.75) 100%);
+                border: 1px solid #fff;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), 0 0 12px rgba(56, 189, 248, 0.6);
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                pointer-events: none;
+            }
+            .joystick-touch-area.active .joystick-base {
+                border-color: rgba(56, 189, 248, 0.85);
+                box-shadow: 0 0 25px rgba(56, 189, 248, 0.55), inset 0 0 15px rgba(56, 189, 248, 0.3);
+            }
+            .dash-btn-wrapper {
+                display: block !important;
+                position: absolute;
+                bottom: max(15px, env(safe-area-inset-bottom));
+                right: max(15px, env(safe-area-inset-right));
+                pointer-events: auto;
+                z-index: 100;
+            }
+            .jump-btn-wrapper {
+                display: block !important;
+                position: absolute;
+                bottom: calc(max(15px, env(safe-area-inset-bottom)) + 75px);
+                right: max(15px, env(safe-area-inset-right));
+                pointer-events: auto;
+                z-index: 100;
+            }
+            .dash-btn {
+                background: rgba(15, 23, 42, 0.75);
+                border: 1.5px solid rgba(255, 255, 255, 0.2);
+                color: #fff;
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.85rem;
+                font-weight: 700;
+                user-select: none;
+                cursor: pointer;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            }
+            .dash-btn:active {
+                background: rgba(16, 185, 129, 0.3);
+                border-color: var(--accent-color);
+                transform: scale(0.95);
+            }
+            .minimap-container {
+                top: 10px;
+                right: 10px;
+                padding: 4px;
+                border-radius: 12px;
+                background: rgba(15, 23, 42, 0.4);
+                opacity: 0.7;
+            }
+            #minimapCanvas {
+                width: 80px;
+                height: 80px;
+                border-radius: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-glow"></div>
+    <canvas id="confettiCanvas"></canvas>
+
+    <div class="game-container">
+        
+        <header class="mobile-hud-header">
+            <span id="mobileLevelVal" style="color: #34d399;">第二關</span>
+            <span id="mobileCaughtVal" style="color: #fbbf24;">0/10</span>
+            <span id="mobileTimeVal" style="color: #38bdf8;">300</span>
+            <button id="mobileInfoBtn" title="關卡資訊">ⓘ</button>
+            <button id="mobileFullscreenBtn" title="全螢幕模式">⛶</button>
+        </header>
+
+        <header class="hud-header">
+            <div class="hud-left">
+                <a href="../index.html" class="back-btn" title="返回大廳">🏠</a>
+                <h1>3D 森林抓迷藏</h1>
+                <span class="level-badge" id="levelNameBadge">載入中...</span>
+            </div>
+            
+            <div class="hud-center">
+                <div class="hud-item">
+                    <span>🎯 目標：</span>
+                    <span id="targetVal" style="font-weight: 700; color: #34d399;">抓到 10 隻動物</span>
+                </div>
+                <div class="hud-item">
+                    <span>🏃‍♂️ 進度：</span>
+                    <span id="caughtVal" style="font-weight: 700; color: #fbbf24; font-size: 1.1rem;">0 / 10</span>
+                </div>
+                <div class="hud-item">
+                    <span>⏱️ 時間：</span>
+                    <span id="timeVal" style="font-weight: 700; color: #38bdf8; font-size: 1.1rem;">無限</span>
+                </div>
+            </div>
+
+            <div class="hud-right">
+                <button id="fullscreenBtn" title="切換全螢幕">⛶ 全螢幕</button>
+                <button id="muteBtn" title="切換音效">🔊 音效: 開</button>
+            </div>
+        </header>
+
+        
+        <div class="viewport-wrapper" id="viewport">
+            <canvas id="canvas3d"></canvas>
+            
+            
+            <div class="stamina-container">
+                <div class="stamina-fill" id="staminaFill"></div>
+                <div class="stamina-label">🏃‍♂️ Dash 耐力值</div>
+            </div>
+
+            
+            <div class="minimap-container">
+                <canvas id="minimapCanvas" width="130" height="130"></canvas>
+            </div>
+
+            
+            <div class="joystick-touch-area" id="joystickTouchArea">
+                <div class="joystick-base" id="joystickBase">
+                    <div class="joystick-knob" id="joystickKnob"></div>
+                </div>
+            </div>
+
+            <div class="dash-btn-wrapper" id="dashBtnWrapper">
+                <div class="dash-btn" id="btnDash">⚡ 奔跑</div>
+            </div>
+
+            <div class="jump-btn-wrapper" id="jumpBtnWrapper">
+                <div class="dash-btn" id="btnJump" style="background: rgba(139, 92, 246, 0.4); border-color: rgba(139, 92, 246, 0.5);">🦘 跳躍</div>
+            </div>
+
+            
+            <div class="catch-flash" id="catchFlash"></div>
+
+            
+            <div class="level-announcement" id="levelAnn">
+                <h3 id="levelAnnTitle">第一關</h3>
+                <p id="levelAnnDesc">快去抓住奔跑的小兔子！</p>
+            </div>
+        </div>
+
+        
+        <div class="overlay" id="startOverlay">
+            <h2>🐈 3D 森林抓迷藏 🐕</h2>
+            <p class="overlay-desc">
+                歡迎來到神奇的 3D 森林！這裡有許多可愛的小動物正在四處捉迷藏。你的任務是找出並抓住牠們！當你靠近時，動物們會因為害羞而逃跑，快點加速追上牠們吧！
+            </p>
+            
+            <div class="controls-list">
+                <div>移動 / 轉向: <span class="ctrl-key">▲</span><span class="ctrl-key">▼</span><span class="ctrl-key">◀</span><span class="ctrl-key">▶</span> 或 <span class="ctrl-key">W</span><span class="ctrl-key">S</span><span class="ctrl-key">A</span><span class="ctrl-key">D</span></div>
+                <div>加速奔跑 (消耗耐力): <span class="ctrl-key">Shift</span> 或 <span class="ctrl-key">Space</span> (空白鍵)</div>
+                <div>行動裝置: <span class="ctrl-key">螢幕虛擬按鍵</span></div>
+                <div>提示功能: 靠近動物時，地圖上會標記點；動物碰到牆壁會轉彎。</div>
+            </div>
+
+            <button id="startBtn">開始遊戲 🌲</button>
+        </div>
+
+        
+        <div class="overlay hidden overlay-clear" id="nextLevelOverlay">
+            <p class="overlay-desc" id="nextLevelDesc" style="width: 100%; margin-bottom: 10px;"></p>
+            <div class="overlay-clear-content">
+                <h2 class="victory-title" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">🎉 順利過關！</h2>
+                <button id="nextLevelBtn" class="victory-btn">進入下一關 ➡️</button>
+            </div>
+            
+            <div class="emoji-parade" style="margin-top: 15px;">
+                <span class="bounce-emoji">🐇</span>
+                <span class="bounce-emoji" style="animation-delay: 0.15s;">🐈</span>
+                <span class="bounce-emoji" style="animation-delay: 0.3s;">🐕</span>
+                <span class="bounce-emoji" style="animation-delay: 0.45s;">🌟</span>
+                <span class="bounce-emoji" style="animation-delay: 0.6s;">🎈</span>
+            </div>
+        </div>
+
+        
+        <div class="overlay hidden overlay-clear" id="victoryOverlay">
+            <div class="overlay-clear-content">
+                <h2 class="victory-title" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">🏆 終極大獲全勝！</h2>
+                <button id="winRestartBtn" class="victory-btn">再玩一次 🎮</button>
+            </div>
+
+            <div class="emoji-parade" style="margin-top: 15px;">
+                <span class="bounce-emoji">👑</span>
+                <span class="bounce-emoji" style="animation-delay: 0.1s;">🐇</span>
+                <span class="bounce-emoji" style="animation-delay: 0.2s;">🐈</span>
+                <span class="bounce-emoji" style="animation-delay: 0.3s;">🐕</span>
+                <span class="bounce-emoji" style="animation-delay: 0.4s;">🎉</span>
+                <span class="bounce-emoji" style="animation-delay: 0.5s;">✨</span>
+            </div>
+        </div>
+
+        
+        <div class="overlay hidden overlay-clear" id="gameOverOverlay">
+            <div class="overlay-clear-content">
+                <h2 style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);">😢 時間到了！</h2>
+                <p class="overlay-desc">
+                    很可惜，300 秒的時間已經走完。
+                </p>
+                <button id="retryBtn">重新挑戰 🔄</button>
+            </div>
+        </div>
+    </div>
+
+    
+    <script src="three.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
