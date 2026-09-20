@@ -1,0 +1,28 @@
+{
+  "date": "2026-09-19T17:08:04.942Z",
+  "browser": "Microsoft Edge / Playwright",
+  "passed": [
+    "Dialogue blocks movement; pause/resume preserves dialogue",
+    "Ribbon and NPC objectives; repeated NPC dialogue does not duplicate flowers",
+    "Exit cannot skip the quest",
+    "Hedgehog story opens wind puzzle; wrong routes, pause and reload preserve work",
+    "Nine connected wind tiles deliver mother’s letter; hints are progressive and journal works",
+    "Flowers can be collected in a non-fixed order",
+    "Reload and continue preserve quest and collected objects",
+    "Only one of 24 arrangements solves lamp; wrong answers and reload preserve flowers and slots; keyboard solves it",
+    "Pause freezes movement; blur clears held keys",
+    "Pond blocks walking and its bridge is traversable; trees and boundaries collide",
+    "Full keyboard playthrough ends at chapter one completion",
+    "Replay resets all quest objects and state",
+    "Audio can be enabled and muted",
+    "Malformed progress cannot unlock later steps",
+    "Old saves keep their flowers but cannot skip the new puzzles",
+    "390px touch viewport: joystick, interaction, dialogue and pointer release",
+    "Landscape resize retains visible touch controls",
+    "Both puzzle layouts support mobile touch and scrolling, portrait and landscape",
+    "Blocked local storage still allows play",
+    "Direct file opening works without a web server",
+    "No browser JavaScript or console errors"
+  ],
+  "errors": []
+}

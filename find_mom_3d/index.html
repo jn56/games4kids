@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6efdd">
+  <meta name="description" content="陪小米穿過黃昏花田與風鈴森林，修好風管、解開線索、找回媽媽的歌。適合 7～12 歲的溫柔 3D 解謎冒險。">
+  <title>小米找媽媽 · 第一章：黃昏花田</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%233d5945'/%3E%3Ctext x='32' y='47' text-anchor='middle' font-size='44'%3E✿%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-container" aria-label="黃昏花田 3D 遊戲場景"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div id="world-labels" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="../index.html" aria-label="回到遊戲首頁"><span class="brand-mark">✿</span><span>小米找媽媽<small>回家的四盞燈</small></span></a>
+    <div class="chapter-tag"><span class="tiny-sun">☀</span> 第一章 <i></i> 黃昏花田</div>
+    <nav class="top-actions" aria-label="遊戲設定">
+      <button id="sound-btn" class="icon-btn" aria-label="開啟聲音" aria-pressed="false" title="開啟聲音">♪<span class="sound-slash"></span></button>
+      <button id="pause-btn" class="icon-btn" aria-label="暫停遊戲" title="暫停遊戲" hidden>Ⅱ</button>
+    </nav>
+  </header>
+  <main>
+    <section id="title-screen" class="title-screen" aria-labelledby="game-title">
+      <div class="cover-copy">
+        <p class="eyebrow"><span></span> 一段關於愛與勇氣的小小冒險</p>
+        <h1 id="game-title">媽媽，<br>我在<span class="title-here">這裡<svg viewBox="0 0 200 16" aria-hidden="true"><path d="M3 11 Q90 -3 195 9"/></svg></span>。</h1>
+        <p class="cover-description">穿過花田，跟著微光。<br>陪小米找到媽媽，也找到心裡的勇敢。</p>
+        <button id="start-btn" class="primary-btn">陪小米出發 <span>→</span></button>
+        <button id="new-game-btn" class="text-btn" hidden>重新開始第一章</button>
+        <p class="cover-note">7–12 歲 <b>·</b> 自由探索 <b>·</b> 慢慢來也沒關係</p>
+      </div>
+      <div class="chapter-card"><span class="chapter-number">01</span><div><small>我們的第一站</small><strong>黃昏花田</strong><p>把想念，變成一點點光。</p></div><span class="card-flower">✿</span></div>
+      <div class="cover-footer"><span>THE LITTLE LIGHTS OF HOME</span><div class="four-lights"><b></b><i></i><i></i><i></i><span>四盞燈，一條回家的路</span></div></div>
+    </section>
+    <section id="play-hud" hidden aria-label="冒險進度">
+      <aside class="quest-card">
+        <p class="eyebrow">小小的一步 <span id="step-count">01 / 07</span></p>
+        <h2 id="objective-title">找找媽媽的線索</h2><p id="objective-detail">沿著小路，看看那條紅色髮帶。</p>
+        <div class="quest-bottom"><span id="emotion-tag">一點想念</span><button id="hint-btn" class="hint-btn">✧ 給我提示</button></div>
+        <button id="journal-btn" class="journal-btn" hidden>✉ 媽媽的信與線索手帳 <span>↗</span></button>
+      </aside>
+      <div id="collection" class="collection" hidden aria-label="光花收集進度">
+        <div class="collection-heading"><span>引路燈的小小光芒</span><b id="flower-count">0 / 3</b></div>
+        <div class="flower-slots">
+          <div class="flower-slot" data-flower="sun"><span class="flower-symbol sun">☀</span><span>太陽花</span><b>1</b></div>
+          <div class="flower-slot" data-flower="heart"><span class="flower-symbol heart">♥</span><span>愛心花</span><b>2</b></div>
+          <div class="flower-slot" data-flower="star"><span class="flower-symbol star">★</span><span>星星花</span><b>3</b></div>
+        </div>
+      </div>
+      <div id="forest-hud" class="collection forest-hud" hidden><div class="collection-heading"><span>記憶之光 · 風鈴的三段旋律</span><b id="melody-count">0 / 3</b></div><div id="melody-badges" class="melody-badges"></div></div>
+      <div class="desktop-controls"><span><kbd>W</kbd><span class="key-row"><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span></span><p>移動<small>或方向鍵</small></p><i></i><kbd>E</kbd><p>互動<small>或空白鍵</small></p></div>
+      <div class="gentle-note">不急，我們一步一步來。<span>✦</span></div>
+    </section>
+    <button id="interaction-prompt" class="interaction-prompt" hidden><kbd>E</kbd><span>互動</span></button>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <div id="story-caption" class="story-caption" role="status" aria-live="polite" hidden></div>
+    <section id="dialogue-ui" class="dialogue" hidden aria-label="故事對話">
+      <div id="dialogue-portrait" class="portrait" aria-hidden="true">✿</div>
+      <div class="dialogue-copy"><div class="dialogue-meta"><strong id="dialogue-name"></strong><span id="dialogue-count"></span></div><p id="dialogue-text" aria-live="polite"></p><div class="dialogue-footer"><span>慢慢讀，我等你。</span><button id="dialogue-next" class="next-btn">繼續 <span>→</span></button></div></div>
+    </section>
+    <section id="puzzle-screen" class="modal-backdrop puzzle-backdrop" hidden>
+      <div class="puzzle-paper" role="dialog" aria-modal="true" aria-labelledby="puzzle-title" aria-describedby="puzzle-description">
+        <div class="puzzle-top"><p id="puzzle-kicker" class="eyebrow"></p><button id="puzzle-close" class="puzzle-close">先收起 <span>×</span></button></div>
+        <h2 id="puzzle-title"></h2><p id="puzzle-description" class="puzzle-description"></p>
+        <div class="puzzle-layout"><div id="puzzle-stage"></div><aside id="puzzle-notes"></aside></div>
+        <p id="puzzle-feedback" class="puzzle-feedback" role="status" aria-live="polite"></p>
+        <div class="puzzle-actions"><div><button id="puzzle-hint" class="secondary-btn">給我一點提示</button><button id="puzzle-clear" class="secondary-btn">全部收回</button></div><button id="puzzle-submit" class="primary-btn">試送一陣風 →</button></div>
+      </div>
+    </section>
+    <section id="song-screen" class="modal-backdrop puzzle-backdrop" hidden>
+      <div class="puzzle-paper song-paper" role="dialog" aria-modal="true" aria-labelledby="song-title">
+        <div class="puzzle-top"><p id="song-kicker" class="eyebrow"></p><button id="song-close" class="puzzle-close">先收起 <span>×</span></button></div>
+        <h2 id="song-title"></h2><p id="song-rule" class="puzzle-description"></p>
+        <div id="song-progress" class="song-progress"></div>
+        <div class="song-workspace"><div class="song-demo-column"><div id="song-demonstration" class="song-demonstration" aria-live="polite"></div><div id="song-score" class="song-score" hidden></div><button id="song-sound" class="text-btn">♪ 開關聲音（靜音也能玩）</button></div>
+          <div><div id="song-bells" class="song-bells"></div><p class="answer-label">你敲出的旋律</p><div id="song-input" class="song-input" aria-live="polite"></div></div></div>
+        <p id="song-feedback" class="puzzle-feedback" role="status" aria-live="polite"></p>
+        <div class="puzzle-actions"><div><button id="song-replay" class="secondary-btn">播放旋律 ▶</button><button id="song-hint" class="secondary-btn">咕咕，幫幫我</button></div><button id="song-next" class="primary-btn" hidden>下一段旋律 →</button></div>
+      </div>
+    </section>
+    <div id="mobile-controls" hidden><div id="joystick" role="group" aria-label="拖曳搖桿移動"><span class="joystick-cross">✣</span><div id="joystick-stick"></div></div><button id="touch-action" class="touch-action" aria-label="互動" disabled>✦<span>互動</span></button></div>
+    <section id="pause-screen" class="modal-backdrop" hidden><div class="paper-modal" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="modal-symbol">☁</span><p class="eyebrow">休息一下，也很好</p><h2 id="pause-title">花田會等你。</h2><p>喝口水、伸個懶腰，<br>準備好了再繼續找媽媽。</p><button id="resume-btn" class="primary-btn">繼續冒險 <span>→</span></button><button id="restart-btn" class="secondary-btn">重新開始第一章</button><p class="modal-hint">WASD／方向鍵移動 · E／空白鍵互動<br>手機請使用左下搖桿與右下互動鈕</p></div></section>
+    <section id="ending-screen" class="modal-backdrop ending" hidden><div class="paper-modal ending-paper" role="dialog" aria-modal="true" aria-labelledby="ending-title">
+      <div class="award-light" aria-hidden="true">✦</div><p id="ending-kicker" class="eyebrow">第一章完成 · 黃昏花田</p><h2 id="ending-title">原來，媽媽也在找我。</h2><p id="ending-description">你幫小米點亮了第一盞燈。<br>雖然還沒見到媽媽，心裡已經有了光。</p>
+      <div id="ending-award" class="award-label">01 <span>希望之光</span> ✦</div><div id="ending-lessons" class="ending-lessons"></div>
+      <button id="next-chapter-btn" class="primary-btn">前往第二章：風鈴森林 <span>→</span></button><button id="replay-btn" class="secondary-btn">再逛一次花田 ↻</button>
+      <p id="ending-next" class="coming-next">下一站：風鈴森林<br><small>咕咕和媽媽的歌，在森林裡等你。</small></p>
+    </div></section>
+    <section id="error-screen" class="modal-backdrop" hidden><div class="paper-modal"><span class="modal-symbol">☁</span><h2>花田還沒準備好</h2><p id="error-text">瀏覽器無法開啟 3D 畫面，請重新整理，或換用支援 WebGL 的瀏覽器。</p><button class="primary-btn" onclick="location.reload()">重新整理</button></div></section>
+  </main>
+  <noscript><div class="noscript">請開啟 JavaScript，才能陪小米進入花田。</div></noscript>
+  <script src="three.min.js"></script><script src="config.js"></script><script src="js/art.js"></script><script src="js/input.js"></script><script src="js/player.js"></script><script src="js/camera.js"></script><script src="js/npc.js"></script><script src="js/level.js"></script><script src="js/forest.js"></script><script src="js/interaction.js"></script><script src="js/dialogue.js"></script><script src="js/audio.js"></script><script src="js/challenges.js"></script><script src="js/song.js"></script><script src="js/story.js"></script><script src="js/forest-story.js"></script><script src="game.js"></script>
+</body>
+</html>
