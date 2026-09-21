@@ -24,6 +24,7 @@ Meadow.Game = class {
     this.interactions=new Meadow.Interactions(this);this.dialogue=new Meadow.Dialogue(this);this.story=new Meadow.Story(this);
     this.challenges=new Meadow.Challenges(this);
     this.song=new Meadow.SongPuzzle(this);this.stories={1:this.story,2:new Meadow.ForestStory(this)};
+    this.prologue=new Meadow.Prologue(this);this.trials=new Meadow.ActionTrials(this);
     this.time=0;this.lastTime=performance.now();this.lastHUD=0;this.toastDeadline=0;
     document.body.classList.add('cover');this.bindUI();this.refresh();
     if(this.saved){document.getElementById('start-btn').innerHTML=this.saved.chapter===2?'繼續風鈴森林 <span>→</span>':this.saved.completed?'看看希望之光 <span>→</span>':'繼續小米的冒險 <span>→</span>';document.getElementById('new-game-btn').hidden=false;}
@@ -43,10 +44,10 @@ Meadow.Game = class {
       if(!this.audio.context)this.toast('這個瀏覽器目前無法播放音效，仍然可以繼續冒險。');
     });
     window.addEventListener('resize',()=>{this.renderer.setSize(innerWidth,innerHeight);this.view.resize();});
-    document.addEventListener('visibilitychange',()=>{if(document.hidden){this.input.reset();if(['playing','dialogue','puzzle','cutscene'].includes(this.state.mode))this.togglePause();}});
+    document.addEventListener('visibilitychange',()=>{if(document.hidden){this.input.reset();if(['playing','dialogue','puzzle','cutscene','action'].includes(this.state.mode))this.togglePause();}});
     window.addEventListener('keydown',event=>{
       if(event.key!=='Tab')return;
-      const selector=this.state.mode==='paused'?'#pause-screen':this.state.mode==='complete'?'#ending-screen':this.state.mode==='puzzle'?(this.song.active?'#song-screen':'#puzzle-screen'):null;
+      const selector=this.state.mode==='paused'?'#pause-screen':this.state.mode==='complete'?'#ending-screen':this.state.mode==='action'?'#action-ui':this.state.mode==='puzzle'?(this.song.active?'#song-screen':'#puzzle-screen'):null;
       if(!selector)return;
       const buttons=[...document.querySelectorAll(`${selector} button`)].filter(button=>!button.disabled&&!button.hidden&&button.getClientRects().length);
       const index=buttons.indexOf(document.activeElement),next=event.shiftKey?(index<=0?buttons.length-1:index-1):(index+1)%buttons.length;
@@ -54,6 +55,7 @@ Meadow.Game = class {
     });
   }
   start(continuing) {
+    this.prologue.reset();this.trials.reset();
     this.dialogue.close();this.challenges.hide();this.song.hide();this.input.reset();this.audio.setPaused(false);
     Object.assign(this.state,continuing&&this.saved?this.saved:Meadow.Progress.fresh(),{mode:'playing'});
     this.stories[2].running=false;document.body.classList.remove('in-cutscene');document.getElementById('story-caption').hidden=true;
@@ -67,6 +69,7 @@ Meadow.Game = class {
     this.toastDeadline=0;this.refresh();
     if(this.state.chapter===1?this.state.completed:this.state.forest.completed){this.showEnding();return;}
     if(this.state.chapter===2&&this.state.forest.reunited&&!this.state.forest.separated){this.story.beginCrossing();return;}
+    if(this.state.chapter===1&&!this.state.prologueSeen){this.saveProgress();this.prologue.start();return;}
     if(!continuing){Meadow.Progress.write(this.state);this.introPending=false;this.story.intro();}
     else this.toast(this.state.upgraded?'栗栗的風車郵局開張了！你的花朵都還在，一起解開新的祕密吧。':'歡迎回來！我們接著上次的小小一步。',5000);
     if(document.activeElement instanceof HTMLElement)document.activeElement.blur();
@@ -122,7 +125,8 @@ Meadow.Game = class {
       if(s.mode==='dialogue')document.getElementById('dialogue-next').focus({preventScroll:true});
       else if(s.mode==='puzzle')document.getElementById(this.song.active?'song-close':'puzzle-close').focus({preventScroll:true});
       else document.getElementById('resume-btn').blur();
-    }else if(['playing','dialogue','puzzle','cutscene'].includes(s.mode)){
+    }else if(['playing','dialogue','puzzle','cutscene','action'].includes(s.mode)){
+      this.trials.release();
       this.beforePause=s.mode;s.mode='paused';this.input.reset();this.audio.setPaused(true);document.getElementById('pause-screen').hidden=false;document.getElementById('resume-btn').focus({preventScroll:true});
     }
     this.interactions.update();
@@ -173,9 +177,11 @@ Meadow.Game = class {
     const paused=this.state.mode==='paused';if(!paused)this.time+=dt;
     const playing=this.state.mode==='playing';
     this.player.update(paused?0:dt,this.input,this.world,playing,this.reducedMotion);
+    this.prologue.update(dt);this.trials.update(dt);
     if(this.state.chapter===2){this.story.update(dt);this.song.update(dt);}
     if(!paused)this.world.update(this.time,dt,this.player,this.state,this.reducedMotion);
     this.view.update(dt,this.state.mode==='title',this.reducedMotion);
+    if(this.trials.active&&this.state.mode==='action'&&!this.reducedMotion&&this.trials.shake>0)this.camera.position.x+=Math.sin(this.time*35)*.045;
     if(this.time-this.lastHUD>.15){this.lastHUD=this.time;this.refreshTarget();}
     this.interactions.update();this.world.updateLabels(this.camera,!['title','complete'].includes(this.state.mode));
     const warmth=this.state.chapter===2?.95:this.state.lit?1.4:1.15;this.sun.intensity+=(warmth-this.sun.intensity)*Math.min(1,dt*.8);

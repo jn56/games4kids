@@ -133,11 +133,11 @@ Meadow.Forest = class extends Meadow.World {
   ringBell(id) { this.bellPulses[id]=1; }
   sync(state) {
     const f=state.forest;this.currentState=f;
-    this.owlLabel.enabled=true;this.standLabel.enabled=f.metOwl&&f.round<3;
-    this.motherLabel.enabled=f.round===3&&!f.reunited;
+    this.owlLabel.enabled=true;this.standLabel.enabled=f.metOwl&&(f.round<3||f.gustStage<6);
+    this.motherLabel.enabled=f.gustStage===6&&!f.reunited;
     this.exitLabel.enabled=f.routeKnown;
     this.bells.forEach(b=>b.label.enabled=f.metOwl&&f.round<3);
-    this.gateTarget=f.round/3;
+    this.gateTarget=f.gustStage===6?1:f.round/4;
     if(!this.cutscene){
       this.bridgeTarget=0;
       this.mother.mesh.position.set(f.separated?4.4:2,0,f.separated?-12.5:-4.3);
@@ -150,7 +150,7 @@ Meadow.Forest = class extends Meadow.World {
     if((x/16.3)**2+((z+1)/17.6)**2>.96||z>13.5||z< -15.5)return false;
     if(z>-10.65&&z< -5.35&&(Math.abs(x-2)>.72||this.bridgeOpen<.98))return false;
     // A low hedge closes the bank approach until the song opens the vine gate.
-    if(z< -2.4&&z> -3.1&&(Math.abs(x-2)>1.25||!this.currentState||this.currentState.round<3))return false;
+    if(z< -2.4&&z> -3.1&&(Math.abs(x-2)>1.25||!this.currentState||this.currentState.gustStage<6))return false;
     return !this.colliders.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+CONFIG.PLAYER_RADIUS);
   }
   update(time,dt,player,state,reduced) {

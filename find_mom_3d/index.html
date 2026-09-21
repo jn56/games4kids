@@ -56,6 +56,14 @@
     <button id="interaction-prompt" class="interaction-prompt" hidden><kbd>E</kbd><span>互動</span></button>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
     <div id="story-caption" class="story-caption" role="status" aria-live="polite" hidden></div>
+    <button id="prologue-skip" class="prologue-skip" hidden>略過前情 →</button>
+    <section id="action-ui" hidden aria-label="即時挑戰">
+      <div class="action-summary"><strong id="action-title">疾風小徑</strong><span id="action-progress">0 / 6</span><progress id="action-meter" value="0" max="6" aria-label="挑戰進度"></progress><p id="action-status" role="status" aria-live="polite"></p><progress id="wind-meter" value="0" max="3" aria-label="下一陣風之前剩下的時間" hidden></progress></div>
+      <button id="action-leave" class="action-leave">稍後再試 ×</button>
+      <div id="action-ready" class="action-ready"><span aria-hidden="true">≋</span><p id="action-instruction"></p><button id="action-start" class="primary-btn">準備好了，出發！ →</button></div>
+      <div id="action-steer" class="action-controls"><button id="action-left" aria-label="向左換跑道">←<small>向左 / A</small></button><button id="action-right" aria-label="向右換跑道">→<small>向右 / D</small></button></div>
+      <button id="action-run" class="action-run" hidden>按住快跑<small>空白鍵 / E</small></button>
+    </section>
     <section id="dialogue-ui" class="dialogue" hidden aria-label="故事對話">
       <div id="dialogue-portrait" class="portrait" aria-hidden="true">✿</div>
       <div class="dialogue-copy"><div class="dialogue-meta"><strong id="dialogue-name"></strong><span id="dialogue-count"></span></div><p id="dialogue-text" aria-live="polite"></p><div class="dialogue-footer"><span>慢慢讀，我等你。</span><button id="dialogue-next" class="next-btn">繼續 <span>→</span></button></div></div>
@@ -91,6 +99,6 @@
     <section id="error-screen" class="modal-backdrop" hidden><div class="paper-modal"><span class="modal-symbol">☁</span><h2>花田還沒準備好</h2><p id="error-text">瀏覽器無法開啟 3D 畫面，請重新整理，或換用支援 WebGL 的瀏覽器。</p><button class="primary-btn" onclick="location.reload()">重新整理</button></div></section>
   </main>
   <noscript><div class="noscript">請開啟 JavaScript，才能陪小米進入花田。</div></noscript>
-  <script src="three.min.js"></script><script src="config.js"></script><script src="js/art.js"></script><script src="js/input.js"></script><script src="js/player.js"></script><script src="js/camera.js"></script><script src="js/npc.js"></script><script src="js/level.js"></script><script src="js/forest.js"></script><script src="js/interaction.js"></script><script src="js/dialogue.js"></script><script src="js/audio.js"></script><script src="js/challenges.js"></script><script src="js/song.js"></script><script src="js/story.js"></script><script src="js/forest-story.js"></script><script src="game.js"></script>
+  <script src="three.min.js"></script><script src="config.js"></script><script src="js/art.js"></script><script src="js/input.js"></script><script src="js/player.js"></script><script src="js/camera.js"></script><script src="js/npc.js"></script><script src="js/level.js"></script><script src="js/forest.js"></script><script src="js/interaction.js"></script><script src="js/dialogue.js"></script><script src="js/audio.js"></script><script src="js/challenges.js"></script><script src="js/song.js"></script><script src="js/story.js"></script><script src="js/forest-story.js"></script><script src="js/adventure.js"></script><script src="game.js"></script>
 </body>
 </html>

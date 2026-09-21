@@ -19,7 +19,21 @@ async function firstCompleted(page){
   const state=()=>page.evaluate(()=>JSON.parse(JSON.stringify(meadowGame.state)));
   const pos=()=>page.evaluate(()=>({x:meadowGame.player.mesh.position.x,z:meadowGame.player.mesh.position.z}));
   const shot=name=>page.screenshot({path:path.join(__dirname,name+'.png')});
-  async function finishDialogue(){for(let i=0;i<12&&(await state()).mode==='dialogue';i++)await page.locator('#dialogue-next').click()}
+  async function finishDialogue(){for(let i=0;i<40&&(await state()).mode==='dialogue';i++)await page.locator('#dialogue-next').click()}
+  async function actionTrial(){
+    await page.locator('#action-start').click();
+    while(await page.evaluate(()=>meadowGame.trials.active)){
+      const {kind,stage,lane}=await page.evaluate(()=>({kind:meadowGame.trials.kind,stage:meadowGame.trials.stage,lane:meadowGame.trials.lane}));
+      if(kind==='gust'){
+        const masks=[[0],[2],[1],[0,1],[1,2],[0,2]],safe=[0,1,2].find(i=>!masks[stage].includes(i));
+        for(let i=0;i<Math.abs(safe-lane);i++)await page.keyboard.press(safe>lane?'ArrowRight':'ArrowLeft');
+      }else{
+        await page.waitForFunction(()=>meadowGame.trials.phase>1.21&&meadowGame.trials.phase<1.4);await page.keyboard.down('Space');
+      }
+      await page.waitForFunction(stage=>meadowGame.trials.stage>stage,stage);await page.keyboard.up('Space');
+    }
+    await finishDialogue();
+  }
   async function move(x,z){
     for(let i=0;i<45;i++){
       const p=await pos(),dx=x-p.x,dz=z-p.z;if(Math.hypot(dx,dz)<.23)return;
@@ -68,7 +82,7 @@ async function firstCompleted(page){
   await page.locator('#song-hint').click();assert.match(await page.locator('#song-score').textContent(),/作答順序/);
   await shot('song-reverse');
   await notes(['star','leaf','star','leaf','drop']);await finishDialogue();
-  assert.equal((await state()).forest.round,3);assert.equal((await state()).mode,'playing');
+  assert.equal((await state()).forest.round,3);assert.equal((await state()).mode,'action');await actionTrial();
   pass('Five-note reversal rejects the forward order; graduated hints help without erasing earlier rounds');
   await move(2,0);await move(2,-3.35);
   assert.equal(await page.evaluate(()=>meadowGame.world.canWalk(2,-2.8)),true);
@@ -88,9 +102,9 @@ async function firstCompleted(page){
   assert.equal((await state()).forest.separated,true);assert.equal((await state()).forest.routeKnown,false);
   pass('Real reunion, safe bridge sequence, blocked movement, pause and mid-scene reload all complete correctly');
   await move(11,-3.5);await interact('forest-exit');assert.equal((await state()).forest.completed,false);
-  await move(4,-3.8);await interact('owl');assert.equal((await state()).forest.routeKnown,true);
+  await move(4,-3.8);await interact('owl');assert.equal((await state()).forest.routeKnown,true);await actionTrial();
   await shot('forest-route');await move(11,-3.5);
-  assert(await page.evaluate(()=>meadowGame.world.owl.mesh.position.x)>7,'Owl accompanies the child toward the exit');
+  await page.waitForFunction(()=>meadowGame.world.owl.mesh.position.x>7);
   await interact('forest-exit');assert.equal((await state()).forest.completed,true);
   assert.equal((await state()).mode,'complete');assert.equal(await page.locator('#next-chapter-btn').isVisible(),false);await shot('forest-ending');
   pass('Owl provides the alternate route; second chapter has its own ending without opening unfinished chapters');
@@ -100,7 +114,7 @@ async function firstCompleted(page){
   pass('Ending survives reload; replay resets only the forest and reuses the correct scene');
   // A v2 save can enter the new chapter; malformed chapter-two milestones cannot skip prerequisites.
   const migrated=await page.evaluate(()=>{const s=Meadow.Progress.read();s.version=2;s.chapter=1;delete s.forest;localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify(s));return Meadow.Progress.read()});
-  assert.equal(migrated.version,3);assert.equal(migrated.completed,true);assert.equal(migrated.chapter,1);
+  assert.equal(migrated.version,4);assert.equal(migrated.completed,true);assert.equal(migrated.chapter,1);
   const invalid=await page.evaluate(()=>{const s=Meadow.Progress.fresh();s.chapter=2;s.forest={metOwl:true,round:3,reunited:true,separated:true,routeKnown:true,completed:true};localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify(s));return Meadow.Progress.read()});
   assert.equal(invalid.chapter,1);assert.equal(invalid.forest.completed,false);
   pass('Version-two saves migrate and invalid second-chapter milestones are rejected');

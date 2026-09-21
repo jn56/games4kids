@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-19T17:08:04.942Z",
+  "date": "2026-09-21T01:54:06.810Z",
   "browser": "Microsoft Edge / Playwright",
   "passed": [
     "Dialogue blocks movement; pause/resume preserves dialogue",

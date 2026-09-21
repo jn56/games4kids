@@ -13,7 +13,7 @@ function pass(name) { results.push(name);console.log('PASS '+name); }
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   const state=()=>page.evaluate(()=>JSON.parse(JSON.stringify(meadowGame.state)));
   const pos=()=>page.evaluate(()=>({x:meadowGame.player.mesh.position.x,z:meadowGame.player.mesh.position.z}));
-  async function finishDialogue(){for(let i=0;i<12&&(await state()).mode==='dialogue';i++)await page.locator('#dialogue-next').click();}
+  async function finishDialogue(){if(await page.locator('#prologue-skip').isVisible())await page.locator('#prologue-skip').click();for(let i=0;i<40&&(await state()).mode==='dialogue';i++)await page.locator('#dialogue-next').click();}
   async function move(x,z){
     for(let i=0;i<40;i++){
       const p=await pos(),dx=x-p.x,dz=z-p.z;
@@ -105,11 +105,11 @@ function pass(name) { results.push(name);console.log('PASS '+name); }
   const invalid=await page.evaluate(()=>{localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify({version:1,ribbon:false,metRabbit:true,flowers:['star','star','bogus'],lit:true,completed:true}));return Meadow.Progress.read();});assert.equal(invalid.metRabbit,false);assert.deepEqual(invalid.flowers,[]);assert.equal(invalid.completed,false);
   pass('Malformed progress cannot unlock later steps');
   const upgraded=await page.evaluate(()=>{localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify({version:1,ribbon:true,metRabbit:true,flowers:['sun','heart','star'],lit:true,completed:true,checkpoint:{x:1,z:-12}}));return Meadow.Progress.read();});
-  assert.equal(upgraded.version,3);assert.equal(upgraded.flowers.length,3);assert.equal(upgraded.lit,false);assert.equal(upgraded.metHedgehog,false);assert.equal(upgraded.completed,false);
+  assert.equal(upgraded.version,4);assert.equal(upgraded.flowers.length,3);assert.equal(upgraded.lit,false);assert.equal(upgraded.metHedgehog,false);assert.equal(upgraded.completed,false);
   pass('Old saves keep their flowers but cannot skip the new puzzles');
   const mobile=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true,reducedMotion:'reduce'});
   const phone=await mobile.newPage();phone.on('pageerror',e=>errors.push(e.message));await phone.goto('http://127.0.0.1:4173/find_mom_3d/');await phone.waitForFunction(()=>window.meadowGame);
-  await phone.screenshot({path:path.join(output,'mobile-cover.png')});await phone.locator('#start-btn').tap();await phone.locator('#dialogue-next').tap();await phone.locator('#dialogue-next').tap();await phone.waitForTimeout(200);
+  await phone.screenshot({path:path.join(output,'mobile-cover.png')});await phone.locator('#start-btn').tap();await phone.locator('#prologue-skip').tap();await phone.locator('#dialogue-next').tap();await phone.locator('#dialogue-next').tap();await phone.waitForTimeout(200);
   assert.equal(await phone.locator('#joystick').isVisible(),true);assert.equal(await phone.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   const pad=await phone.locator('#joystick').boundingBox();const cx=pad.x+pad.width/2,cy=pad.y+pad.height/2;
   const cdp=await mobile.newCDPSession(phone);

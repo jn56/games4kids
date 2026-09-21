@@ -1,0 +1,13 @@
+{
+  "date": "2026-09-21T01:57:38.768Z",
+  "checks": [
+    "Picnic prologue animates, pauses, saves completion, and can be skipped on replay",
+    "Gust collision returns to safety, preserves melody, pauses correctly, and enables assistance after three misses",
+    "Keyboard dodges all six waves; halfway checkpoint survives exit and reload; gate opens only on success",
+    "Reunion leads to sprint challenge; gust punishes bad timing, shelters save, pause releases input, and both games gate the ending",
+    "Portrait and landscape action controls fit; pointer hold completes sprint with reduced motion",
+    "Touch dodges the three hardest double-lane waves at normal speed",
+    "Completed old saves migrate safely; no browser errors"
+  ],
+  "errors": []
+}
