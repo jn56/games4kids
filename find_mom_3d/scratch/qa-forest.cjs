@@ -106,15 +106,15 @@ async function firstCompleted(page){
   await shot('forest-route');await move(11,-3.5);
   await page.waitForFunction(()=>meadowGame.world.owl.mesh.position.x>7);
   await interact('forest-exit');assert.equal((await state()).forest.completed,true);
-  assert.equal((await state()).mode,'complete');assert.equal(await page.locator('#next-chapter-btn').isVisible(),false);await shot('forest-ending');
-  pass('Owl provides the alternate route; second chapter has its own ending without opening unfinished chapters');
+  assert.equal((await state()).mode,'complete');assert.equal(await page.locator('#next-chapter-btn').isVisible(),true);await shot('forest-ending');
+  pass('Owl provides the alternate route; second chapter ending offers the completed third chapter');
   await page.reload();await page.waitForFunction(()=>window.meadowGame);await page.locator('#start-btn').click();assert.equal((await state()).mode,'complete');
   await page.locator('#replay-btn').click();await finishDialogue();assert.equal((await state()).chapter,2);assert.equal((await state()).completed,true);assert.deepEqual((await state()).forest,await page.evaluate(()=>Meadow.Progress.forestFresh()));
   assert.equal(await page.evaluate(()=>meadowGame.worldCache[1].world.labels.every(l=>l.el.hidden)),true);
   pass('Ending survives reload; replay resets only the forest and reuses the correct scene');
   // A v2 save can enter the new chapter; malformed chapter-two milestones cannot skip prerequisites.
   const migrated=await page.evaluate(()=>{const s=Meadow.Progress.read();s.version=2;s.chapter=1;delete s.forest;localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify(s));return Meadow.Progress.read()});
-  assert.equal(migrated.version,4);assert.equal(migrated.completed,true);assert.equal(migrated.chapter,1);
+  assert.equal(migrated.version,5);assert.equal(migrated.completed,true);assert.equal(migrated.chapter,1);
   const invalid=await page.evaluate(()=>{const s=Meadow.Progress.fresh();s.chapter=2;s.forest={metOwl:true,round:3,reunited:true,separated:true,routeKnown:true,completed:true};localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify(s));return Meadow.Progress.read()});
   assert.equal(invalid.chapter,1);assert.equal(invalid.forest.completed,false);
   pass('Version-two saves migrate and invalid second-chapter milestones are rejected');

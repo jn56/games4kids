@@ -247,6 +247,15 @@ body.in-dialogue #play-hud,body.in-dialogue #world-labels,body.in-dialogue #toas
 }
 
 /* Short cinematic and real-time challenges keep the world visible. */
+body.in-journey #play-hud,body.in-journey #world-labels,body.in-journey #mobile-controls,body.in-journey #toast,body.in-journey .chapter-tag{visibility:hidden}
+#journey-ui{position:fixed;inset:0;z-index:19;pointer-events:none}
+#journey-ui button{pointer-events:auto;touch-action:none;user-select:none}
+#bridge-timing{position:absolute;left:50%;bottom:145px;transform:translateX(-50%);width:min(420px,85vw);height:26px;border:3px solid #fff4da;background:#55747b;border-radius:16px;box-shadow:0 3px 20px #304b5940;overflow:hidden}
+#bridge-zone{position:absolute;height:100%;background:#f4cc76}
+#bridge-needle{position:absolute;top:0;bottom:0;width:5px;transform:translateX(-50%);background:#fff;box-shadow:0 0 0 1px #463c2d}
+#journey-hud{font-size:16px;color:#40534e}
+@media(min-width:901px){#journey-ui .action-summary{left:3%;transform:none}}
+@media(max-height:500px) and (orientation:landscape){#bridge-timing{bottom:35px;width:34vw}}
 .prologue-skip{position:fixed;right:4%;top:100px;z-index:24;border:1px solid #ffffffaa;border-radius:22px;padding:11px 17px;background:#fff9ebed;font-size:14px}
 body.in-prologue #play-hud,body.in-prologue #world-labels,body.in-prologue #mobile-controls,body.in-prologue #toast{visibility:hidden}
 body.in-action #play-hud,body.in-action #world-labels,body.in-action #mobile-controls,body.in-action #toast,body.in-action .chapter-tag{visibility:hidden}

@@ -1,17 +1,19 @@
 'use strict';
 Meadow.Progress = {
+  valleyFresh(){return {metBeaver:false,bridge:0,hammerFails:0,raft:0,raftFails:0,completed:false};},
+  hillFresh(){return {metSquirrel:false,lights:[],focusHelp:[0,0,0],signal:false,reunited:false,completed:false};},
   forestFresh() {
     return { metOwl:false, round:0, input:[], mistakes:[0,0,0], assists:[0,0,0], gustStage:0, dashStage:0, gustFails:0, dashFails:0, reunited:false, separated:false, routeKnown:false, completed:false };
   },
   fresh() {
-    return { version:4, prologueSeen:false, chapter:1, forest:this.forestFresh(), ribbon:false, metRabbit:false, metHedgehog:false,
+    return { version:5, prologueSeen:false, chapter:1, forest:this.forestFresh(),valley:this.valleyFresh(),hill:this.hillFresh(), ribbon:false, metRabbit:false, metHedgehog:false,
       windSolved:false, windTurns:[...CONFIG.WIND_START], windHints:0,
       flowers:[], arrangement:[null,null,null,null], lampHints:0,
       lit:false, completed:false, checkpoint:{...CONFIG.START} };
   },
   read() {
     try{
-      const raw=JSON.parse(localStorage.getItem(CONFIG.SAVE_KEY));if(!raw||![1,2,3,4].includes(raw.version))return null;
+      const raw=JSON.parse(localStorage.getItem(CONFIG.SAVE_KEY));if(!raw||![1,2,3,4,5].includes(raw.version))return null;
       const state=this.fresh();state.ribbon=raw.ribbon===true;state.metRabbit=state.ribbon&&raw.metRabbit===true;
       state.prologueSeen=raw.version<4||raw.prologueSeen===true||state.ribbon;
       state.metHedgehog=state.metRabbit&&raw.metHedgehog===true;
@@ -46,6 +48,16 @@ Meadow.Progress = {
       f.routeKnown=f.separated&&savedForest.routeKnown===true;
       f.dashStage=f.routeKnown?(raw.version<4&&savedForest.completed?3:Number.isInteger(savedForest.dashStage)?Math.max(0,Math.min(3,savedForest.dashStage)):0):0;
       f.completed=f.routeKnown&&f.dashStage===3&&savedForest.completed===true;
+      const rv=raw.valley||{},v=state.valley,rh=raw.hill||{},h=state.hill;
+      const count=(n,max)=>Number.isInteger(n)?Math.max(0,Math.min(max,n)):0;
+      v.metBeaver=f.completed&&rv.metBeaver===true;v.bridge=v.metBeaver?count(rv.bridge,3):0;
+      v.raft=v.bridge===3?count(rv.raft,4):0;v.completed=v.raft===4&&rv.completed===true;
+      v.hammerFails=count(rv.hammerFails,99);v.raftFails=count(rv.raftFails,99);
+      h.metSquirrel=v.completed&&rh.metSquirrel===true;
+      h.lights=h.metSquirrel&&Array.isArray(rh.lights)?['hope','memory','courage'].filter(id=>rh.lights.includes(id)):[];
+      h.focusHelp=Array.from({length:3},(_,i)=>count(rh.focusHelp?.[i],3));
+      h.signal=h.lights.length===3&&rh.signal===true;h.reunited=h.signal&&rh.reunited===true;h.completed=h.reunited&&rh.completed===true;
+      state.chapter=raw.chapter>=4&&v.completed?4:raw.chapter>=3&&f.completed?3:raw.chapter>=2&&state.completed?2:1;
       state.upgraded=raw.version===1&&state.metRabbit;
       const p=raw.checkpoint;if(p&&Number.isFinite(p.x)&&Number.isFinite(p.z)&&Math.abs(p.x)<16&&Math.abs(p.z)<16)state.checkpoint={x:p.x,z:p.z};
       return state;
@@ -53,8 +65,8 @@ Meadow.Progress = {
   },
   write(state) {
     try{
-      const {version,prologueSeen,chapter,forest,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint}=state;
-      localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify({version,prologueSeen,chapter,forest,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint}));return true;
+      const {version,prologueSeen,chapter,forest,valley,hill,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint}=state;
+      localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify({version,prologueSeen,chapter,forest,valley,hill,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint}));return true;
     }catch(_){return false;}
   }
 };

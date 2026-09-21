@@ -7,7 +7,7 @@
     "Completed rounds and partial melody survive closing the puzzle and reloading",
     "Five-note reversal rejects the forward order; graduated hints help without erasing earlier rounds",
     "Real reunion, safe bridge sequence, blocked movement, pause and mid-scene reload all complete correctly",
-    "Owl provides the alternate route; second chapter has its own ending without opening unfinished chapters",
+    "Owl provides the alternate route; second chapter ending offers the completed third chapter",
     "Ending survives reload; replay resets only the forest and reuses the correct scene",
     "Version-two saves migrate and invalid second-chapter milestones are rejected",
     "Chapter transition and forest restart work with blocked browser storage",

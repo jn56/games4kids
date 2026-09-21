@@ -50,6 +50,7 @@
         </div>
       </div>
       <div id="forest-hud" class="collection forest-hud" hidden><div class="collection-heading"><span>記憶之光 · 風鈴的三段旋律</span><b id="melody-count">0 / 3</b></div><div id="melody-badges" class="melody-badges"></div></div>
+      <div id="journey-hud" class="collection" hidden aria-label="旅程進度"><strong id="journey-count"></strong></div>
       <div class="desktop-controls"><span><kbd>W</kbd><span class="key-row"><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span></span><p>移動<small>或方向鍵</small></p><i></i><kbd>E</kbd><p>互動<small>或空白鍵</small></p></div>
       <div class="gentle-note">不急，我們一步一步來。<span>✦</span></div>
     </section>
@@ -63,6 +64,14 @@
       <div id="action-ready" class="action-ready"><span aria-hidden="true">≋</span><p id="action-instruction"></p><button id="action-start" class="primary-btn">準備好了，出發！ →</button></div>
       <div id="action-steer" class="action-controls"><button id="action-left" aria-label="向左換跑道">←<small>向左 / A</small></button><button id="action-right" aria-label="向右換跑道">→<small>向右 / D</small></button></div>
       <button id="action-run" class="action-run" hidden>按住快跑<small>空白鍵 / E</small></button>
+    </section>
+    <section id="journey-ui" hidden aria-label="合作挑戰">
+      <div class="action-summary"><strong id="journey-title"></strong><span id="journey-progress"></span><progress id="journey-meter" value="0" max="3" aria-label="挑戰進度"></progress><p id="journey-status" role="status" aria-live="polite"></p></div>
+      <button id="journey-leave" class="action-leave">稍後再試 ×</button>
+      <div id="journey-ready" class="action-ready"><span aria-hidden="true">✦</span><p id="journey-instruction"></p><button id="journey-start" class="primary-btn">準備好了！ →</button></div>
+      <div id="bridge-timing" hidden aria-label="金色區域與移動指針"><span id="bridge-zone"></span><b id="bridge-needle"></b></div>
+      <button id="journey-hit" class="action-run" hidden>敲一下<small>空白鍵 / E</small></button>
+      <div id="journey-steer" class="action-controls"><button id="journey-left">←<small>按住 / A</small></button><button id="journey-right">→<small>按住 / D</small></button></div>
     </section>
     <section id="dialogue-ui" class="dialogue" hidden aria-label="故事對話">
       <div id="dialogue-portrait" class="portrait" aria-hidden="true">✿</div>
@@ -99,6 +108,6 @@
     <section id="error-screen" class="modal-backdrop" hidden><div class="paper-modal"><span class="modal-symbol">☁</span><h2>花田還沒準備好</h2><p id="error-text">瀏覽器無法開啟 3D 畫面，請重新整理，或換用支援 WebGL 的瀏覽器。</p><button class="primary-btn" onclick="location.reload()">重新整理</button></div></section>
   </main>
   <noscript><div class="noscript">請開啟 JavaScript，才能陪小米進入花田。</div></noscript>
-  <script src="three.min.js"></script><script src="config.js"></script><script src="js/art.js"></script><script src="js/input.js"></script><script src="js/player.js"></script><script src="js/camera.js"></script><script src="js/npc.js"></script><script src="js/level.js"></script><script src="js/forest.js"></script><script src="js/interaction.js"></script><script src="js/dialogue.js"></script><script src="js/audio.js"></script><script src="js/challenges.js"></script><script src="js/song.js"></script><script src="js/story.js"></script><script src="js/forest-story.js"></script><script src="js/adventure.js"></script><script src="game.js"></script>
+  <script src="three.min.js"></script><script src="config.js"></script><script src="js/art.js"></script><script src="js/input.js"></script><script src="js/player.js"></script><script src="js/camera.js"></script><script src="js/npc.js"></script><script src="js/level.js"></script><script src="js/forest.js"></script><script src="js/journey-worlds.js"></script><script src="js/interaction.js"></script><script src="js/dialogue.js"></script><script src="js/audio.js"></script><script src="js/challenges.js"></script><script src="js/song.js"></script><script src="js/story.js"></script><script src="js/forest-story.js"></script><script src="js/adventure.js"></script><script src="js/journey-story.js"></script><script src="js/journey-trials.js"></script><script src="game.js"></script>
 </body>
 </html>

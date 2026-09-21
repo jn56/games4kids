@@ -105,7 +105,7 @@ function pass(name) { results.push(name);console.log('PASS '+name); }
   const invalid=await page.evaluate(()=>{localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify({version:1,ribbon:false,metRabbit:true,flowers:['star','star','bogus'],lit:true,completed:true}));return Meadow.Progress.read();});assert.equal(invalid.metRabbit,false);assert.deepEqual(invalid.flowers,[]);assert.equal(invalid.completed,false);
   pass('Malformed progress cannot unlock later steps');
   const upgraded=await page.evaluate(()=>{localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify({version:1,ribbon:true,metRabbit:true,flowers:['sun','heart','star'],lit:true,completed:true,checkpoint:{x:1,z:-12}}));return Meadow.Progress.read();});
-  assert.equal(upgraded.version,4);assert.equal(upgraded.flowers.length,3);assert.equal(upgraded.lit,false);assert.equal(upgraded.metHedgehog,false);assert.equal(upgraded.completed,false);
+  assert.equal(upgraded.version,5);assert.equal(upgraded.flowers.length,3);assert.equal(upgraded.lit,false);assert.equal(upgraded.metHedgehog,false);assert.equal(upgraded.completed,false);
   pass('Old saves keep their flowers but cannot skip the new puzzles');
   const mobile=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true,reducedMotion:'reduce'});
   const phone=await mobile.newPage();phone.on('pageerror',e=>errors.push(e.message));await phone.goto('http://127.0.0.1:4173/find_mom_3d/');await phone.waitForFunction(()=>window.meadowGame);
