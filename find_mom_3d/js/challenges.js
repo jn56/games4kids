@@ -140,7 +140,9 @@ Meadow.Challenges = class {
     }).join('')}<p class="clue-note">「右邊」是畫面上的右邊。<br>每樣回憶只能放一次；三條線索都要符合。</p>`;
   }
   letterMarkup() {
-    return `<div class="letter-sheet"><span class="letter-stamp">✉</span><h3>給我的小米</h3><p>${this.game.state.windSolved ? '我在前面的休息站，很安全。阿蹦和栗栗會陪你走。想你的時候，我也會點亮一盞燈。' : '媽媽的信還卡在風管裡。和栗栗一起修好風管，就能讀到了。'}</p><p class="letter-sign">${this.game.state.windSolved ? '愛你的媽媽 ♡' : '風車郵局 · 待送達'}</p></div>`;
+    const s=this.game.state,items=Meadow.Keepsakes.items(s);
+    const pocket=items.length?`<div class="keepsake-pocket"><h3>帶往下一站的小物</h3>${items.map(item=>`<article data-keepsake="${item.id}"><strong>${item.symbol} ${item.name} · 第 ${item.chapter} 關</strong><p>${item.clue}</p></article>`).join('')}${!s.lit?'<p>點亮引路燈後，還能找到一片星光鏡片。</p>':''}</div>`:'';
+    return `<div class="letter-sheet"><span class="letter-stamp">✉</span><h3>給我的小米</h3><p>${s.windSolved ? '我在前面的休息站，很安全。信裡放了歌譜和月光船票；引路燈下的小抽屜，還留著觀星用的鏡片。把它們帶好，我們路上會用到。' : '媽媽的信還卡在風管裡。和栗栗一起修好風管，就能讀到了。'}</p><p class="letter-sign">${s.windSolved ? '愛你的媽媽 ♡' : '風車郵局 · 待送達'}</p></div>${pocket}`;
   }
   rotate(index) {
     if (this.kind !== 'wind') return;

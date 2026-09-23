@@ -17,6 +17,7 @@ Meadow.JourneyTrials = class {
   start(kind,beacon=null){
     const g=this.game,s=g.state,v=s.valley,h=s.hill;
     if(s.mode!=='playing'||this.active)return;
+    if((kind==='raft'&&!Meadow.Keepsakes.has(s,'ticket'))||(kind==='star'&&!Meadow.Keepsakes.has(s,'lens'))){g.toast(kind==='raft'?'需要花田信封裡的月光船票。':'需要引路燈下的星光鏡片。');return;}
     if(kind==='bridge'&&(s.chapter!==3||!v.metBeaver||v.bridge===3))return;
     if(kind==='raft'&&(s.chapter!==3||v.bridge!==3||v.raft===4))return;
     if(kind==='star'&&(s.chapter!==4||!h.metSquirrel||!Meadow.BEACONS.some(b=>b.id===beacon)||h.lights.includes(beacon)))return;
@@ -30,7 +31,7 @@ Meadow.JourneyTrials = class {
     document.getElementById('journey-hit').hidden=kind!=='bridge';
     document.getElementById('bridge-timing').hidden=kind!=='bridge';
     document.getElementById('journey-title').textContent={bridge:'一起修好月光橋',raft:'木木掌舵，你來引路',star:'追上星光'}[kind];
-    document.getElementById('journey-instruction').textContent={bridge:'指針進入金色區域時，按空白鍵或「敲一下」。修好三段橋！',raft:'按住 ← → 或 A / D，讓木筏穿過兩盞金色浮燈。每過一道都會存檔。',star:'按住 ← → 或 A / D，讓光圈跟著星星。持續對準，信號燈就會亮！'}[kind];
+    document.getElementById('journey-instruction').textContent={bridge:'指針進入金色區域時，按空白鍵或「敲一下」。修好三段橋！',raft:'木木收好船票了！按住 ← → 或 A / D，照船票的提示，穿過兩盞金色浮燈中央。',star:'星光鏡片裝好了！按住 ← → 或 A / D，讓光圈跟著星星，直到信號燈亮起。'}[kind];
     for(const side of ['left','right'])document.getElementById(`journey-${side}`).setAttribute('aria-label',`${side==='left'?'向左':'向右'}${kind==='raft'?'划船':'移動光圈'}`);
     if(kind==='bridge'){g.player.setPosition(-1.5,4.5);g.view.override=new THREE.Vector3(0,0,1);}
     else {this.buildArena();g.worldCache[s.chapter].layer.visible=false;g.view.override=new THREE.Vector3(0,0,kind==='raft'?1:-1);}
@@ -55,6 +56,7 @@ Meadow.JourneyTrials = class {
       this.ring=new THREE.Mesh(new THREE.TorusGeometry(.68,.045,8,48),new THREE.MeshBasicMaterial({color:0xd7eee7}));this.root.add(this.ring);this.ring.rotation.x=-.6;this.ring.position.set(0,3.1,-3);
       for(let i=0;i<38;i++)A.part(this.root,'ball',0xdad4c2,[Math.sin(i*43)*8,2+Math.abs(Math.cos(i*12))*5,-6-Math.abs(Math.sin(i*9))*7],[.035,.035,.035],false);
       const scope=A.group(this.root,0,4);A.part(scope,'cylinder',0xbfb6aa,[0,.7,0],[.08,1.4,.08]);const tube=A.part(scope,'cylinder',0xaaa0bb,[0,1.5,0],[.28,1.4,.28]);tube.rotation.x=-.9;
+      const lens=new THREE.Mesh(new THREE.CircleGeometry(.24,24),new THREE.MeshBasicMaterial({color:0x9edcde,side:THREE.DoubleSide,transparent:true,opacity:.8}));lens.rotation.x=-Math.PI/2;tube.add(lens);lens.position.y=.505;
       this.helper=new Meadow.Squirrel(this.root);this.helper.mesh.position.set(2,0,4);
       g.player.setPosition(-1,4.5);
     }

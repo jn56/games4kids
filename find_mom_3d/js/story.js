@@ -6,7 +6,7 @@ Meadow.Progress = {
     return { metOwl:false, round:0, input:[], mistakes:[0,0,0], assists:[0,0,0], gustStage:0, dashStage:0, gustFails:0, dashFails:0, reunited:false, separated:false, routeKnown:false, completed:false };
   },
   fresh() {
-    return { version:5, prologueSeen:false, chapter:1, forest:this.forestFresh(),valley:this.valleyFresh(),hill:this.hillFresh(), ribbon:false, metRabbit:false, metHedgehog:false,
+    return { version:5, prologueSeen:false, chapter:1, entryChapter:1, forest:this.forestFresh(),valley:this.valleyFresh(),hill:this.hillFresh(), ribbon:false, metRabbit:false, metHedgehog:false,
       windSolved:false, windTurns:[...CONFIG.WIND_START], windHints:0,
       flowers:[], arrangement:[null,null,null,null], lampHints:0,
       lit:false, completed:false, checkpoint:{...CONFIG.START} };
@@ -15,6 +15,7 @@ Meadow.Progress = {
     try{
       const raw=JSON.parse(localStorage.getItem(CONFIG.SAVE_KEY));if(!raw||![1,2,3,4,5].includes(raw.version))return null;
       const state=this.fresh();state.ribbon=raw.ribbon===true;state.metRabbit=state.ribbon&&raw.metRabbit===true;
+      state.entryChapter=raw.version===5&&[1,2,3,4].includes(raw.entryChapter)?raw.entryChapter:1;
       state.prologueSeen=raw.version<4||raw.prologueSeen===true||state.ribbon;
       state.metHedgehog=state.metRabbit&&raw.metHedgehog===true;
       if(Array.isArray(raw.windTurns)&&raw.windTurns.length===9&&raw.windTurns.every(n=>Number.isInteger(n)&&n>=0&&n<4))state.windTurns=[...raw.windTurns];
@@ -29,9 +30,8 @@ Meadow.Progress = {
       for(const field of ['windHints','lampHints'])state[field]=Number.isInteger(raw[field])?Math.max(0,Math.min(3,raw[field])):0;
       state.lit=state.windSolved&&state.flowers.length===3&&Meadow.PuzzleRules.lampSolved(state.arrangement)&&raw.lit===true;
       state.completed=state.lit&&raw.completed===true;
-      state.chapter=state.completed&&raw.chapter===2?2:1;
       const savedForest=raw.forest||{},f=state.forest;
-      f.metOwl=state.completed&&savedForest.metOwl===true;
+      f.metOwl=(state.completed||state.entryChapter>=2)&&savedForest.metOwl===true;
       f.round=f.metOwl&&Number.isInteger(savedForest.round)?Math.max(0,Math.min(3,savedForest.round)):0;
       if(f.round<3&&Array.isArray(savedForest.input)){
         const song=CONFIG.SONGS[f.round],expected=song.reverse?[...song.sequence].reverse():song.sequence;
@@ -50,14 +50,14 @@ Meadow.Progress = {
       f.completed=f.routeKnown&&f.dashStage===3&&savedForest.completed===true;
       const rv=raw.valley||{},v=state.valley,rh=raw.hill||{},h=state.hill;
       const count=(n,max)=>Number.isInteger(n)?Math.max(0,Math.min(max,n)):0;
-      v.metBeaver=f.completed&&rv.metBeaver===true;v.bridge=v.metBeaver?count(rv.bridge,3):0;
+      v.metBeaver=(f.completed||state.entryChapter>=3)&&rv.metBeaver===true;v.bridge=v.metBeaver?count(rv.bridge,3):0;
       v.raft=v.bridge===3?count(rv.raft,4):0;v.completed=v.raft===4&&rv.completed===true;
       v.hammerFails=count(rv.hammerFails,99);v.raftFails=count(rv.raftFails,99);
-      h.metSquirrel=v.completed&&rh.metSquirrel===true;
+      h.metSquirrel=(v.completed||state.entryChapter===4)&&rh.metSquirrel===true;
       h.lights=h.metSquirrel&&Array.isArray(rh.lights)?['hope','memory','courage'].filter(id=>rh.lights.includes(id)):[];
       h.focusHelp=Array.from({length:3},(_,i)=>count(rh.focusHelp?.[i],3));
       h.signal=h.lights.length===3&&rh.signal===true;h.reunited=h.signal&&rh.reunited===true;h.completed=h.reunited&&rh.completed===true;
-      state.chapter=raw.chapter>=4&&v.completed?4:raw.chapter>=3&&f.completed?3:raw.chapter>=2&&state.completed?2:1;
+      state.chapter=raw.chapter===4&&(v.completed||state.entryChapter===4)?4:raw.chapter>=3&&(f.completed||state.entryChapter>=3)?3:raw.chapter>=2&&(state.completed||state.entryChapter>=2)?2:1;
       state.upgraded=raw.version===1&&state.metRabbit;
       const p=raw.checkpoint;if(p&&Number.isFinite(p.x)&&Number.isFinite(p.z)&&Math.abs(p.x)<16&&Math.abs(p.z)<16)state.checkpoint={x:p.x,z:p.z};
       return state;
@@ -65,8 +65,8 @@ Meadow.Progress = {
   },
   write(state) {
     try{
-      const {version,prologueSeen,chapter,forest,valley,hill,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint}=state;
-      localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify({version,prologueSeen,chapter,forest,valley,hill,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint}));return true;
+      const {version,prologueSeen,chapter,entryChapter,forest,valley,hill,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint}=state;
+      localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify({version,prologueSeen,chapter,entryChapter,forest,valley,hill,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint}));return true;
     }catch(_){return false;}
   }
 };
@@ -132,13 +132,13 @@ Meadow.Story = class {
     const g=this.game,s=g.state;
     if(s.windSolved||!s.metHedgehog||!Meadow.PuzzleRules.traceWind(s.windTurns).solved)return;
     s.windSolved=true;g.checkpoint(-6.1,-2.7);g.audio.chime();
-    this.say([this.line('栗栗','風來了！信送到了，光花也醒過來了！'),this.line('媽媽（信上的字）','小米，我在前面的休息站，很安全。阿蹦和栗栗會陪你走。想你的時候，我也會點亮一盞燈。'),this.line('小米','媽媽也在想我……栗栗，我想把引路燈點亮，讓她知道我來了。'),this.line('栗栗','三朵光花各藏著一條線索。找齊後，把它們和紅髮帶放進燈的四個位置；三條線索都要符合。')],()=>g.toast('媽媽的信收進手帳了。接著找光花，記下點燈的三條線索。',6000));
+    this.say([this.line('栗栗','風來了！信送到了，光花也醒過來了！'),this.line('小米','信封裡有媽媽的歌譜，還有一張月光船票！'),this.line('栗栗','歌譜寫著「森林的回聲要倒著唱」。船票畫著兩盞燈，要從中間穿過。'),this.line('媽媽（信上的字）','小米，我在前面的休息站，很安全。阿蹦和栗栗會陪你走。想你的時候，我也會點亮一盞燈。'),this.line('小米','媽媽也在想我……栗栗，我想把引路燈點亮，讓她知道我來了。'),this.line('栗栗','三朵光花各藏著一條線索。找齊後，把它們和紅髮帶放進燈的四個位置；三條線索都要符合。')],()=>g.toast('歌譜與月光船票收好了，線索也記進手帳。',6000));
   }
   lightLamp() {
     const g=this.game,s=g.state;
     if(s.lit||!s.windSolved||s.flowers.length!==3||!Meadow.PuzzleRules.lampSolved(s.arrangement))return;
-    this.say([this.line('阿蹦','三條線索都符合了！你不只找到花，還想出了它們的位置。'),this.line('小米','原來髮帶也能幫忙。就像媽媽還牽著我的手。'),this.line('栗栗','我去寄回信！告訴媽媽，你正帶著希望之光，一步一步走過去。'),this.line('小米','我還有一點怕，但我知道可以慢慢想，也可以找朋友幫忙。')],()=>{
-      s.lit=true;g.checkpoint(1,1.1);g.audio.chime();g.toast('希望之光亮起來了。阿蹦會陪你走到花拱門！',6000);
+    this.say([this.line('阿蹦','三條線索都符合了！你不只找到花，還想出了它們的位置。'),this.line('小米','原來髮帶也能幫忙。就像媽媽還牽著我的手。'),this.line('阿蹦','燈下的小抽屜打開了！這是媽媽留下的星光鏡片。'),this.line('小米','到了山丘，把鏡片交給觀星員，就能用望遠鏡找星光。'),this.line('栗栗','我去寄回信！告訴媽媽，你正帶著希望之光，一步一步走過去。'),this.line('小米','我還有一點怕，但我知道可以慢慢想，也可以找朋友幫忙。')],()=>{
+      s.lit=true;g.checkpoint(1,1.1);g.audio.chime();g.toast('收好星光鏡片，帶著三樣小物出發！',6000);
     });
   }
   objective() {

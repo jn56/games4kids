@@ -35,3 +35,16 @@ const CONFIG = Object.freeze({
     { id: 'star', name: '星星花', symbol: '★', color: 0xbaa0df, x: -5, z: -10, clue: '老樹下面', memory: '像媽媽說晚安時，陪著我的小星星。' }
   ]
 });
+
+// Items are earned by durable chapter-one milestones. Deriving ownership keeps
+// older saves compatible and gives direct chapter starts their travel supplies.
+Meadow.Keepsakes = {
+  catalog:[
+    {id:'score',symbol:'♪',name:'媽媽的歌譜',chapter:2,clue:'森林的第三段是回聲，要從最後一個音倒著敲。'},
+    {id:'ticket',symbol:'≋',name:'月光船票',chapter:3,clue:'把船票交給木木。渡河時，要從兩盞浮燈中央穿過。'},
+    {id:'lens',symbol:'✧',name:'星光鏡片',chapter:4,clue:'交給觀星員星星，裝上望遠鏡，讓光圈跟著星星。'}
+  ],
+  items(state){return this.catalog.filter(item=>(state.entryChapter>1)||(item.id==='lens'?state.lit:state.windSolved));},
+  has(state,id){return this.items(state).some(item=>item.id===id);},
+  forChapter(chapter){return this.catalog.find(item=>item.chapter===chapter);}
+};

@@ -247,6 +247,20 @@ body.in-dialogue #play-hud,body.in-dialogue #world-labels,body.in-dialogue #toas
 }
 
 /* Short cinematic and real-time challenges keep the world visible. */
+.keepsake-pocket{margin-top:20px;text-align:left}.keepsake-pocket h3{font-size:17px}.keepsake-pocket article{border-top:1px solid #d8d6be;padding:12px 0}.keepsake-pocket strong{font-size:16px;color:#3d5945}.keepsake-pocket p{font-size:15px;line-height:1.7;margin:6px 0;color:#5e6c59}
+.cover-buttons{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch}
+.chapter-select-btn{padding:12px;border:1px solid #829575;border-radius:7px;background:#fff9ebed;color:#3d5945;font-size:15px;min-height:48px}
+.chapter-picker{margin:auto;width:min(530px,92vw);max-height:90dvh;color:#3d5945}
+.chapter-picker::backdrop{background:#32473788;backdrop-filter:blur(8px)}
+.chapter-picker #chapter-picker-note{font-size:15px;line-height:1.7;color:#5e6c59}
+.chapter-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0 6px}
+.chapter-options button{border:1px solid #cbd4be;border-radius:12px;background:#edf0df;padding:18px 10px;min-height:94px;color:#3d5945;text-align:left}
+.chapter-options button:nth-child(2){background:#e0ebe3}.chapter-options button:nth-child(3){background:#dde9ee}.chapter-options button:nth-child(4){background:#e6e1f0}
+.chapter-options button:hover{border-color:#52694c;box-shadow:0 3px 12px #3d59451f}
+.chapter-options small{display:block;font-size:13px;margin-bottom:7px}.chapter-options strong{font-size:21px;font-weight:600;letter-spacing:1px}
+.chapter-picker .secondary-btn{font-size:15px}
+@media(max-width:400px){.cover-buttons{gap:8px}.chapter-select-btn{font-size:14px;padding:10px}.chapter-picker{padding:22px 18px}.chapter-options{gap:10px}.chapter-options strong{font-size:19px}}
+@media(max-height:500px) and (orientation:landscape){.chapter-picker{padding:15px 22px}.chapter-picker h2{font-size:24px;margin:0 0 6px}.chapter-picker #chapter-picker-note{margin:4px 0;font-size:13px}.chapter-picker #chapter-picker-note br{display:none}.chapter-options{margin-top:10px;gap:8px}.chapter-options button{padding:10px;min-height:65px}.chapter-options small{margin-bottom:4px;font-size:12px}.chapter-options strong{font-size:18px}.chapter-picker .secondary-btn{margin-top:8px}}
 body.in-journey #play-hud,body.in-journey #world-labels,body.in-journey #mobile-controls,body.in-journey #toast,body.in-journey .chapter-tag{visibility:hidden}
 #journey-ui{position:fixed;inset:0;z-index:19;pointer-events:none}
 #journey-ui button{pointer-events:auto;touch-action:none;user-select:none}

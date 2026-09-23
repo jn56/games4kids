@@ -33,6 +33,11 @@ Meadow.Game = class {
   bindUI() {
     const on=(id,fn)=>document.getElementById(id).addEventListener('click',fn);
     on('start-btn',()=>this.start(!!this.saved));on('new-game-btn',()=>this.start(false));
+    for(const id of ['select-chapter-btn','pause-chapters-btn','ending-chapters-btn'])on(id,()=>this.openChapterPicker());
+    const picker=document.getElementById('chapter-picker');
+    on('chapter-picker-close',()=>picker.close());
+    picker.addEventListener('close',()=>this.input.reset());
+    picker.querySelectorAll('[data-chapter]').forEach(button=>button.addEventListener('click',()=>this.selectChapter(Number(button.dataset.chapter))));
     on('pause-btn',()=>this.togglePause());on('resume-btn',()=>this.togglePause());
     on('restart-btn',()=>this.restartCurrent());on('replay-btn',()=>this.restartCurrent());
     on('next-chapter-btn',()=>this.enterNext());
@@ -47,12 +52,24 @@ Meadow.Game = class {
     document.addEventListener('visibilitychange',()=>{if(document.hidden){this.input.reset();if(['playing','dialogue','puzzle','cutscene','action','journey'].includes(this.state.mode))this.togglePause();}});
     window.addEventListener('keydown',event=>{
       if(event.key!=='Tab')return;
-      const selector=this.state.mode==='paused'?'#pause-screen':this.state.mode==='complete'?'#ending-screen':this.state.mode==='action'?'#action-ui':this.state.mode==='journey'?'#journey-ui':this.state.mode==='puzzle'?(this.song.active?'#song-screen':'#puzzle-screen'):null;
+      const selector=picker.open?'#chapter-picker':this.state.mode==='paused'?'#pause-screen':this.state.mode==='complete'?'#ending-screen':this.state.mode==='action'?'#action-ui':this.state.mode==='journey'?'#journey-ui':this.state.mode==='puzzle'?(this.song.active?'#song-screen':'#puzzle-screen'):null;
       if(!selector)return;
       const buttons=[...document.querySelectorAll(`${selector} button`)].filter(button=>!button.disabled&&!button.hidden&&button.getClientRects().length);
       const index=buttons.indexOf(document.activeElement),next=event.shiftKey?(index<=0?buttons.length-1:index-1):(index+1)%buttons.length;
       event.preventDefault();buttons[next].focus();
     });
+  }
+  openChapterPicker(){
+    if(!['title','paused','complete'].includes(this.state.mode))return;
+    this.input.reset();document.getElementById('chapter-picker').showModal();
+  }
+  selectChapter(chapter){
+    if(!document.getElementById('chapter-picker').open||![1,2,3,4].includes(chapter))return;
+    document.getElementById('chapter-picker').close();
+    // Record an explicit starting chapter without awarding skipped chapters.
+    this.saved={...Meadow.Progress.fresh(),chapter,entryChapter:chapter,prologueSeen:chapter>1};
+    this.start(true);this.saveProgress();
+    if(chapter>1)this.dialogue.show([{name:'小米',text:'出發前，歌譜、月光船票和星光鏡片都收好了。'}],()=>this.story.intro());
   }
   start(continuing) {
     this.prologue.reset();this.trials.reset();this.expedition.reset();
@@ -121,11 +138,13 @@ Meadow.Game = class {
     if(!saved&&!this.storageWarning){this.storageWarning=true;this.toast('這次無法記住進度，請先保持這個頁面開著。',6500);}
   }
   action() {
+    if(document.getElementById('chapter-picker').open)return;
     if(this.state.mode==='dialogue')this.dialogue.next();
     else if(this.state.mode==='playing')this.interactions.act();
     else if(this.state.mode==='journey')this.expedition.strike();
   }
   togglePause() {
+    const picker=document.getElementById('chapter-picker');if(picker.open){picker.close();return;}
     const s=this.state;
     if(s.mode==='paused'){
       s.mode=this.beforePause;document.getElementById('pause-screen').hidden=true;this.audio.setPaused(false);this.input.reset();

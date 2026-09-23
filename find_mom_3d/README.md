@@ -20,8 +20,17 @@ node find_mom_3d/scratch/serve.cjs
 - 左上「給我提示」說明下一個目標，腳邊光點提供方向。
 - 謎題可用滑鼠／觸控點選，或 Tab 選按鈕、Enter／空白鍵操作。風鈴也能按數字 1、2、3。
 - 自動保存關卡、謎題操作與劇情進度。關閉再開可繼續；暫停選單可重玩目前關卡，封面可從第一章重新開始。
+- **選擇關卡**：封面的「選擇關卡」，以及暫停／通關畫面的「選擇其他關卡」，都能直接進入任一關，不必先通過前面的關卡。選關會從該關開頭開始並取代目前存檔；取消則保留原本進度。之後可照常續玩、重玩或前往下一關，跳過的關卡不會標為通關。
 
 ## 第一關：黃昏花田
+
+第一關也準備後三關的旅途物品，取得後可在手帳重讀用途：
+
+- **媽媽的歌譜**：修好風管、收到信時取得。預告森林第三段「回聲要倒著敲」；第二關的「翻媽媽的歌譜」可查看圖示旋律與逐步提示。
+- **月光船票**：同封信裡取得，印著「從兩盞浮燈中央穿過」的線索。第三關木木辨認船票，搭木筏前會核對船票並重述操作提示。
+- **星光鏡片**：點亮引路燈後，從燈下的小抽屜取得。第四關交給星星、裝上望遠鏡，才能開始追蹤星光。
+
+物品不會消耗，依已保存的風管／引路燈進度持續攜帶。舊存檔自動具備已取得節點的物品；直接選第二至第四關則備齊旅途物品，不會因此把略過的關卡標為通關。
 
 野餐前情 → 調查紅髮帶 → 找兔子阿蹦 → 找刺蝟栗栗 → 修好風管、讀媽媽的信 → 探索三朵光花的線索 → 解開引路燈 → 與阿蹦走到花拱門。
 
@@ -83,6 +92,8 @@ node find_mom_3d/scratch/qa-layout.cjs
 node find_mom_3d/scratch/qa-forest.cjs
 node find_mom_3d/scratch/qa-journey.cjs
 node find_mom_3d/scratch/qa-journey-mobile.cjs
+node find_mom_3d/scratch/qa-chapters.cjs
+node find_mom_3d/scratch/qa-keepsakes.cjs
 node find_mom_3d/scratch/qa-forest-layout.cjs
 node find_mom_3d/scratch/qa-action.cjs
 ```

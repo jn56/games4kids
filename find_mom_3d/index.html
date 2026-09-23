@@ -27,13 +27,24 @@
         <p class="eyebrow"><span></span> 一段關於愛與勇氣的小小冒險</p>
         <h1 id="game-title">媽媽，<br>我在<span class="title-here">這裡<svg viewBox="0 0 200 16" aria-hidden="true"><path d="M3 11 Q90 -3 195 9"/></svg></span>。</h1>
         <p class="cover-description">穿過花田，跟著微光。<br>陪小米找到媽媽，也找到心裡的勇敢。</p>
-        <button id="start-btn" class="primary-btn">陪小米出發 <span>→</span></button>
+        <div class="cover-buttons"><button id="start-btn" class="primary-btn">陪小米出發 <span>→</span></button><button id="select-chapter-btn" class="chapter-select-btn">選擇關卡</button></div>
         <button id="new-game-btn" class="text-btn" hidden>重新開始第一章</button>
         <p class="cover-note">7–12 歲 <b>·</b> 自由探索 <b>·</b> 慢慢來也沒關係</p>
       </div>
       <div class="chapter-card"><span class="chapter-number">01</span><div><small>我們的第一站</small><strong>黃昏花田</strong><p>把想念，變成一點點光。</p></div><span class="card-flower">✿</span></div>
       <div class="cover-footer"><span>THE LITTLE LIGHTS OF HOME</span><div class="four-lights"><b></b><i></i><i></i><i></i><span>四盞燈，一條回家的路</span></div></div>
     </section>
+    <dialog id="chapter-picker" class="paper-modal chapter-picker" aria-labelledby="chapter-picker-title" aria-describedby="chapter-picker-note">
+      <h2 id="chapter-picker-title">今天，想去哪裡？</h2>
+      <p id="chapter-picker-note">四關都能直接玩，必要物品會備齊。<br>選關會從該關開頭開始，取代目前存檔。</p>
+      <div class="chapter-options">
+        <button data-chapter="1"><small>第 1 關 · 希望</small><strong>黃昏花田</strong></button>
+        <button data-chapter="2"><small>第 2 關 · 記憶</small><strong>風鈴森林</strong></button>
+        <button data-chapter="3"><small>第 3 關 · 勇氣</small><strong>月光河谷</strong></button>
+        <button data-chapter="4"><small>第 4 關 · 重逢</small><strong>星光山丘</strong></button>
+      </div>
+      <button id="chapter-picker-close" class="secondary-btn">先不換關，返回</button>
+    </dialog>
     <section id="play-hud" hidden aria-label="冒險進度">
       <aside class="quest-card">
         <p class="eyebrow">小小的一步 <span id="step-count">01 / 07</span></p>
@@ -98,11 +109,12 @@
       </div>
     </section>
     <div id="mobile-controls" hidden><div id="joystick" role="group" aria-label="拖曳搖桿移動"><span class="joystick-cross">✣</span><div id="joystick-stick"></div></div><button id="touch-action" class="touch-action" aria-label="互動" disabled>✦<span>互動</span></button></div>
-    <section id="pause-screen" class="modal-backdrop" hidden><div class="paper-modal" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="modal-symbol">☁</span><p class="eyebrow">休息一下，也很好</p><h2 id="pause-title">花田會等你。</h2><p>喝口水、伸個懶腰，<br>準備好了再繼續找媽媽。</p><button id="resume-btn" class="primary-btn">繼續冒險 <span>→</span></button><button id="restart-btn" class="secondary-btn">重新開始第一章</button><p class="modal-hint">WASD／方向鍵移動 · E／空白鍵互動<br>手機請使用左下搖桿與右下互動鈕</p></div></section>
+    <section id="pause-screen" class="modal-backdrop" hidden><div class="paper-modal" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="modal-symbol">☁</span><p class="eyebrow">休息一下，也很好</p><h2 id="pause-title">花田會等你。</h2><p>喝口水、伸個懶腰，<br>準備好了再繼續找媽媽。</p><button id="resume-btn" class="primary-btn">繼續冒險 <span>→</span></button><button id="restart-btn" class="secondary-btn">重新開始第一章</button><button id="pause-chapters-btn" class="secondary-btn">選擇其他關卡</button><p class="modal-hint">WASD／方向鍵移動 · E／空白鍵互動<br>手機請使用左下搖桿與右下互動鈕</p></div></section>
     <section id="ending-screen" class="modal-backdrop ending" hidden><div class="paper-modal ending-paper" role="dialog" aria-modal="true" aria-labelledby="ending-title">
       <div class="award-light" aria-hidden="true">✦</div><p id="ending-kicker" class="eyebrow">第一章完成 · 黃昏花田</p><h2 id="ending-title">原來，媽媽也在找我。</h2><p id="ending-description">你幫小米點亮了第一盞燈。<br>雖然還沒見到媽媽，心裡已經有了光。</p>
       <div id="ending-award" class="award-label">01 <span>希望之光</span> ✦</div><div id="ending-lessons" class="ending-lessons"></div>
       <button id="next-chapter-btn" class="primary-btn">前往第二章：風鈴森林 <span>→</span></button><button id="replay-btn" class="secondary-btn">再逛一次花田 ↻</button>
+      <button id="ending-chapters-btn" class="secondary-btn">選擇其他關卡</button>
       <p id="ending-next" class="coming-next">下一站：風鈴森林<br><small>咕咕和媽媽的歌，在森林裡等你。</small></p>
     </div></section>
     <section id="error-screen" class="modal-backdrop" hidden><div class="paper-modal"><span class="modal-symbol">☁</span><h2>花田還沒準備好</h2><p id="error-text">瀏覽器無法開啟 3D 畫面，請重新整理，或換用支援 WebGL 的瀏覽器。</p><button class="primary-btn" onclick="location.reload()">重新整理</button></div></section>

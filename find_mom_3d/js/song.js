@@ -16,6 +16,7 @@ Meadow.SongPuzzle = class {
   open() {
     const g=this.game,f=g.state.forest;
     if(g.state.chapter!==2||g.state.mode!=='playing'||!f.metOwl||f.round>=3)return;
+    if(!Meadow.Keepsakes.has(g.state,'score')){g.toast('需要花田信封裡的媽媽歌譜。');return;}
     this.active=true;this.current=f.round;this.ready=f.input.length>0;this.stageDone=false;this.demo=null;this.lit=null;
     this.feedback='先按「播放旋律」，看圖案亮起的先後。聲音關著也沒關係。';
     const p=g.player.mesh.position;g.checkpoint(p.x,p.z);
@@ -79,7 +80,7 @@ Meadow.SongPuzzle = class {
     if(!this.active||this.game.state.mode!=='puzzle'||this.demo||this.stageDone)return;
     const f=this.game.state.forest;f.assists[this.current]=Math.min(3,f.assists[this.current]+1);
     const expected=Meadow.SongPuzzle.expected(this.current),level=f.assists[this.current];
-    if(level===1)this.feedback='我把原來的圖示樂譜留下來。第三段要記得從右邊往左看喔。';
+    if(level===1)this.feedback='翻開花田帶來的媽媽歌譜：第三段是回聲，要從右邊往左看喔。';
     else if(level===2)this.feedback=`下一個是「${CONFIG.BELLS.find(b=>b.id===expected[f.input.length]).name}」。先完成這一小步。`;
     else this.feedback='下面列出這一段的作答順序。沿著圖案慢慢敲，記住回聲會倒過來。';
     this.game.saveProgress();this.render();
@@ -106,6 +107,7 @@ Meadow.SongPuzzle = class {
     document.getElementById('song-replay').textContent=this.ready?'再聽／看一次 ↻':'播放旋律 ▶';
     document.getElementById('song-replay').disabled=!!this.demo||this.stageDone;
     document.getElementById('song-hint').disabled=!!this.demo||this.stageDone;
+    document.getElementById('song-hint').textContent='翻媽媽的歌譜';
     document.getElementById('song-next').hidden=!this.stageDone;
   }
 };

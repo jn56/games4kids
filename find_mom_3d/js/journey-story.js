@@ -26,7 +26,7 @@ Meadow.JourneyStory = class {
     const g=this.game,s=g.state,v=s.valley,h=s.hill;if(s.mode!=='playing')return;
     if(this.chapter===3){
       if(id==='beaver'){
-        if(!v.metBeaver)this.say([['木木','橋板被水沖鬆了。我扶住木頭，你看準時機敲一下。'],['小米','我還是有一點怕……但我願意試試看。'],['木木','害怕也可以求助。我會一直在旁邊。']],()=>{v.metBeaver=true;g.checkpoint(-2,6);});
+        if(!v.metBeaver)this.say([['小米','木木，這是媽媽在花田留下的月光船票。'],['木木','船票上畫著兩盞浮燈，要從中央穿過。我會陪你搭木筏。'],['木木','橋板被水沖鬆了。我扶住木頭，你看準時機敲一下。'],['小米','我還是有一點怕……但我願意試試看。'],['木木','害怕也可以求助。我會一直在旁邊。']],()=>{v.metBeaver=true;g.checkpoint(-2,6);});
         else this.say([['木木',v.raft===4?'剛剛是你幫我看清水路。你已經走了好遠！':v.bridge===3?'從橋走到小島另一端，我們一起搭木筏。':'去工作臺吧，等指針進入金色區域再敲。']]);return;
       }
       if(id==='bench'){g.expedition.start('bridge');return;}
@@ -35,7 +35,7 @@ Meadow.JourneyStory = class {
       return;
     }
     if(id==='squirrel'){
-      if(!h.metSquirrel)this.say([['星星','三座信號燈，要用望遠鏡接住星光。按住左右，讓光圈跟著星星。'],['小米','我帶來了希望、記憶，還有勇氣！'],['星星','想先去哪一盞都可以。每點亮一盞，我都會記住。']],()=>{h.metSquirrel=true;g.checkpoint(-1,8);});
+      if(!h.metSquirrel)this.say([['小米','我從花田的引路燈下，帶來了這片星光鏡片！'],['星星','正好是望遠鏡缺的鏡片！裝好了，就能看見星光的光圈。'],['星星','三座信號燈，要用望遠鏡接住星光。按住左右，讓光圈跟著星星。'],['小米','我帶來了希望、記憶，還有勇氣！'],['星星','想先去哪一盞都可以。每點亮一盞，我都會記住。']],()=>{h.metSquirrel=true;g.checkpoint(-1,8);});
       else this.say([['星星',h.reunited?'你和媽媽的光，終於在一起了。':h.lights.length===3?'三盞燈都亮了！去山丘頂，點亮最後一盞吧。':'找到未亮的燈，讓光圈跟著星星，直到光充滿。']]);return;
     }
     if(Meadow.BEACONS.some(b=>b.id===id)){g.expedition.start('star',id);return;}
@@ -49,7 +49,7 @@ Meadow.JourneyStory = class {
     else if(kind==='raft')this.say([['木木','靠岸了！謝謝你幫忙看浮燈，我們配合得真好。'],['小米','河水還是很急，但我知道自己可以怎麼做了。']]);
     else {const texts={hope:'花田的朋友，讓我知道可以開口求助。',memory:'媽媽的歌，一直記在我心裡。',courage:'木木陪我過河，我也學會幫忙。'};this.say([['小米',texts[beacon]],['星星',g.state.hill.lights.length===3?'三盞燈亮了！到山丘頂，點亮最後的陪伴之光。':'這道光會照著路。我們去下一盞吧。']]);}
   }
-  readJournal(){this.say([['小米',this.objective().detail],[this.chapter===3?'木木':'星星',this.chapter===3?'每修好一段橋、每穿過一道浮燈，都會記住。失手只要再試這一小步。':'每盞信號燈都會記住。對準星光需要一點練習，我會幫你穩住望遠鏡。']]);}
+  readJournal(){const item=Meadow.Keepsakes.forChapter(this.chapter);this.say([['小米',item.name+'：'+item.clue],['小米',this.objective().detail],[this.chapter===3?'木木':'星星',this.chapter===3?'每修好一段橋、每穿過一道浮燈，都會記住。失手只要再試這一小步。':'每盞信號燈都會記住。對準星光需要一點練習，我會幫你穩住望遠鏡。']]);}
   beginReunion(){
     const g=this.game;this.running='reunion';this.elapsed=0;g.state.mode='cutscene';g.world.cutscene=true;g.world.hug=false;g.input.reset();g.player.setPosition(0,-7.7);g.world.mother.mesh.position.set(4,0,-13);g.refresh();
     g.view.override=new THREE.Vector3(0,0,-9);document.body.classList.add('in-cutscene');this.caption('媽媽看見了那道光。');
