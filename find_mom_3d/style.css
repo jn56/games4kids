@@ -334,3 +334,25 @@ body.in-action #play-hud,body.in-action #world-labels,body.in-action #mobile-con
 @media(max-width:700px){.minimap{right:12px;top:83px;width:116px;padding:5px}.minimap button{font-size:12px;padding:1px 4px;min-height:32px}.minimap p{font-size:9px;letter-spacing:-.4px}.minimap:has([aria-expanded="false"]){width:98px}.quest-card{left:12px;width:calc(100% - 152px);min-width:150px;padding:8px 10px;gap:0}.quest-card h2{font-size:14px}.quest-card .journal-btn{font-size:11px}.quest-bottom{grid-column:1 / -1}.quest-card .journal-btn{grid-column:1 / -1;text-align:left}}
 @media(max-height:500px) and (min-width:701px){.minimap{top:66px;right:14px;width:116px;padding:4px}.minimap button{font-size:11px;min-height:28px}.minimap p{font-size:9px}.collection{right:146px;max-width:210px}}
 .world-label.chat-label .label-bubble,.world-label.trail-label .label-bubble{display:block}
+.song-score .score-step{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.song-score .score-step small{font-size:10px;line-height:1.2;color:#58684f}
+.song-score .score-order{margin:6px 0 0;font-size:11px;line-height:1.6;color:#47614e}
+@media(max-height:500px) and (orientation:landscape){.song-score .score-step small{font-size:9px}.song-score .score-order{font-size:10px;margin-top:3px}}
+.song-score>div{display:grid;grid-template-columns:repeat(var(--score-count),minmax(0,28px));gap:4px;justify-content:center}
+.song-score .score-note{max-width:100%}
+
+.gust-warning{position:absolute;left:50%;top:245px;transform:translateX(-50%);width:min(430px,90vw);padding:12px 18px;text-align:center;border:3px solid #9c431f;border-radius:16px;background:#ffe2a3f5;color:#783112;box-shadow:0 5px 24px #75330e35}
+.gust-warning strong{display:block;font-size:29px;line-height:1.25}.gust-warning span{display:block;margin-top:5px;font-size:19px;font-weight:700}
+#action-ui[data-reverse=true] #action-steer button{background:#a24f24;border:3px solid #ffdfa0;box-shadow:0 0 0 4px #f4b84c50}
+#action-ui[data-reverse=true] #action-steer small{font-size:15px;font-weight:700}
+.story-caption.shout{font-size:clamp(24px,3vw,34px);font-weight:800;color:#843d2c;border:2px solid #f4c784;background:#fff4dafa;padding:14px 24px}
+.bridge-question{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);width:min(480px,90vw);padding:15px 22px;background:#fff6d8f5;border:2px solid #c9a56a;border-radius:16px;text-align:center;color:#334d43;box-shadow:0 5px 26px #36534b25}
+.bridge-question small{display:block;font-size:13px;color:#7d7457}.bridge-question strong{display:block;font-size:clamp(25px,3.5vw,38px);line-height:1.45;margin:4px 0;white-space:normal}.bridge-question>span{font-size:14px}
+#journey-ui[data-kind=bridge] #bridge-timing{top:calc(42% + 86px);bottom:auto;height:38px;width:min(480px,85vw)}
+#journey-ui[data-kind=bridge] .bridge-answer{font-size:19px}
+@media(max-width:700px){.gust-warning{top:260px;padding:10px 12px}.gust-warning strong{font-size:25px}.gust-warning span{font-size:16px}.bridge-question{top:45%;padding:12px 14px}#journey-ui[data-kind=bridge] #bridge-timing{top:calc(45% + 86px)}.story-caption.shout{width:90vw;padding:12px;font-size:24px}}
+@media(max-height:500px) and (orientation:landscape){.gust-warning{top:66px;left:55%;width:300px;padding:7px 10px}.gust-warning strong{font-size:24px}.gust-warning span{font-size:15px}.bridge-question{top:43%;width:370px;padding:9px 14px}.bridge-question strong{font-size:27px;margin:2px 0}.bridge-question>span{font-size:12px}#journey-ui[data-kind=bridge] #bridge-timing{top:calc(43% + 65px);width:370px;height:32px}#journey-ui[data-kind=bridge] .action-summary{width:220px}#journey-ui[data-kind=bridge] .action-summary p{display:none}.story-caption.shout{font-size:23px;padding:9px 18px}}
+#journey-ui[data-kind=bridge] .bridge-answer{display:grid;place-items:center;line-height:1}
+@media(max-width:700px){#journey-ui[data-kind=bridge] .action-summary p{display:none}#journey-ui[data-kind=bridge] .action-summary{top:134px}.bridge-question{top:48%}#journey-ui[data-kind=bridge] #bridge-timing{top:calc(48% + 86px)}}
+@media(max-height:500px) and (orientation:landscape){#action-ui .action-summary{width:190px}#journey-ui[data-kind=bridge] .action-summary{top:66px}.bridge-question{top:47%;width:min(370px,54vw)}#journey-ui[data-kind=bridge] #bridge-timing{top:calc(47% + 65px);width:min(370px,54vw)}}
+#journey-ui[data-kind=bridge] #bridge-timing{top:calc(100% + 14px);width:100%}

@@ -76,7 +76,7 @@ Meadow.Game = class {
     this.prologue.reset();this.trials.reset();this.expedition.reset();
     this.dialogue.close();this.challenges.hide();this.song.hide();this.input.reset();this.audio.setPaused(false);
     Object.assign(this.state,continuing&&this.saved?this.saved:Meadow.Progress.fresh(),{mode:'playing'});
-    Object.values(this.stories).forEach(story=>story.running=false);document.body.classList.remove('in-cutscene');document.getElementById('story-caption').hidden=true;
+    Object.values(this.stories).forEach(story=>story.running=false);document.body.classList.remove('in-cutscene');document.getElementById('story-caption').hidden=true;document.getElementById('story-caption').classList.remove('shout');
     this.loadWorld(this.state.chapter);
     for(const id of ['title-screen','pause-screen','ending-screen','toast'])document.getElementById(id).hidden=true;
     for(const id of ['play-hud','pause-btn','mobile-controls'])document.getElementById(id).hidden=false;

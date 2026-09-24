@@ -18,7 +18,7 @@ Meadow.SongPuzzle = class {
     if(g.state.chapter!==2||g.state.mode!=='playing'||!f.metOwl||f.round>=3)return;
     if(!Meadow.Keepsakes.has(g.state,'score')){g.toast('需要花田信封裡的媽媽歌譜。');return;}
     this.active=true;this.current=f.round;this.ready=f.input.length>0;this.stageDone=false;this.demo=null;this.lit=null;
-    this.feedback='先按「播放旋律」，看圖案亮起的先後。聲音關著也沒關係。';
+    this.feedback=f.input.length?`接著上次的第 ${f.input.length+1} 個音。重播會從本段第一音重新作答。`:'先按「播放旋律」，看圖案亮起的先後。聲音關著也沒關係。';
     const p=g.player.mesh.position;g.checkpoint(p.x,p.z);
     g.state.mode='puzzle';g.input.reset();this.panel.hidden=false;document.body.classList.add('in-puzzle');g.interactions.update();
     this.render();document.getElementById('song-replay').focus({preventScroll:true});
@@ -83,9 +83,10 @@ Meadow.SongPuzzle = class {
     if(!this.active||this.game.state.mode!=='puzzle'||this.demo||this.stageDone)return;
     const f=this.game.state.forest;f.assists[this.current]=Math.min(3,f.assists[this.current]+1);
     const expected=Meadow.SongPuzzle.expected(this.current),level=f.assists[this.current];
-    if(level===1)this.feedback='翻開花田帶來的媽媽歌譜：第三段是回聲，要從右邊往左看喔。';
+    const song=CONFIG.SONGS[this.current];
+    if(level===1)this.feedback=song.shift?'從原旋律的第 2 音開始，依序敲到第 7 音，最後補上第 1 音。':song.reverse?'這段是回聲：從原旋律的最後一音，往回敲到第一音。':'這段照原旋律，從左到右依序敲回來。';
     else if(level===2)this.feedback=`下一個是「${CONFIG.BELLS.find(b=>b.id===expected[f.input.length]).name}」。先完成這一小步。`;
-    else this.feedback='下面列出這一段的作答順序。沿著圖案慢慢敲，記住回聲會倒過來。';
+    else this.feedback=song.shift?'下面已排好換位後的作答順序，從左到右敲，不用再換位。':song.reverse?'下面已排好倒序後的作答順序，從左到右敲，不用再倒過來。':'下面是作答順序，從左到右依序敲回來。';
     this.game.saveProgress();this.render();
   }
   symbol(id) {
@@ -103,7 +104,9 @@ Meadow.SongPuzzle = class {
     document.getElementById('song-demonstration').innerHTML=active?`<span class="demo-symbol note-${active.id}">${this.symbol(active.id)}</span><strong>${active.name}</strong><small>第 ${this.demo.index+1} 個音</small>`:`<span class="demo-symbol">${this.stageDone?'✦':this.ready?'♪':'🦉'}</span><strong>${this.stageDone?'這一段完成了':this.ready?'換你敲敲看':'咕咕準備好了'}</strong><small>${this.stageDone?(f.round===3?'準備好就繼續找媽媽':'準備好再到下一段'):this.ready?'沒有時間限制':'可以聽聲音，也可以只看圖案'}</small>`;
     document.getElementById('song-score').hidden=assist<1||!!this.demo||this.stageDone;
     const sequence=assist>=3?Meadow.SongPuzzle.expected(this.current):song.sequence;
-    document.getElementById('song-score').innerHTML=`<span>${assist>=3?'作答順序 →':'原來的旋律 →'}</span><div>${sequence.map(id=>this.noteMarkup(id)).join('')}</div>`;
+    const positions=song.shift?[...song.sequence.slice(1).map((_,i)=>i+2),1]:song.reverse?song.sequence.map((_,i)=>song.sequence.length-i):song.sequence.map((_,i)=>i+1);
+    document.getElementById('song-score').innerHTML=`<span>${assist>=3?'作答順序 →':song.shift||song.reverse?'原旋律（還要換順序）':'原旋律 →'}</span><div style="--score-count:${sequence.length}">${sequence.map((id,i)=>`<span class="score-step">${this.noteMarkup(id)}<small>${i+1}</small></span>`).join('')}</div>${assist<3&&(song.shift||song.reverse)?`<p class="score-order">作答：原第 ${positions.join(' → ')} 音</p>`:''}`;
+
     document.getElementById('song-input').innerHTML=Array.from({length:song.sequence.length},(_,i)=>this.stageDone?this.noteMarkup(Meadow.SongPuzzle.expected(this.current)[i]):f.input[i]?this.noteMarkup(f.input[i]):'<span class="input-note">'+(i+1)+'</span>').join('');
     const bells=document.getElementById('song-bells');
     if(!bells.children.length)bells.innerHTML=CONFIG.BELLS.map((b,i)=>`<button class="song-bell note-${b.id}${this.lit===b.id?' ringing':''}" data-note="${b.id}" ${!this.ready||this.demo||this.stageDone?'disabled':''}><span class="bell-silhouette">${this.symbol(b.id)}</span><strong>${b.name}</strong><small>鍵盤 ${i+1} 或點一下</small></button>`).join('');

@@ -74,6 +74,7 @@
       <div class="action-summary"><strong id="action-title">疾風小徑</strong><span id="action-progress">0 / 6</span><progress id="action-meter" value="0" max="6" aria-label="挑戰進度"></progress><p id="action-status" role="status" aria-live="polite"></p><progress id="wind-meter" value="0" max="3" aria-label="下一陣風之前剩下的時間" hidden></progress></div>
       <button id="action-leave" class="action-leave">稍後再試 ×</button>
       <div id="action-ready" class="action-ready"><span aria-hidden="true">≋</span><p id="action-instruction"></p><button id="action-start" class="primary-btn">準備好了，出發！ →</button></div>
+      <div id="gust-warning" class="gust-warning" role="status" aria-live="assertive" hidden><strong></strong><span></span></div>
       <div id="action-steer" class="action-controls"><button id="action-left" aria-label="向左換跑道">←<small>向左 / A</small></button><button id="action-right" aria-label="向右換跑道">→<small>向右 / D</small></button></div>
       <button id="action-run" class="action-run" hidden>出發<small>點一下 / E</small></button>
     </section>
@@ -81,7 +82,9 @@
       <div class="action-summary"><strong id="journey-title"></strong><span id="journey-progress"></span><progress id="journey-meter" value="0" max="3" aria-label="挑戰進度"></progress><p id="journey-status" role="status" aria-live="polite"></p></div>
       <button id="journey-leave" class="action-leave">稍後再試 ×</button>
       <div id="journey-ready" class="action-ready"><span aria-hidden="true">✦</span><p id="journey-instruction"></p><button id="journey-start" class="primary-btn">準備好了！ →</button></div>
-      <div id="bridge-timing" hidden aria-label="金色區域與移動指針"><span id="bridge-zone"></span><b id="bridge-needle"></b></div>
+      <div id="bridge-question" class="bridge-question" hidden><small id="bridge-question-count"></small><strong id="bridge-question-text"></strong><span>算出答案，瞄準下方數字再敲</span>
+        <div id="bridge-timing" hidden aria-label="金色區域與移動指針"><span id="bridge-zone"></span><b id="bridge-needle"></b></div>
+      </div>
       <button id="journey-hit" class="action-run" hidden>敲一下<small>空白鍵 / E</small></button>
       <div id="journey-steer" class="action-controls"><button id="journey-left">←<small>按住 / A</small></button><button id="journey-right">→<small>按住 / D</small></button></div>
     </section>
@@ -121,6 +124,6 @@
     <section id="error-screen" class="modal-backdrop" hidden><div class="paper-modal"><span class="modal-symbol">☁</span><h2>花田還沒準備好</h2><p id="error-text">瀏覽器無法開啟 3D 畫面，請重新整理，或換用支援 WebGL 的瀏覽器。</p><button class="primary-btn" onclick="location.reload()">重新整理</button></div></section>
   </main>
   <noscript><div class="noscript">請開啟 JavaScript，才能陪小米進入花田。</div></noscript>
-  <script src="three.min.js"></script><script src="config.js"></script><script src="js/art.js"></script><script src="js/input.js"></script><script src="js/player.js"></script><script src="js/camera.js"></script><script src="js/npc.js"></script><script src="js/level.js"></script><script src="js/forest.js"></script><script src="js/journey-worlds.js"></script><script src="js/interaction.js"></script><script src="js/dialogue.js"></script><script src="js/audio.js"></script><script src="js/challenges.js"></script><script src="js/song.js"></script><script src="js/story.js"></script><script src="js/forest-story.js"></script><script src="js/adventure.js"></script><script src="js/journey-story.js"></script><script src="js/journey-trials.js"></script><script src="js/exploration.js"></script><script src="js/minimap.js"></script><script src="game.js"></script>
+  <script src="three.min.js"></script><script src="config.js"></script><script src="js/art.js"></script><script src="js/input.js"></script><script src="js/player.js"></script><script src="js/camera.js"></script><script src="js/npc.js"></script><script src="js/level.js"></script><script src="js/forest.js"></script><script src="js/journey-worlds.js"></script><script src="js/interaction.js"></script><script src="js/dialogue.js"></script><script src="js/audio.js"></script><script src="js/challenges.js"></script><script src="js/song.js"></script><script src="js/story.js"></script><script src="js/forest-story.js"></script><script src="js/river-hop.js"></script><script src="js/adventure.js"></script><script src="js/journey-story.js"></script><script src="js/journey-trials.js"></script><script src="js/exploration.js"></script><script src="js/minimap.js"></script><script src="game.js"></script>
 </body>
 </html>

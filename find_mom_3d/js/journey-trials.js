@@ -23,7 +23,7 @@ Meadow.JourneyTrials = class {
     if(kind==='bridge'&&(s.chapter!==3||!v.metBeaver||v.bridge===3))return;
     if(kind==='raft'&&(s.chapter!==3||v.bridge!==3||v.raft===4))return;
     if(kind==='star'&&(s.chapter!==4||!h.metSquirrel||!Meadow.BEACONS.some(b=>b.id===beacon)||h.lights.includes(beacon)))return;
-    this.kind=kind;this.beacon=beacon;this.active=true;this.running=false;this.elapsed=0;this.needle=.5;this.cooldown=0;this.focus=0;this.aim=0;this.roundTime=0;this.failTimer=0;this.braking=false;this.brakeCharge=1.8;this.statusUntil=0;this.release();g.input.reset();
+    this.kind=kind;this.ui.dataset.kind=kind;this.beacon=beacon;this.active=true;this.running=false;this.elapsed=0;this.needle=.5;this.cooldown=0;this.focus=0;this.aim=0;this.roundTime=0;this.failTimer=0;this.braking=false;this.brakeCharge=1.8;this.statusUntil=0;this.release();g.input.reset();
     this.returnPoint=kind==='bridge'?{x:-1.5,z:4.5}:kind==='raft'?{x:0,z:-5.3}:{x:g.player.mesh.position.x,z:g.player.mesh.position.z};
     g.player.mesh.rotation.y=Math.PI;
     g.checkpoint(this.returnPoint.x,this.returnPoint.z);s.mode='journey';
@@ -76,7 +76,7 @@ Meadow.JourneyTrials = class {
     this.running=true;document.getElementById('journey-ready').hidden=true;document.activeElement?.blur();this.elapsed=0;
     this.setStatus(this.kind==='bridge'?'看準金色區域，再敲一下。':this.kind==='raft'?'跟著金色浮燈！':'讓光圈跟上星星。');
     if(this.kind==='escort')this.setStatus('我在前面帶路，媽媽跟緊我！');
-    if(this.kind==='bridge')this.setStatus(this.bridgeSettings().question+' = ? 找對數字再敲！');
+    if(this.kind==='bridge'){this.setStatus('看中央題目，瞄準答案再敲！');this.paint();}
   }
   setStatus(text,hold=1.4){
     if(hold===0&&this.elapsed<this.statusUntil)return;
@@ -97,14 +97,16 @@ Meadow.JourneyTrials = class {
     }
     if(this.kind!=='bridge')return;
     this.cooldown=.35;const {center,width}=this.bridgeSettings();
-    if(Math.abs(this.needle-center)<=width/2){v.nails++;if(v.nails===3){v.bridge++;v.nails=0;}g.saveProgress();g.refresh();g.audio.chime();if(v.bridge===3){this.finish();return;}this.setStatus('固定好了！ '+this.bridgeSettings().question+' = ?');}
-    else{v.hammerFails++;g.saveProgress();this.setStatus('重算並瞄準：'+this.bridgeSettings().question+' = ?');g.audio.note(220,.1,.02);}this.paint();
+    if(Math.abs(this.needle-center)<=width/2){v.nails++;if(v.nails===3){v.bridge++;v.nails=0;}g.saveProgress();g.refresh();g.audio.chime();if(v.bridge===3){this.finish();return;}this.setStatus('固定好了！中央換下一題。');}
+    else{v.hammerFails++;g.saveProgress();this.setStatus('再算一次，瞄準正確數字。');g.audio.note(220,.1,.02);}this.paint();
   }
   paint(){
     const s=this.game.state,progress=this.kind==='bridge'?s.valley.bridge*3+s.valley.nails:this.kind==='raft'?s.valley.raft*3+s.valley.raftGate:this.kind==='escort'?s.hill.escort*3+s.hill.escortWave:s.hill.starLocks[Meadow.BEACONS.findIndex(b=>b.id===this.beacon)],total=this.kind==='raft'?12:this.kind==='star'?3:9;
     document.getElementById('journey-progress').textContent=`${progress} / ${total}`;
     const meter=document.getElementById('journey-meter');meter.max=this.kind==='star'?2.8:total;meter.value=this.kind==='star'?this.focus:progress;
     meter.setAttribute('aria-label',this.kind==='star'?'星光對準進度':'挑戰完成進度');
+    const question=document.getElementById('bridge-question');question.hidden=this.kind!=='bridge'||!this.running;
+    if(this.kind==='bridge'){const text=this.bridgeSettings().question;document.getElementById('bridge-question-text').textContent=text.includes('？')?text:text+' = ?';document.getElementById('bridge-question-count').textContent='第 '+(progress+1)+' / 9 枚鉚釘';}
     if(this.kind==='bridge'){const {options,width}=this.bridgeSettings(),zone=document.getElementById('bridge-zone');zone.innerHTML=options.map((n,i)=>`<span class="bridge-answer" style="left:${([.22,.5,.78][i]-width/2)*100}%;width:${width*100}%">${n}</span>`).join('');}
   }
   update(dt){
@@ -213,7 +215,7 @@ Meadow.JourneyTrials = class {
   }
   reset(){
     const g=this.game;this.active=false;this.running=false;this.release();g.input.reset();this.ui.hidden=true;document.body.classList.remove('in-journey');g.view.override=null;
-    document.getElementById('journey-hit').disabled=false;
+    document.getElementById('journey-hit').disabled=false;document.getElementById('bridge-question').hidden=true;delete this.ui.dataset.kind;
     if(this.root){g.scene.remove(this.root);this.root.traverse(o=>{if(o.geometry&&!Object.values(Meadow.Art.geometries).includes(o.geometry))o.geometry.dispose();if(o.material?.isMeshBasicMaterial)o.material.dispose();});this.root=null;}
     if(g.worldCache[g.state.chapter])g.worldCache[g.state.chapter].layer.visible=true;
   }
