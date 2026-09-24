@@ -3,7 +3,9 @@ Meadow.Interactions = class {
   constructor(game) { this.game=game;this.current=null;this.prompt=document.getElementById('interaction-prompt');this.touch=document.getElementById('touch-action'); }
   candidates() {
     const {world,state}=this.game, items=[];
-    if(state.chapter>=3)return this.game.story.candidates();
+    const residents=(world.residents||[]).map(n=>({id:n.id,position:n.mesh.position,text:`和${n.name}聊聊`}));
+    if(state.chapter>=3)return [...this.game.story.candidates(),...residents];
+    items.push(...residents);
     if(state.chapter===2){
       items.push({id:'owl',position:world.owl.mesh.position,text:state.forest.separated?'和咕咕一起找新的路':'和咕咕說話'});
       items.push({id:'music',position:world.stand.position,text:state.forest.round===3&&state.forest.gustStage<6?'挑戰疾風小徑':'試奏風鈴旋律'});
@@ -30,5 +32,10 @@ Meadow.Interactions = class {
     this.prompt.hidden=!this.current;this.touch.disabled=!this.current;
     if(this.current){this.prompt.querySelector('span').textContent=this.current.text;this.touch.setAttribute('aria-label',this.current.text);}
   }
-  act() { this.update();if(this.current)this.game.story.interact(this.current.id); }
+  act() {
+    this.update();if(!this.current)return;
+    const g=this.game,npc=g.world.residents?.find(n=>n.id===this.current.id);
+    if(npc){g.dialogue.show(npc.lines.map(([name,text])=>({name,text})));return;}
+    g.story.interact(this.current.id);
+  }
 };

@@ -76,7 +76,7 @@ Meadow.Progress = {
       h.reunited=h.signal&&h.escort===3&&rh.reunited===true;h.completed=h.reunited&&rh.completed===true;
       state.chapter=raw.chapter===4&&(v.completed||state.entryChapter===4)?4:raw.chapter>=3&&(f.completed||state.entryChapter>=3)?3:raw.chapter>=2&&(state.completed||state.entryChapter>=2)?2:1;
       state.upgraded=raw.version===1&&state.metRabbit;
-      const p=raw.checkpoint;if(p&&Number.isFinite(p.x)&&Number.isFinite(p.z)&&Math.abs(p.x)<16&&Math.abs(p.z)<16)state.checkpoint={x:p.x,z:p.z};
+      const p=raw.checkpoint;if(p&&Number.isFinite(p.x)&&Number.isFinite(p.z)&&Math.abs(p.x)<CONFIG.MAP_RADIUS_X&&Math.abs(p.z+1)<CONFIG.MAP_RADIUS_Z)state.checkpoint={x:p.x,z:p.z};
       return state;
     }catch(_){return null;}
   },

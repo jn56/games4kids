@@ -324,3 +324,13 @@ body.in-action #play-hud,body.in-action #world-labels,body.in-action #mobile-con
 .song-input .score-note svg{max-width:80%}
 .song-input:has(> :nth-child(6):last-child){grid-template-columns:repeat(6,minmax(0,37px))}
 .song-input:has(> :nth-child(7):last-child){grid-template-columns:repeat(7,minmax(0,37px))}
+
+/* The map stays below settings and disappears during dialogue and challenges. */
+.minimap{position:fixed;right:3%;top:112px;z-index:6;width:184px;padding:7px;background:#fff9e8ec;border:1px solid #fffef4;border-radius:13px;box-shadow:0 5px 20px #294f2b18;overflow:hidden}
+.minimap button{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:32px;border:0;background:transparent;padding:3px 7px;font-size:13px;color:#405c50}
+.minimap canvas{display:block;width:100%;height:auto;border-radius:8px}
+.minimap p{margin:6px 0 2px;text-align:center;font-size:11px;white-space:nowrap}.minimap b{color:#b94e4b}.minimap em{font-style:normal;color:#b38724}.minimap i{font-style:normal;color:#367e92}
+.minimap:has([aria-expanded="false"]){width:112px}
+@media(max-width:700px){.minimap{right:12px;top:83px;width:116px;padding:5px}.minimap button{font-size:12px;padding:1px 4px;min-height:32px}.minimap p{font-size:9px;letter-spacing:-.4px}.minimap:has([aria-expanded="false"]){width:98px}.quest-card{left:12px;width:calc(100% - 152px);min-width:150px;padding:8px 10px;gap:0}.quest-card h2{font-size:14px}.quest-card .journal-btn{font-size:11px}.quest-bottom{grid-column:1 / -1}.quest-card .journal-btn{grid-column:1 / -1;text-align:left}}
+@media(max-height:500px) and (min-width:701px){.minimap{top:66px;right:14px;width:116px;padding:4px}.minimap button{font-size:11px;min-height:28px}.minimap p{font-size:9px}.collection{right:146px;max-width:210px}}
+.world-label.chat-label .label-bubble,.world-label.trail-label .label-bubble{display:block}

@@ -15,16 +15,17 @@ Meadow.Game = class {
     this.sun=new THREE.DirectionalLight(0xffdfa8,1.15);this.sun.position.set(-12,22,8);this.sun.castShadow=true;
     const shadowSize=matchMedia('(pointer:coarse)').matches?1024:2048;
     this.sun.shadow.mapSize.set(shadowSize,shadowSize);Object.assign(this.sun.shadow.camera,{left:-24,right:24,top:24,bottom:-24,near:1,far:65});
-    this.sun.shadow.normalBias=.025;this.sun.shadow.bias=-.0002;this.sun.shadow.radius=3;this.scene.add(this.sun);
+    this.sun.shadow.normalBias=.025;this.sun.shadow.bias=-.0002;this.sun.shadow.radius=3;this.scene.add(this.sun);this.scene.add(this.sun.target);
     this.scene.add(new THREE.AmbientLight(0xfff6dd,.12));
     const firstLayer=new THREE.Group();this.scene.add(firstLayer);
-    this.world=new Meadow.World(firstLayer);this.worldCache={1:{layer:firstLayer,world:this.world}};
+    this.world=new Meadow.World(firstLayer);Meadow.Exploration.expand(this.world,1);this.worldCache={1:{layer:firstLayer,world:this.world}};
     this.player=new Meadow.Player(this.scene);this.view=new Meadow.Camera(this.camera,this.player);
     this.audio=new Meadow.Audio();this.input=new Meadow.Input(()=>this.action(),()=>this.togglePause());
     this.interactions=new Meadow.Interactions(this);this.dialogue=new Meadow.Dialogue(this);this.story=new Meadow.Story(this);
     this.challenges=new Meadow.Challenges(this);
     this.song=new Meadow.SongPuzzle(this);this.stories={1:this.story,2:new Meadow.ForestStory(this),3:new Meadow.JourneyStory(this,3),4:new Meadow.JourneyStory(this,4)};
     this.prologue=new Meadow.Prologue(this);this.trials=new Meadow.ActionTrials(this);this.expedition=new Meadow.JourneyTrials(this);
+    this.minimap=new Meadow.Minimap(this);
     this.time=0;this.lastTime=performance.now();this.lastHUD=0;this.toastDeadline=0;
     document.body.classList.add('cover');this.bindUI();this.refresh();
     if(this.saved){document.getElementById('start-btn').innerHTML=this.saved.chapter>=2?`繼續${['','黃昏花田','風鈴森林','月光河谷','星光山丘'][this.saved.chapter]} <span>→</span>`:this.saved.completed?'看看希望之光 <span>→</span>':'繼續小米的冒險 <span>→</span>';document.getElementById('new-game-btn').hidden=false;}
@@ -82,6 +83,7 @@ Meadow.Game = class {
     document.body.classList.remove('cover','in-dialogue');
     const p=this.state.checkpoint;
     this.player.setPosition(this.world.canWalk(p.x,p.z)?p.x:CONFIG.START.x,this.world.canWalk(p.x,p.z)?p.z:CONFIG.START.z);
+    this.view.update(1,false,true);
     if(this.state.chapter===1)this.world.rabbit.mesh.position.set(1.8,0,3.4);
     this.toastDeadline=0;this.refresh();
     if(this.chapterComplete()){this.showEnding();return;}
@@ -97,6 +99,7 @@ Meadow.Game = class {
       const layer=new THREE.Group();this.scene.add(layer);
       this.worldCache[chapter]={layer,world:new ({2:Meadow.Forest,3:Meadow.Valley,4:Meadow.Hill}[chapter])(layer)};
     }
+    Meadow.Exploration.expand(this.worldCache[chapter].world,chapter);
     for(const [id,entry] of Object.entries(this.worldCache)){
       entry.layer.visible=Number(id)===chapter;entry.world.labels.forEach(label=>label.el.hidden=true);
     }
@@ -214,7 +217,9 @@ Meadow.Game = class {
     this.prologue.update(dt);this.trials.update(dt);this.expedition.update(dt);
     if(this.state.chapter>=2)this.story.update(dt);if(this.state.chapter===2)this.song.update(dt);
     if(!paused)this.world.update(this.time,dt,this.player,this.state,this.reducedMotion);
+    Meadow.Exploration.update(this.world,this.time,this.player,this.state,this.reducedMotion);
     this.view.update(dt,this.state.mode==='title',this.reducedMotion);
+    this.minimap.update();
     if(this.trials.active&&this.state.mode==='action'&&!this.reducedMotion&&this.trials.shake>0)this.camera.position.x+=Math.sin(this.time*35)*.045;
     if(this.time-this.lastHUD>.15){this.lastHUD=this.time;this.refreshTarget();}
     this.interactions.update();this.world.updateLabels(this.camera,!['title','complete'].includes(this.state.mode));
@@ -225,6 +230,7 @@ Meadow.Game = class {
     const threat=(this.state.chapter===2||this.state.chapter===4)&&!gateClosed&&(revealedThreat||pursuit||(this.worldCache[this.state.chapter].layer.visible&&this.world.villain?.mesh.visible));
     this.audio.update(this.time,!['paused','title'].includes(this.state.mode),threat?'tension':'calm');
     if(this.toastDeadline&&this.time>this.toastDeadline){document.getElementById('toast').hidden=true;this.toastDeadline=0;}
+    this.sun.target.position.copy(this.view.focus);this.sun.position.set(this.view.focus.x-12,22,this.view.focus.z+8);
     this.renderer.render(this.scene,this.camera);
   }
 };

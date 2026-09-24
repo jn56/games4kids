@@ -189,7 +189,7 @@ Meadow.Forest = class extends Meadow.World {
     }
   }
   canWalk(x,z) {
-    if((x/16.3)**2+((z+1)/17.6)**2>.96||z>13.5||z< -15.5)return false;
+    if((x/CONFIG.MAP_RADIUS_X)**2+((z+1)/CONFIG.MAP_RADIUS_Z)**2>.96)return false;
     if(z>-10.65&&z< -5.35&&(Math.abs(x-2)>.72||this.bridgeOpen<.98))return false;
     // A low hedge closes the bank approach until the song opens the vine gate.
     if(z< -2.4&&z> -3.1&&(Math.abs(x-2)>1.25||!this.currentState||this.currentState.gustStage<6))return false;

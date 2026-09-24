@@ -77,7 +77,7 @@ Meadow.JourneyWorld = class extends Meadow.World {
     }
     if(!reduced){const a=this.particles.geometry.attributes.position;this.particleSeeds.forEach((base,i)=>a.array[i*3+1]=base+Math.sin(time*.6+i)*.2);a.needsUpdate=true;}
   }
-  bounds(x,z){return (x/16.3)**2+((z+1)/17.6)**2<.96&&z<14&&z>-16&&!this.colliders.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+CONFIG.PLAYER_RADIUS);}
+  bounds(x,z){return (x/CONFIG.MAP_RADIUS_X)**2+((z+1)/CONFIG.MAP_RADIUS_Z)**2<.96&&!this.colliders.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+CONFIG.PLAYER_RADIUS);}
 };
 
 Meadow.Valley = class extends Meadow.JourneyWorld {

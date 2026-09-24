@@ -2,6 +2,8 @@
 window.Meadow = {};
 const CONFIG = Object.freeze({
   PLAYER_SPEED: 5.7,
+  MAP_RADIUS_X: 40.75,
+  MAP_RADIUS_Z: 44,
   PLAYER_RADIUS: 0.34,
   INTERACT_DISTANCE: 2.15,
   SAVE_KEY: 'little-lights-chapter-one-v1',

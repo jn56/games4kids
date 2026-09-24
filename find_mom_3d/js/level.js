@@ -50,6 +50,7 @@ Meadow.World = class {
     this.setTarget(this.ribbon.position);
   }
   path(points, width) {
+    (this.mapRoutes ||= []).push({points,width});
     const curve = new THREE.CatmullRomCurve3(points.map(([x,z]) => new THREE.Vector3(x,.045,z)));
     const positions = [], indices = [], count = 72;
     for (let i=0;i<=count;i++) {
@@ -254,7 +255,7 @@ Meadow.World = class {
   }
   canWalk(x,z) {
     const r=CONFIG.PLAYER_RADIUS;
-    if((x/16.3)**2+((z+1)/17.6)**2>.96||z>13.5||z< -15.5||this.inPond(x,z))return false;
+    if((x/CONFIG.MAP_RADIUS_X)**2+((z+1)/CONFIG.MAP_RADIUS_Z)**2>.96||this.inPond(x,z))return false;
     return !this.colliders.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+r);
   }
   setTarget(position) { this.target=position;this.hintRing.visible=!!position; }
