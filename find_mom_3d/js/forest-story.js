@@ -7,17 +7,17 @@ Meadow.ForestStory = class {
   }
   readJournal(){
     const f=this.game.state.forest;
-    if(f.routeKnown&&f.dashStage<3){this.say([['咕咕','風停時按住空白鍵或「快跑」。放開就停。每座亭子都會保存進度。']]);return;}
-    if(f.round===3&&f.gustStage<6){this.say([['咕咕','按左右方向鍵，或畫面箭頭換跑道。避開亮起的風道，第三陣風後有存點。']]);return;}
-    this.say([['小米','花田帶來的媽媽歌譜還在。最後一段是回聲，要從最後一音往回敲。'],['咕咕',`你已經找回 ${f.round} / 3 段旋律。前兩段照原來的順序，第三段從最後一個音倒著敲。`],['咕咕',f.separated?'媽媽在對岸休息亭，很安全。我們會一起走河谷步道。':'需要時可以重播，或請我留下圖案樂譜。旋律裡藏著媽媽的心意。']]);
+    if(f.routeKnown&&f.dashStage<3){this.say([['咕咕','先選金色跑道，再按一下 E 或「出發」。風大會等候，到下一亭自動停，每段都保存。']]);return;}
+    if(f.round===3&&f.gustStage<6){this.say([['咕咕','按左右方向鍵，或畫面箭頭換跑道。避開亮起的風道，每三波有存點，共十八波。']]);return;}
+    this.say([['小米','花田帶來的媽媽歌譜還在。最後一段是回聲，要從最後一音往回敲。'],['咕咕',`你已經找回 ${f.round} / 3 段旋律。第一段正序，第二段把首音移到最後，第三段倒序。`],['咕咕',f.separated?'媽媽抓著浮木，被水流帶往河谷。我們沿岸去找木木接應。':'需要時可以重播，或請我留下圖案樂譜。旋律裡藏著媽媽的心意。']]);
   }
   interact(id){
     const g=this.game,f=g.state.forest;
     if(g.state.mode!=='playing')return;
     if(id==='owl'){
-      if(!f.metOwl){this.say([['小米','我帶著花田信封裡的歌譜，上面寫著回聲要倒著唱。'],['咕咕','這正是打開藤蔓門的歌！用風鈴試試看；需要時，翻開媽媽的歌譜。'],['小米','我可以試試看！我記得她總會唱最後一段給我聽。'],['咕咕','合奏台有三段旋律，會越來越長。先看我示範，再敲一遍。最後一段是回聲，要倒著敲。'],['咕咕','聲音關著也沒關係，每個音都有自己的圖案。卡住了可以重播，或請我留下一點提示。']],()=>{f.metOwl=true;g.checkpoint(-1.4,5.5);g.toast('到風鈴合奏台試奏。每通過一段，藤蔓就會鬆開一點。',6000);});return;}
-      if(f.separated&&!f.routeKnown){this.say([['小米','我才剛找到媽媽……現在又和她分開了。'],['咕咕','她在對岸很安全。我們可以走河谷步道！'],['小米','就算害怕，我也想試試。你陪我，好嗎？'],['咕咕','我陪你！風停時快跑，趕到下一座避風亭。']],()=>{f.routeKnown=true;g.checkpoint(3.8,-3.7);g.trials.start('dash');});return;}
-      if(f.routeKnown){if(f.dashStage<3){g.trials.start('dash');return;}this.say([['咕咕','媽媽在對岸很安全。我會陪你走右邊的河谷步道，找木木幫忙。']]);return;}
+      if(!f.metOwl){this.say([['小米','我帶著花田信封裡的歌譜，上面寫著回聲要倒著唱。'],['咕咕','這正是打開藤蔓門的歌！用風鈴試試看；需要時，翻開媽媽的歌譜。'],['小米','我可以試試看！我記得她總會唱最後一段給我聽。'],['咕咕','三段旋律：六音正序、七音首尾換位、八音倒序。看清規則，再敲回來。'],['咕咕','聲音關著也沒關係，每個音都有自己的圖案。卡住了可以重播，或請我留下一點提示。']],()=>{f.metOwl=true;g.checkpoint(-1.4,5.5);g.toast('到風鈴合奏台試奏。每通過一段，藤蔓就會鬆開一點。',6000);});return;}
+      if(f.separated&&!f.routeKnown){this.say([['小米','我才剛找到媽媽……現在又和她分開了。'],['咕咕','我看見她抓住浮木了！河谷的木木能接應，我們沿岸去找他。'],['小米','就算害怕，我也想試試。你陪我，好嗎？'],['咕咕','我陪你！風停時快跑，趕到下一座避風亭。']],()=>{f.routeKnown=true;g.checkpoint(3.8,-3.7);g.trials.start('dash');});return;}
+      if(f.routeKnown){if(f.dashStage<3){g.trials.start('dash');return;}this.say([['咕咕','媽媽和灰爪都被沖往下游了。我陪你沿河谷步道，找木木接應媽媽。']]);return;}
       if(f.round<3){g.song.open();return;}
       if(f.gustStage<6){g.trials.start('gust');return;}
       this.say([['咕咕','藤蔓已經讓路了！走過去，媽媽就在橋前等你。']]);return;
@@ -34,16 +34,16 @@ Meadow.ForestStory = class {
     if(id==='mother'){
       if(f.round<3){g.toast('先和咕咕找回三段旋律，讓藤蔓讓路。');return;}
       if(f.gustStage<6){g.trials.start('gust');return;}
-      if(f.separated){this.say([['媽媽（對岸）','小米，我在亭子裡，很安全！和咕咕走河谷步道，我們在山丘見。']]);return;}
+      if(f.separated){this.say([['小米','媽媽被水流帶往河谷了。我要和咕咕沿岸去找她。']]);return;}
       if(f.reunited){this.beginCrossing();return;}
       g.world.hug=true;g.player.setPosition(2,-3.35);g.player.mesh.rotation.y=Math.PI;
-      this.say([['小米','媽媽！我找到你了！'],['媽媽','小米！讓媽媽抱抱。謝謝你一直想辦法，也謝謝朋友們照顧你。'],['小米','我修好了風管，也記住了你的歌。想你的時候，我就一小步一小步走。'],['媽媽','我們從橋去山丘吧。我先看看另一頭的路；你在咕咕身邊等我確認，好嗎？'],['小米','好，我會等你。']],()=>{f.reunited=true;g.world.hug=false;g.checkpoint(2,-3.35);this.beginCrossing();});return;
+      this.say([['小米','媽媽！我找到你了！'],['媽媽','小米！讓媽媽抱抱。謝謝你一直想辦法，也謝謝朋友們照顧你。'],['小米','我修好了風管，也記住了你的歌。想你的時候，我就一小步一小步走。'],['灰爪','找到你了，小女孩！跟我走！'],['媽媽','不准靠近她！小米，到咕咕身邊去！']],()=>{f.reunited=true;g.world.hug=false;g.checkpoint(2,-3.35);this.beginCrossing();});return;
     }
     if(id==='forest-exit'){
       if(!f.separated){g.toast('媽媽就在橋邊，我們先去找她。');return;}
       if(!f.routeKnown){g.toast('先和咕咕說說話，一起確認安全的路。');return;}
       if(f.dashStage<3){g.trials.start('dash');return;}
-      this.say([['小米','這次，我知道媽媽在哪裡。我要帶著她的歌，走到山丘見她。'],['咕咕','你的記憶之光已經亮了。走吧，河谷裡還有願意幫忙的朋友。']],()=>{f.completed=true;g.checkpoint(11.1,-3.5);g.audio.chime();g.showEnding();});
+      this.say([['小米','媽媽被沖往下游了。我要帶著她的歌，沿河谷去找她。'],['咕咕','你的記憶之光已經亮了。走吧，河谷裡還有願意幫忙的朋友。']],()=>{f.completed=true;g.checkpoint(11.1,-3.5);g.audio.chime();g.showEnding();});
     }
   }
   songComplete(){
@@ -52,41 +52,61 @@ Meadow.ForestStory = class {
     this.say([['小米','那個身影……是媽媽！'],['咕咕','風突然變大了！左右換跑道，躲開迎面的陣風。'],['媽媽','我在前面等你，跟著咕咕慢慢來！']],()=>g.trials.start('gust'));
   }
   beginCrossing(){
-    const g=this.game;if(g.state.forest.separated||!g.state.forest.reunited)return;
+    const g=this.game,w=g.world;if(g.state.forest.separated||!g.state.forest.reunited)return;
     this.elapsed=0;this.running=true;g.state.mode='cutscene';g.input.reset();
-    g.world.cutscene=true;g.world.hug=false;g.world.mother.mesh.position.set(2,0,-4.3);g.world.bridgeTarget=1;
-    g.world.owl.mesh.position.set(4,0,-3.2);g.view.override=new THREE.Vector3(2,0,-7);
+    w.cutscene=true;w.hug=false;w.protecting=false;w.struggling=false;w.falling=false;w.sweptAway=false;w.bridgeTarget=0;
+    w.mother.mesh.visible=true;w.mother.mesh.position.set(2,0,-4.3);w.mother.mesh.rotation.set(0,0,0);
+    w.villain.mesh.visible=true;w.villain.mesh.position.set(-7,0,-3.8);w.villain.mesh.rotation.set(0,Math.PI/2,0);
+    w.flood.visible=w.floatwood.visible=w.spray.visible=false;w.mistAmount=0;
+    g.player.setPosition(2,-3.35);w.owl.mesh.position.set(6,0,-3.2);g.view.override=new THREE.Vector3(1,0,-5.5);
     document.getElementById('story-caption').hidden=false;document.body.classList.add('in-cutscene');
-    document.getElementById('story-caption').textContent='媽媽先去確認橋另一頭。小米留在咕咕身邊等候。';
+    document.getElementById('story-caption').textContent='灰爪伸手追來。媽媽立刻擋在小米前面。';
   }
   update(dt){
     const g=this.game;if(!this.running||g.state.mode!=='cutscene')return;
-    this.elapsed+=dt;const t=this.elapsed;
-    if(t>1.4){
-      const progress=Math.min(1,(t-1.4)/3.6);g.world.mother.mesh.position.z=-4.3-progress*8.2;g.world.mother.mesh.rotation.y=Math.PI;
+    this.elapsed+=dt;const t=this.elapsed,w=g.world,m=w.mother.mesh,v=w.villain.mesh,p=g.player.mesh;
+    const clamp=x=>Math.max(0,Math.min(1,x)),caption=document.getElementById('story-caption');
+    const approach=clamp(t/2.8);v.position.set(-7+8*approach,0,-3.8-.8*approach);
+    const shelter=clamp(t/2);p.position.set(2+2*shelter,0,-3.35+.25*shelter);p.rotation.y=-Math.PI/2;
+    w.protecting=t>=1&&t<2.8;w.struggling=t>=2.8&&t<5.6;w.falling=t>=5.6&&t<6.8;
+    if(t<2.8){const block=clamp(t/2.5);m.position.set(2,0,-4.3+.25*block);m.rotation.y=-Math.PI/2;}
+    if(w.struggling){
+      // Face each other, grip at arm's length, and stumble toward the river together.
+      const grapple=clamp((t-2.8)/2.8),angle=.46+(g.reducedMotion?0:Math.sin(grapple*Math.PI*4)*.32);
+      const cx=1.5+2.5*grapple,cz=-4.3-.65*grapple,dx=Math.cos(angle)*.65,dz=Math.sin(angle)*.65;
+      m.position.set(cx+dx,0,cz+dz);v.position.set(cx-dx,0,cz-dz);
+      m.rotation.y=Math.atan2(v.position.x-m.position.x,v.position.z-m.position.z);v.rotation.y=m.rotation.y+Math.PI;
+      m.rotation.z=g.reducedMotion?0:Math.sin(t*8)*.12;v.rotation.z=-m.rotation.z;
+      caption.textContent='媽媽抓住灰爪的手臂，兩人扭打著退到河沿。';
     }
-    if(t>=5.05){
-      // The bridge closes only after the mother is safely beyond the far bank.
-      g.world.bridgeTarget=0;g.world.mistAmount=Math.min(.4,(t-5.05)*.35);
-      g.world.mother.mesh.rotation.y=0;
-      document.getElementById('story-caption').textContent='媽媽已經安全走到對岸。霧來了，安全橋正在收起。';
+    if(t>=5.6){
+      w.protecting=false;w.sweptAway=true;w.floatwood.visible=t>=6.8;w.spray.visible=true;
+      const fall=clamp((t-5.6)/1.2),drift=clamp((t-6.8)/4.9),dx=Math.cos(.46)*.65,dz=Math.sin(.46)*.65;
+      const cx=4+fall*.8+drift*9.6,cz=-4.95-fall*2.6;
+      m.position.set(cx+dx,-.3*fall,cz+dz);v.position.set(cx-dx,-.3*fall,cz-dz);
+      const tumble=g.reducedMotion?0:Math.sin(fall*Math.PI)*.75;
+      m.rotation.set(tumble,fall<1?-Math.PI/2-.46:Math.PI/2,tumble*.35);
+      v.rotation.set(-tumble,fall<1?Math.PI/2-.46:Math.PI/2,-tumble*.35);
+      w.flood.visible=t<7.1;w.flood.position.x=1+(t-5.6)*8;
+      w.owl.mesh.position.set(6,0,-3.2);g.view.override.set(2+drift*5,0,-5.5);
+      caption.textContent=w.falling?'河沿一滑！媽媽和灰爪一起跌進河裡，濺起水花。':'兩人都被急流沖往下游。媽媽抓住浮木，咕咕護著岸上的小米。';
     }
-    if(t>=7){
-      this.running=false;g.world.cutscene=false;g.view.override=null;document.body.classList.remove('in-cutscene');document.getElementById('story-caption').hidden=true;
-      g.state.forest.separated=true;g.state.mode='playing';g.checkpoint(2,-3.35);
-      this.say([['媽媽（對岸）','小米，別擔心！我已經在對岸的休息亭，很安全！'],['咕咕','這座橋遇到霧就會收起。我們都在岸上，沒有誰受傷。'],['小米','媽媽……可是我又碰不到你的手了。'],['媽媽（對岸）','我也想牽著你。和咕咕走河谷步道，我會沿著對岸往山丘走，我們在那裡見。']],()=>g.toast('先深呼吸，再和身邊的咕咕說說話。',6000));
+    if(t>=12){
+      this.running=false;w.cutscene=false;g.view.override=null;document.body.classList.remove('in-cutscene');caption.hidden=true;
+      g.state.forest.separated=true;g.state.mode='playing';g.checkpoint(4,-3.2);
+      this.say([['小米','媽媽為了保護我，和灰爪一起掉進河裡，被水沖走了！'],['咕咕','媽媽抓住浮木了，灰爪也被沖往下游。別跳水，我陪你沿岸走。'],['咕咕','我會吹響河谷的求救哨，請木木在下游接應。'],['小米','好。我們帶著船票，一起去找木木。']],()=>g.toast('和咕咕確認通往河谷的路。',5000));
     }
   }
   objective(){
     const f=this.game.state.forest;
     if(!f.metOwl)return {step:1,total:5,title:'找到貓頭鷹咕咕',detail:'媽媽就在森林裡。先問問戴藍圍巾的咕咕。',emotion:'希望 · 熟悉的歌聲',target:'owl'};
     if(f.round<3)return {step:2,total:5,title:`找回三段旋律 · ${f.round} / 3`,detail:'到合奏台模仿旋律。最後一段，要把回聲倒著敲。',emotion:'希望 · 我記得媽媽的歌',target:'music'};
-    if(f.gustStage<6)return {step:3,total:5,title:'闖過疾風小徑',detail:'到合奏台或找咕咕，左右閃過六陣風。',emotion:'勇敢 · 媽媽就在前面',target:'music'};
+    if(f.gustStage<6)return {step:3,total:5,title:'闖過疾風小徑',detail:'到合奏台或找咕咕，左右閃過十八波陣風。',emotion:'勇敢 · 媽媽就在前面',target:'music'};
     if(!f.reunited)return {step:3,total:5,title:'走到媽媽身邊',detail:'藤蔓已經讓開了。走近媽媽，給她一個擁抱。',emotion:'找回 · 媽媽，我在這裡',target:'mother'};
-    if(!f.separated)return {step:3,total:5,title:'等媽媽確認橋另一頭',detail:'留在咕咕身邊，等媽媽的訊息。',emotion:'找回 · 熟悉的擁抱',target:'mother'};
-    if(!f.routeKnown)return {step:4,total:5,title:'和咕咕一起想辦法',detail:'媽媽在對岸很安全。找身邊的咕咕，問問另一條路。',emotion:'再失去 · 也可以繼續往前',target:'owl'};
-    if(f.dashStage<3)return {step:5,total:5,title:'抓準風停，跑到避風亭',detail:'找咕咕開始。風停時按住快跑，穿越三段小徑。',emotion:'勇敢 · 抓準時機',target:'owl'};
-    return {step:5,total:5,title:'前往月光河谷步道',detail:'沿右邊的小路走，媽媽會和你在山丘會合。',emotion:'勇敢 · 這次我知道方向',target:'forest-exit'};
+    if(!f.separated)return {step:3,total:5,title:'留在咕咕身邊',detail:'媽媽擋住灰爪，先和咕咕待在岸上。',emotion:'找回 · 熟悉的擁抱',target:'mother'};
+    if(!f.routeKnown)return {step:4,total:5,title:'和咕咕一起想辦法',detail:'媽媽被水帶往河谷。找咕咕，沿岸去找木木接應。',emotion:'再失去 · 也可以繼續往前',target:'owl'};
+    if(f.dashStage<3)return {step:5,total:5,title:'抓準風停，跑到避風亭',detail:'找咕咕開始。選金色道按一下出發，自動停在下一亭，穿越九段小徑。',emotion:'勇敢 · 抓準時機',target:'owl'};
+    return {step:5,total:5,title:'前往月光河谷步道',detail:'沿右邊的小路走，到河谷找接應媽媽的木木。',emotion:'勇敢 · 這次我知道方向',target:'forest-exit'};
   }
   target(){
     const g=this.game,id=this.objective().target;

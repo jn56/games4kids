@@ -2,6 +2,7 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
+const artifacts=process.env.QA_ARTIFACT_DIR||__dirname;fs.mkdirSync(artifacts,{recursive:true});
 let browser;
 const results=[];const pass=name=>{results.push(name);console.log('PASS '+name)};
 const url='http://127.0.0.1:4173/find_mom_3d/';
@@ -18,7 +19,7 @@ async function firstCompleted(page){
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const state=()=>page.evaluate(()=>JSON.parse(JSON.stringify(meadowGame.state)));
   const pos=()=>page.evaluate(()=>({x:meadowGame.player.mesh.position.x,z:meadowGame.player.mesh.position.z}));
-  const shot=name=>page.screenshot({path:path.join(__dirname,name+'.png')});
+  const shot=name=>page.screenshot({path:path.join(artifacts,name+'.png')});
   async function finishDialogue(){for(let i=0;i<40&&(await state()).mode==='dialogue';i++)await page.locator('#dialogue-next').click()}
   async function actionTrial(){
     await page.locator('#action-start').click();
@@ -55,7 +56,7 @@ async function firstCompleted(page){
   assert.equal(await page.evaluate(()=>meadowGame.world.canWalk(2,-8)),false);
   await move(0,4.1);await interact('music');assert.equal((await state()).mode,'playing');assert.equal((await state()).forest.metOwl,false);
   await move(-1.4,5.5);await interact('owl');assert.equal((await state()).forest.metOwl,true);
-  await page.locator('#journal-btn').click();assert.match(await page.locator('#dialogue-text').textContent(),/旋律/);await finishDialogue();
+  await page.locator('#journal-btn').click();assert.match(await page.locator('#dialogue-text').textContent(),/歌譜|旋律/);await finishDialogue();
   await move(0,4.1);await interact('music');assert.equal((await state()).mode,'puzzle');
   pass('Owl story and notebook unlock music; gate and river prevent skipping');
   assert.equal(await page.locator('[data-note="leaf"]').isDisabled(),true);
@@ -90,17 +91,18 @@ async function firstCompleted(page){
   await move(11,-3.5);await interact('forest-exit');assert.equal((await state()).forest.completed,false);await move(2,-3.35);
   await page.keyboard.press('e');assert.equal((await state()).mode,'dialogue');assert.equal(await page.evaluate(()=>meadowGame.world.hug),true);
   await shot('forest-reunion');await finishDialogue();assert.equal((await state()).mode,'cutscene');
-  const before=await pos();await page.keyboard.down('w');await page.waitForTimeout(200);await page.keyboard.up('w');assert.deepEqual(await pos(),before);
+  const before=await pos();await page.keyboard.down('w');await page.waitForTimeout(200);await page.keyboard.up('w');assert((await pos()).z>-5.35);assert((await pos()).x>=before.x); // Scripted shelter movement continues; input cannot move into water.
   await page.keyboard.press('Escape');const cutTime=await page.evaluate(()=>meadowGame.story.elapsed);await page.waitForTimeout(300);assert.equal(await page.evaluate(()=>meadowGame.story.elapsed),cutTime);
   await page.locator('#resume-btn').click();
   await page.waitForFunction(()=>meadowGame.story.elapsed>2.2);
   await page.reload();await page.waitForFunction(()=>window.meadowGame);await page.locator('#start-btn').click();assert.equal((await state()).mode,'cutscene');
-  await page.waitForFunction(()=>meadowGame.story.elapsed>=5.1);
-  assert(await page.evaluate(()=>meadowGame.world.mother.mesh.position.z)<-12);
+  await page.waitForFunction(()=>meadowGame.story.elapsed>=7.2);
+  assert(await page.evaluate(()=>meadowGame.world.sweptAway&&meadowGame.world.floatwood.visible));
+  assert(await page.evaluate(()=>meadowGame.world.mother.mesh.position.z)<-5.35);
   assert.equal(await page.evaluate(()=>meadowGame.world.bridgeTarget),0);
   await shot('forest-bridge');await page.waitForFunction(()=>meadowGame.state.mode==='dialogue');await finishDialogue();
   assert.equal((await state()).forest.separated,true);assert.equal((await state()).forest.routeKnown,false);
-  pass('Real reunion, safe bridge sequence, blocked movement, pause and mid-scene reload all complete correctly');
+  pass('Reunion, protective stand and flood sequence preserve child on bank; pause and mid-scene reload complete correctly');
   await move(11,-3.5);await interact('forest-exit');assert.equal((await state()).forest.completed,false);
   await move(4,-3.8);await interact('owl');assert.equal((await state()).forest.routeKnown,true);await actionTrial();
   await shot('forest-route');await move(11,-3.5);
@@ -123,6 +125,6 @@ async function firstCompleted(page){
   await page.locator('#next-chapter-btn').click();await finishDialogue();assert.equal((await state()).chapter,2);await page.keyboard.press('Escape');await page.locator('#restart-btn').click();await finishDialogue();assert.equal((await state()).chapter,2);
   pass('Chapter transition and forest restart work with blocked browser storage');
   assert.deepEqual(errors,[]);pass('No browser runtime errors throughout the forest playthrough');
-  fs.writeFileSync(path.join(__dirname,'qa-forest-results.json'),JSON.stringify({passed:results.length,checks:results,errors},null,2));
+  fs.writeFileSync(path.join(artifacts,'qa-forest-results.json'),JSON.stringify({passed:results.length,checks:results,errors},null,2));
   await browser.close();
 })().catch(async error=>{console.error(error);if(browser)await browser.close();process.exitCode=1});

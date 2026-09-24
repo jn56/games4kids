@@ -1,6 +1,7 @@
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const path=require('node:path');
+const artifacts=process.env.QA_ARTIFACT_DIR||__dirname;require('node:fs').mkdirSync(artifacts,{recursive:true});
 let browser;
 (async()=>{
   browser=await chromium.launch({channel:'msedge',headless:true});
@@ -8,7 +9,7 @@ let browser;
   page.on('pageerror',e=>errors.push(e.message));
   const state=()=>page.evaluate(()=>JSON.parse(JSON.stringify(meadowGame.state)));
   const pos=()=>page.evaluate(()=>({x:meadowGame.player.mesh.position.x,z:meadowGame.player.mesh.position.z}));
-  const shot=name=>page.screenshot({path:path.join(__dirname,name+'.png')});
+  const shot=name=>page.screenshot({path:path.join(artifacts,name+'.png')});
   async function dialogue(){for(let i=0;i<40&&(await state()).mode==='dialogue';i++)await page.locator('#dialogue-next').click();}
   async function move(x,z){
     for(let i=0;i<65;i++){
@@ -63,6 +64,13 @@ let browser;
     if(b.id==='hope'){await reload();assert.deepEqual((await state()).hill.lights,['hope']);}
   }
   await move(0,-7.7);await interact('signal');assert.equal((await state()).mode,'cutscene');await reload();assert.equal((await state()).mode,'cutscene');
+  await page.waitForFunction(()=>meadowGame.state.mode==='dialogue');await dialogue();assert.equal(await page.evaluate(()=>meadowGame.expedition.kind),'escort');await page.locator('#journey-start').click();
+  held=null;const escortDeadline=Date.now()+45000;
+  while(await page.evaluate(()=>meadowGame.expedition.active)&&Date.now()<escortDeadline){
+    const q=await page.evaluate(()=>({x:meadowGame.expedition.escortX,target:meadowGame.expedition.gateCenter})),next=Math.abs(q.x-q.target)<.1?null:q.target>q.x?'ArrowRight':'ArrowLeft';
+    if(next!==held){if(held)await page.keyboard.up(held);if(next)await page.keyboard.down(next);held=next;}await page.waitForTimeout(40);
+  }
+  if(held)await page.keyboard.up(held);assert.equal((await state()).hill.escort,3);
   await page.waitForFunction(()=>meadowGame.world.hug);await shot('reunion-hill');await page.waitForFunction(()=>meadowGame.state.mode==='dialogue');await dialogue();assert.equal((await state()).hill.reunited,true);
   await move(3,-5);await move(3,8.5);await move(7,8.5);await interact('home');await page.waitForFunction(()=>meadowGame.state.mode==='complete');await shot('ending-four-lights');
   assert.equal((await state()).hill.completed,true);assert.equal(await page.locator('#next-chapter-btn').isVisible(),false);await reload();assert.equal((await state()).mode,'complete');

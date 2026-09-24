@@ -169,6 +169,11 @@ Meadow.Hill = class extends Meadow.JourneyWorld {
     for(let x=-13;x<=13;x+=1.4)if(Math.abs(x)>2)A.part(this.root,'ball',0x85839f,[x,.37,-10.8],[.78,.56,.56]);
     this.mother=new Meadow.Mother(scene);this.mother.mesh.position.set(4,0,-13);
     this.motherLabel=this.label(this.mother.mesh,'媽媽',3.0);
+    this.villain=new Meadow.Grayclaw(scene);
+    this.safetyGate=A.group(this.root,0,-10.8);
+    for(const y of [.55,1.25])A.part(this.safetyGate,'box',0x9a8270,[0,y,0],[4.6,.22,.25]);
+    for(const x of [-2,-1,0,1,2])A.part(this.safetyGate,'box',0x9a8270,[x,.9,0],[.18,1.7,.2]);
+    this.safetyGate.visible=false;
     const house=A.group(this.root,7,5.8);A.part(house,'box',0xc1b7b0,[0,1.4,0],[3.5,2.8,2.8]);
     const roof=A.part(house,'cone',0x85839b,[0,3.25,0],[2.9,1.5,2.5]);roof.rotation.y=Math.PI/4;
     A.part(house,'box',0x8d7c75,[0,.9,1.42],[1.8,1.8,.07]);
@@ -188,9 +193,9 @@ Meadow.Hill = class extends Meadow.JourneyWorld {
     this.squirrelLabel.enabled=true;this.signalLabel.enabled=h.lights.length===3&&!h.reunited;
     this.signalOrb.visible=h.lights.length===3;this.motherLabel.enabled=h.reunited;this.homeLabel.enabled=h.reunited;
     this.friends.visible=h.signal;this.gates.forEach(g=>g.mesh.rotation.y=h.signal?g.side*1.4:0);
-    if(!this.cutscene&&!h.reunited)this.mother.mesh.position.set(4,0,-13);
+    if(!this.cutscene){this.protecting=false;this.villain.mesh.visible=false;this.safetyGate.visible=h.reunited;this.safetyGate.position.y=0;this.mother.mesh.rotation.z=0;if(!h.reunited)this.mother.mesh.position.set(4,0,-13);}
   }
-  canWalk(x,z){return this.bounds(x,z)&&(z>=-10.3||this.current?.reunited);}
+  canWalk(x,z){return this.bounds(x,z)&&z>=-10.3;}
   update(time,dt,player,state,reduced){
     const h=state.hill;this.squirrel.update(time,player,reduced);
     let walking=this.cutscene&&!this.hug;
@@ -199,6 +204,8 @@ Meadow.Hill = class extends Meadow.JourneyWorld {
       if(walking){const a=Math.atan2(dx,dz),step=Math.min(d,dt*4.3);for(const turn of [0,.6,-.6,1.2,-1.2]){const x=m.x+Math.sin(a+turn)*step,z=m.z+Math.cos(a+turn)*step;if(this.canWalk(x,z)){m.set(x,0,z);break;}}this.mother.mesh.rotation.y=a;}
     }
     this.mother.update(time,this.hug,walking,reduced);if(this.hug)player.arms.forEach(a=>a.rotation.x=-1.05);
+    if(this.protecting){this.mother.arms.forEach(a=>a.rotation.x=-.85);player.arms.forEach(a=>a.rotation.x=-1.15);}
+    if(this.villain.mesh.visible)this.villain.update(time,reduced,'reach');
     if(this.friends.visible){this.hedgehog.update(time,player,reduced);this.owl.update(time,player,reduced,true);this.beaver.update(time,player,reduced);}
     this.beacons.forEach((b,i)=>{if(!reduced)b.orb.position.y=2+Math.sin(time*1.5+i)*.035;});
     this.guides(time,player,state,reduced);

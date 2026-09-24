@@ -9,30 +9,31 @@ Meadow.PuzzleRules = {
     const visited = [];
     let index = 0, incoming = 3;
     const dx = [0, 1, 0, -1], dy = [-1, 0, 1, 0];
-    while (visited.length < 10) {
+    while (visited.length < 17) {
       if (visited.includes(index)) return { solved: false, visited, stop: index, reason: '風繞回原來的地方了。' };
       const openings = this.openings(index, turns);
       if (!openings.includes(incoming)) return { solved: false, visited, stop: index, reason: '這一格的管口，還沒接住吹來的風。' };
       visited.push(index);
       const outgoing = openings.find(direction => direction !== incoming);
-      const row = Math.floor(index / 3) + dy[outgoing], col = index % 3 + dx[outgoing];
-      if (row < 0 || row > 2 || col < 0 || col > 2) {
-        const solved = index === 8 && outgoing === 1 && visited.length === 9;
-        return { solved, visited, stop: index, reason: solved ? '九格都通風了！媽媽的信送到了。' : '風從旁邊跑出去了。出口在右下角的右邊。' };
+      const row = Math.floor(index / 4) + dy[outgoing], col = index % 4 + dx[outgoing];
+      if (row < 0 || row > 3 || col < 0 || col > 3) {
+        const solved = index === 12 && outgoing === 3 && visited.length === 16;
+        return { solved, visited, stop: index, reason: solved ? '十六格都通風了！媽媽的信送到了。' : '風從旁邊跑出去了。出口在左下角的左邊。' };
       }
       incoming = (outgoing + 2) % 4;
-      index = row * 3 + col;
+      index = row * 4 + col;
     }
     return { solved: false, visited, stop: index, reason: '再看看還沒接好的管口。' };
   },
   completeOrder(order) {
-    return Array.isArray(order) && order.length === 4 && new Set(order).size === 4 &&
+    return Array.isArray(order) && order.length === 6 && new Set(order).size === 6 &&
       order.every(id => CONFIG.LAMP_ITEMS.some(item => item.id === id));
   },
   lampChecks(order) {
     if (!this.completeOrder(order)) return [false, false, false];
     const sun = order.indexOf('sun'), heart = order.indexOf('heart'), star = order.indexOf('star'), ribbon = order.indexOf('ribbon');
-    return [Math.abs(sun - star) === 2, heart === sun + 1, star > ribbon];
+    const score=order.indexOf('score'),ticket=order.indexOf('ticket');
+    return [Math.abs(sun-star)===4&&heart===sun+2, ticket===heart-1&&score===ticket+2, ribbon<sun&&score===star-1];
   },
   lampSolved(order) { return this.completeOrder(order) && this.lampChecks(order).every(Boolean); }
 };
@@ -86,10 +87,10 @@ Meadow.Challenges = class {
   }
   render(focusSelector) {
     const s = this.game.state, wind = this.kind === 'wind', journal = this.kind === 'journal';
-    const titles = { wind: '幫風找到送信的路', lamp: '四樣回憶，該怎麼排？', journal: '小米的線索手帳' };
+    const titles = { wind: '幫風找到送信的路', lamp: '六樣回憶，該怎麼排？', journal: '小米的線索手帳' };
     document.getElementById('puzzle-title').textContent = titles[this.kind];
     document.getElementById('puzzle-kicker').textContent = wind ? '栗栗的風車郵局 · 觀察管口' : journal ? '想一想，也可以翻一翻' : '引路燈的祕密 · 合併三條線索';
-    document.getElementById('puzzle-description').textContent = wind ? '點一格轉一下，讓風經過全部九格，從右下方吹出去。' : journal ? '媽媽的信與光花的線索，都好好收在這裡。' : '先選一樣回憶，再點位置放入。從左到右，讓三條線索都成立。';
+    document.getElementById('puzzle-description').textContent = wind ? '點一格轉一下，讓風經過全部十六格，從左下方吹出去。' : journal ? '媽媽的信與光花的線索，都好好收在這裡。' : '先選一樣回憶，再點位置放入。依 1→6 號位置放入，讓三張卡上的條件都成立。';
     document.getElementById('puzzle-stage').innerHTML = wind ? this.windMarkup() : journal ? this.letterMarkup() : this.lampMarkup();
     document.getElementById('puzzle-notes').innerHTML = wind ? this.windNotes() : this.clueMarkup();
     document.getElementById('puzzle-feedback').textContent = this.feedback || (wind ? '可以先沿著管子用手指走一遍，再試著送風。' : journal ? '找到花朵時，新的線索會自動記下來。' : '沒有時間限制。放好的回憶可以點一下取回。');
@@ -108,18 +109,19 @@ Meadow.Challenges = class {
     const directions = ['上', '右', '下', '左'];
     const tiles = turns.map((turn, i) => {
       const opens = Meadow.PuzzleRules.openings(i, turns);
+      const link=CONFIG.WIND_LINKS.findIndex(pair=>pair.includes(i));
       const active = this.result?.visited.includes(i), stopped = this.result && !this.result.solved && this.result.stop === i;
       const path = CONFIG.WIND_KINDS[i] === 'bend' ? 'M 50 0 V 35 Q 50 50 65 50 H 100' : 'M 50 0 V 100';
-      return `<button class="wind-tile${active ? ' has-wind' : ''}${stopped ? ' wind-stop' : ''}" data-tile="${i}" aria-label="第 ${Math.floor(i / 3) + 1} 列第 ${i % 3 + 1} 格，管口朝${opens.map(d => directions[d]).join('、')}；點一下順時針旋轉"><svg viewBox="0 0 100 100" aria-hidden="true"><g transform="rotate(${turn * 90} 50 50)"><path class="pipe-rim" d="${path}"/><path class="pipe-core" d="${path}"/><path class="pipe-shine" d="${path}"/></g></svg><span class="tile-turn" aria-hidden="true">↻</span></button>`;
+      return `<button class="wind-tile${active ? ' has-wind' : ''}${stopped ? ' wind-stop' : ''}" data-tile="${i}" aria-label="第 ${Math.floor(i / 4) + 1} 列第 ${i % 4 + 1} 格，管口朝${opens.map(d => directions[d]).join('、')}；點一下順時針旋轉${link<0?'':'，同號齒輪會逆轉'}"><svg viewBox="0 0 100 100" aria-hidden="true"><g transform="rotate(${turn * 90} 50 50)"><path class="pipe-rim" d="${path}"/><path class="pipe-core" d="${path}"/><path class="pipe-shine" d="${path}"/></g></svg><span class="tile-turn" aria-hidden="true">${link<0?'↻':'⚙'+(link+1)}</span></button>`;
     }).join('');
-    return `<div class="wind-machine"><div class="wind-inlet">入口：風從這裡吹進 <b>↓</b></div><div class="wind-grid-wrap"><span class="inlet-arrow" aria-hidden="true">→</span><div class="wind-grid">${tiles}</div><span class="outlet-arrow" aria-hidden="true">→</span></div><div class="wind-outlet">右下出口 → 栗栗的郵箱 ✉</div></div>`;
+    return `<div class="wind-machine"><div class="wind-inlet">入口：風從這裡吹進 <b>↓</b></div><div class="wind-grid-wrap"><span class="inlet-arrow" aria-hidden="true">→</span><div class="wind-grid">${tiles}</div><span class="outlet-arrow" aria-hidden="true">←</span></div><div class="wind-outlet">左下出口 ← 栗栗的郵箱 ✉</div></div>`;
   }
   windNotes() {
-    return `<div class="helper-heading"><span>🦔</span><div><strong>栗栗的小提醒</strong><small>慢慢來，管子會等你。</small></div></div><ol class="wind-rules"><li>每格有兩個管口。相鄰的開口要面對面。</li><li>風從左上格的左邊進來。</li><li>讓九格都通風，最後從右下格的右邊離開。</li></ol><div class="wind-counter">已通風 <strong>${this.result?.visited.length || 0}</strong> / 9 格<span>按「試送一陣風」檢查</span></div>`;
+    return `<div class="helper-heading"><span>🦔</span><div><strong>栗栗的小提醒</strong><small>同號齒輪會反向連動。</small></div></div><ol class="wind-rules"><li>相鄰管口要相對。轉動 ⚙1／2／3，同號另一格會逆轉。</li><li>風從左上格的左邊進來。</li><li>讓十六格都通風，最後從左下格的左邊離開。</li></ol><div class="wind-counter">已通風 <strong>${this.result?.visited.length || 0}</strong> / 16 格<span>按「試送一陣風」檢查</span></div>`;
   }
   lampMarkup() {
     const s = this.game.state;
-    const slots = Array.from({ length: 4 }, (_, i) => {
+    const slots = Array.from({ length: 6 }, (_, i) => {
       const item = CONFIG.LAMP_ITEMS.find(it => it.id === s.arrangement[i]);
       return `<button class="memory-slot${item ? ' filled' : ''}" data-slot="${i}" aria-label="第 ${i + 1} 個位置${item ? '，' + item.name + '，點擊取回' : '，空位'}"><small>${i + 1}</small><span class="memory-symbol ${item?.id || ''}">${item?.symbol || '＋'}</span><span>${item?.name || '放在這裡'}</span></button>`;
     }).join('');
@@ -128,7 +130,7 @@ Meadow.Challenges = class {
       return `<button class="memory-choice${this.selected === item.id ? ' selected' : ''}" data-item="${item.id}" ${used ? 'disabled' : ''} aria-pressed="${this.selected === item.id}"><span class="memory-symbol ${item.id}">${item.symbol}</span><span>${item.name}</span><small>${used ? '已放好' : this.selected === item.id ? '選好了，點空位' : '點我選取'}</small></button>`;
     }).join('');
     const instruction = this.selected ? '選好了！點一個空位放入。' : s.arrangement.every(Boolean) ? '想換位置？點上面的回憶取回，再放到空位。' : '從下面選一樣回憶，再點上面的空位。';
-    return `<div class="memory-board"><div class="arrange-direction"><span>左邊</span><span>從左往右排 →</span><span>右邊</span></div><div class="memory-slots">${slots}</div><p class="memory-instruction">${instruction}</p><div class="memory-choices">${items}</div></div>`;
+    return `<div class="memory-board"><div class="arrange-direction"><span>1</span><span>按編號 1 → 6 排列</span><span>6</span></div><div class="memory-slots">${slots}</div><p class="memory-instruction">${instruction}</p><div class="memory-choices">${items}</div></div>`;
   }
   clueMarkup() {
     const s = this.game.state;
@@ -137,16 +139,20 @@ Meadow.Challenges = class {
       const f = CONFIG.FLOWERS.find(flower => flower.id === clue.id), found = s.flowers.includes(clue.id);
       const status = checks ? (checks[i] ? '符合 ✓' : '再想想 ○') : found ? '已記下' : '待發現';
       return `<div class="clue-card${checks ? checks[i] ? ' clue-pass' : ' clue-rethink' : ''}"><div><strong class="${f.id}">${f.symbol} ${f.name}</strong><span>${status}</span></div><p>${found ? clue.text : `還藏在${f.clue}的光花裡。`}</p></div>`;
-    }).join('')}<p class="clue-note">「右邊」是畫面上的右邊。<br>每樣回憶只能放一次；三條線索都要符合。</p>`;
+    }).join('')}<p class="clue-note">以 1→6 號為準，先上排再下排。<br>「右方第二格」表示編號加 2；每件只用一次。</p>`;
   }
   letterMarkup() {
     const s=this.game.state,items=Meadow.Keepsakes.items(s);
     const pocket=items.length?`<div class="keepsake-pocket"><h3>帶往下一站的小物</h3>${items.map(item=>`<article data-keepsake="${item.id}"><strong>${item.symbol} ${item.name} · 第 ${item.chapter} 關</strong><p>${item.clue}</p></article>`).join('')}${!s.lit?'<p>點亮引路燈後，還能找到一片星光鏡片。</p>':''}</div>`:'';
     return `<div class="letter-sheet"><span class="letter-stamp">✉</span><h3>給我的小米</h3><p>${s.windSolved ? '我在前面的休息站，很安全。信裡放了歌譜和月光船票；引路燈下的小抽屜，還留著觀星用的鏡片。把它們帶好，我們路上會用到。' : '媽媽的信還卡在風管裡。和栗栗一起修好風管，就能讀到了。'}</p><p class="letter-sign">${s.windSolved ? '愛你的媽媽 ♡' : '風車郵局 · 待送達'}</p></div>${pocket}`;
   }
+  turnPipe(index,amount){
+    const turns=this.game.state.windTurns;turns[index]=(turns[index]+amount+4)%4;
+    const pair=CONFIG.WIND_LINKS.find(v=>v.includes(index));if(pair){const other=pair.find(v=>v!==index);turns[other]=(turns[other]-amount+4)%4;}
+  }
   rotate(index) {
     if (this.kind !== 'wind') return;
-    this.game.state.windTurns[index] = (this.game.state.windTurns[index] + 1) % 4;
+    this.turnPipe(index,1);
     this.result = null; this.feedback = '管子轉好了。可以接著轉，或試送一陣風看看。';
     this.game.saveProgress(); this.game.audio.note(440, .08, .02); this.render(`[data-tile="${index}"]`);
   }
@@ -165,7 +171,7 @@ Meadow.Challenges = class {
   }
   clear() {
     if (this.game.state.mode !== 'puzzle' || this.kind !== 'lamp') return;
-    this.game.state.arrangement = [null, null, null, null]; this.selected = null; this.result = null;
+    this.game.state.arrangement = Array(6).fill(null); this.selected = null; this.result = null;
     this.feedback = '回憶都收回來了。試試別的排列吧。'; this.game.saveProgress(); this.render('#puzzle-clear');
   }
   submit() {
@@ -192,22 +198,22 @@ Meadow.Challenges = class {
       if (s.windHints === 1) this.feedback = '先找左上角。風從它的左邊進來，所以那格一定要有朝左的管口。';
       else if (s.windHints === 2) {
         this.result = Meadow.PuzzleRules.traceWind(s.windTurns);
-        this.feedback = `看看金框的第 ${Math.floor(this.result.stop / 3) + 1} 列、第 ${this.result.stop % 3 + 1} 格。管口要接住風，也要把風送給下一格。`;
+        this.feedback = `看看金框的第 ${Math.floor(this.result.stop / 4) + 1} 列、第 ${this.result.stop % 4 + 1} 格。管口要接住風，也要把風送給下一格。`;
       } else {
-        const solution = [1, 1, 2, 1, 1, 3, 0, 1, 1], route = [0, 1, 2, 5, 4, 3, 6, 7, 8];
+        const solution = CONFIG.WIND_SOLUTION, route = CONFIG.WIND_ROUTE;
         const index = route.find(i => Meadow.PuzzleRules.openings(i, s.windTurns).slice().sort().join() !== Meadow.PuzzleRules.openings(i, solution).slice().sort().join());
         if (index === undefined) this.feedback = '管子已經接好了！按「試送一陣風」把信送出去。';
         else {
-          s.windTurns[index] = solution[index]; this.result = Meadow.PuzzleRules.traceWind(s.windTurns);
-          this.feedback = `栗栗示範轉好了第 ${Math.floor(index / 3) + 1} 列、第 ${index % 3 + 1} 格。接著看看風會往哪裡走？`;
+          this.turnPipe(index,(solution[index]-s.windTurns[index]+4)%4); this.result = Meadow.PuzzleRules.traceWind(s.windTurns);
+          this.feedback = `栗栗示範轉好了第 ${Math.floor(index / 4) + 1} 列、第 ${index % 4 + 1} 格。接著看看風會往哪裡走？`;
         }
       }
     } else if (this.kind === 'lamp') {
       s.lampHints = Math.min(3, s.lampHints + 1);
       this.feedback = [
-        '先看愛心花的線索：把「太陽、愛心」當成一組，兩樣一定要相鄰。',
-        '如果太陽在第一格，星星就會在第三格，髮帶只剩第四格，卻不符合星星的線索。試試太陽放第二格。',
-        '太陽放第二格，愛心緊接在第三格；隔一樣的星星在第四格，髮帶就在第一格。從左到右：髮帶、太陽、愛心、星星。'
+        '把「船票、愛心、歌譜、星星」連成一組，從相鄰與相隔關係推理。',
+        '太陽要在愛心左方第二格，而且髮帶在太陽左邊；試著排除放不下整組的起點。',
+        '船票、愛心、歌譜、星星連續排列；太陽在這組前一格，髮帶還要更左邊。順序是髮帶、太陽、船票、愛心、歌譜、星星。'
       ][s.lampHints - 1];
     }
     this.game.saveProgress(); this.render('#puzzle-hint');

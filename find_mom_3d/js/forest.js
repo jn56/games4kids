@@ -1,4 +1,33 @@
 'use strict';
+Meadow.Grayclaw = class {
+  constructor(scene){
+    const A=Meadow.Art;this.mesh=A.group(scene,-7,-3.8);this.body=A.group(this.mesh);
+    A.part(this.body,'ball',0x66687a,[0,1.0,0],[.66,.85,.43]);
+    A.part(this.body,'cone',0x575264,[0,.8,-.14],[.8,1.5,.55]);
+    A.part(this.body,'ball',0x858695,[0,2.05,.07],[.61,.5,.45]);
+    A.part(this.body,'ball',0xb6adb0,[0,1.91,.5],[.36,.21,.38]);
+    A.part(this.body,'ball',0x454351,[0,1.94,.83],[.13,.1,.08]);
+    this.arms=[];this.legs=[];
+    for(const side of [-1,1]){
+      A.part(this.body,'cone',0x707181,[side*.4,2.56,0],[.22,.63,.18]);
+      A.part(this.body,'ball',0xe6c784,[side*.24,2.14,.45],[.1,.08,.035]);
+      A.part(this.body,'ball',0x3d3a46,[side*.24,2.14,.48],[.037,.055,.02]);
+      const brow=A.part(this.body,'box',0x494452,[side*.24,2.28,.44],[.26,.06,.06]);brow.rotation.z=side*.28;
+      const arm=A.group(this.body,side*.68,0);arm.position.y=1.38;
+      A.part(arm,'ball',0x6c687a,[0,-.26,0],[.18,.44,.19]);A.part(arm,'ball',0x92909b,[0,-.62,.05],[.2,.18,.2]);this.arms.push(arm);
+      const leg=A.group(this.body,side*.32,0);leg.position.y=.45;A.part(leg,'ball',0x585969,[0,-.2,.13],[.23,.3,.34]);this.legs.push(leg);
+    }
+    A.part(this.body,'box',0xa67c71,[0,1.57,.4],[.65,.13,.12]);this.mesh.visible=false;
+  }
+  update(time,reduced,pose){
+    this.body.position.y=reduced||pose==='float'?0:Math.abs(Math.sin(time*7))*.05;
+    this.legs.forEach((leg,i)=>leg.rotation.x=pose==='float'?-.35:reduced?0:Math.sin(time*7+i*Math.PI)*.45);
+    this.arms.forEach((arm,i)=>{
+      arm.rotation.x=pose==='grapple'?-1.3+(reduced?0:Math.sin(time*8+i)*.2):pose==='float'?-1.7:-1.25;
+      arm.rotation.z=pose==='float'?(i?.45:-.45):0;
+    });
+  }
+};
 Meadow.Forest = class extends Meadow.World {
   constructor(scene) {
     super(scene,true);
@@ -32,6 +61,16 @@ Meadow.Forest = class extends Meadow.World {
     }
     this.owl=new Meadow.Owl(scene);this.owlLabel=this.label(this.owl.mesh,'咕咕 · 森林守信人',3.05);
     this.mother=new Meadow.Mother(scene);this.motherLabel=this.label(this.mother.mesh,'媽媽就在那裡',3.1);
+    this.villain=new Meadow.Grayclaw(scene);this.protecting=false;this.struggling=false;this.falling=false;this.sweptAway=false;
+    this.flood=A.group(this.root);this.flood.visible=false;
+    for(let i=0;i<9;i++){
+      A.part(this.flood,'ball',0x83b6c0,[(i%3-1)*.6,.12,-4.75-Math.floor(i/3)*1.2],[.75,.45,.8],false);
+      A.part(this.flood,'ball',0xd7e9df,[(i%3-1)*.6,.46,-4.75-Math.floor(i/3)*1.2],[.48,.1,.45],false);
+    }
+    this.floatwood=A.group(this.root);this.floatwood.visible=false;
+    for(const x of [-.35,.35]){const log=A.part(this.floatwood,'cylinder',0x9f8b67,[x,.12,0],[.24,2.1,.24]);log.rotation.x=Math.PI/2;}
+    this.spray=A.group(this.root);this.spray.visible=false;
+    for(let i=0;i<12;i++)A.part(this.spray,'ball',0xcce6df,[Math.cos(i)*.9,.1,Math.sin(i)*.7],[.12,.06,.12],false);
     this.exit=A.group(this.root,12,-3);A.part(this.exit,'cylinder',0x867753,[0,.9,0],[.09,1.8,.09]);
     A.part(this.exit,'box',0xd2c49a,[0,1.6,0],[1.7,.45,.13]);
     const arrow=A.part(this.exit,'cone',0xd2c49a,[1,1.6,0],[.35,.65,.09]);arrow.rotation.z=-Math.PI/2;
@@ -140,9 +179,12 @@ Meadow.Forest = class extends Meadow.World {
     this.gateTarget=f.gustStage===6?1:f.round/4;
     if(!this.cutscene){
       this.bridgeTarget=0;
+      this.mother.mesh.visible=!f.separated;this.villain.mesh.visible=false;this.flood.visible=false;this.floatwood.visible=false;this.spray.visible=false;
+      this.protecting=false;this.struggling=false;this.falling=false;this.sweptAway=false;
+      this.mother.mesh.rotation.set(0,0,0);this.villain.mesh.rotation.set(0,0,0);
       this.mother.mesh.position.set(f.separated?4.4:2,0,f.separated?-12.5:-4.3);
       this.mother.mesh.rotation.y=0;
-      this.owl.mesh.position.set(f.separated?4:-2.4,0,f.separated?-3.2:5);
+      this.owl.mesh.position.set(f.separated?6:-2.4,0,f.separated?-3.2:5);
       this.mistAmount=f.separated?.3:0;
     }
   }
@@ -155,7 +197,15 @@ Meadow.Forest = class extends Meadow.World {
   }
   update(time,dt,player,state,reduced) {
     const f=state.forest;
-    this.owl.update(time,player,reduced,f.reunited);this.mother.update(time,this.hug,this.cutscene&&this.mother.mesh.position.z>-12,reduced);
+    this.owl.update(time,player,reduced,f.reunited);this.mother.update(time,this.hug||this.sweptAway,this.cutscene&&!this.sweptAway,reduced);
+    if(this.protecting)this.mother.arms.forEach((arm,i)=>{arm.rotation.x=-.3;arm.rotation.z=i?1.1:-1.1;});
+    if(this.struggling)this.mother.arms.forEach((arm,i)=>{arm.rotation.x=-1.3+(reduced?0:Math.sin(time*8+i)*.2);arm.rotation.z=i?.15:-.15;});
+    if(this.falling)this.mother.arms.forEach((arm,i)=>{arm.rotation.x=-2;arm.rotation.z=i?.5:-.5;});
+    if(this.villain.mesh.visible)this.villain.update(time,reduced,this.struggling?'grapple':this.sweptAway?'float':'reach');
+    if(this.sweptAway){
+      this.floatwood.position.copy(this.mother.mesh.position);this.floatwood.position.y=.05;
+      this.spray.position.copy(this.floatwood.position);this.spray.rotation.y=reduced?0:time*.7;
+    }
     if(f.routeKnown&&state.mode==='playing'){
       const p=player.mesh.position,pos=this.owl.mesh.position,dx=p.x-1.1-pos.x,dz=p.z+.2-pos.z;
       const distance=Math.hypot(dx,dz),angle=Math.atan2(dx,dz),step=Math.min(distance,dt*4.1);

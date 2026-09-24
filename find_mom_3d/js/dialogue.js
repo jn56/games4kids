@@ -28,7 +28,7 @@ Meadow.Dialogue = class {
     document.getElementById('dialogue-count').textContent=`${this.index+1} / ${this.lines.length}`;
     const portrait=document.getElementById('dialogue-portrait');
     portrait.className=`portrait ${line.name==='小米'?'girl':line.name.startsWith('媽媽')?'mom':''}`;
-    portrait.textContent=line.name==='小米'?'👧':line.name.startsWith('媽媽')?'♡':line.name==='栗栗'?'🦔':line.name==='咕咕'?'🦉':line.name==='木木'?'🦫':line.name==='星星'?'🐿':'🐰';
+    portrait.textContent=line.name==='小米'?'👧':line.name.startsWith('媽媽')?'♡':line.name==='栗栗'?'🦔':line.name==='咕咕'?'🦉':line.name==='木木'?'🦫':line.name==='星星'?'🐿':line.name==='灰爪'?'🐺':'🐰';
     document.getElementById('dialogue-next').innerHTML=this.index===this.lines.length-1?'出發吧 <span>→</span>':'繼續 <span>→</span>';
   }
   next() {

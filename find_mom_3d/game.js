@@ -161,9 +161,9 @@ Meadow.Game = class {
     const c=this.state.chapter,name=this.chapterName();
     const endings=[null,
       {title:'原來，媽媽也在找我。',description:'你點亮了希望之光。帶著朋友的陪伴，繼續找媽媽。',award:'希望之光',lessons:['和朋友修好送信風管','合併線索，點亮希望']},
-      {title:'這次，我知道該往哪裡走。',description:'媽媽在對岸很安全。你記得她的歌，也找到了新的路。',award:'記憶之光',lessons:['記住旋律，走過疾風小徑','再次分開，也學會問路與求助']},
-      {title:'害怕，也能跨出勇敢的一步。',description:'你和木木修好橋、穿過水道。山丘上的燈，正等著你。',award:'勇氣之光',lessons:['抓準時機，修好三段橋','互相幫忙，穿過四道水路']},
-      {title:'媽媽，我們一起回家。',description:'希望、記憶、勇氣，最後是陪伴。<br>媽媽聽著你的故事，和你一起走進家門。',award:'陪伴之光',lessons:['點亮三座信號燈，讓媽媽看見你','和媽媽擁抱，再一起走回家']}
+      {title:'這次，我知道該往哪裡走。',description:'媽媽為了保護你，與灰爪扭打落河，一起被沖往下游。帶著她的歌，去河谷找木木接應。',award:'記憶之光',lessons:['記住旋律，走過疾風小徑','再次分開，也學會問路與求助']},
+      {title:'害怕，也能跨出勇敢的一步。',description:'你和木木修好橋、穿過水道。山丘上的燈，正等著你。',award:'勇氣之光',lessons:['解算式、敲穩九枚鉚釘','掌舵與煞船，穿過十二道水門']},
+      {title:'媽媽，我們一起回家。',description:'第二關，媽媽保護了你。這一次，你擋在媽媽前面，護送她躲過灰爪，關上安全門。<br>現在，你們可以一起回家了。',award:'陪伴之光',lessons:['點亮三座信號燈，讓媽媽看見你','護住媽媽躲過灰爪，安全回家']}
     ],e=endings[c];
     document.getElementById('ending-kicker').textContent='第'+['','一','二','三','四'][c]+'章完成 · '+name;
     document.getElementById('ending-title').textContent=e.title;document.getElementById('ending-description').innerHTML=e.description;
@@ -219,7 +219,11 @@ Meadow.Game = class {
     if(this.time-this.lastHUD>.15){this.lastHUD=this.time;this.refreshTarget();}
     this.interactions.update();this.world.updateLabels(this.camera,!['title','complete'].includes(this.state.mode));
     const warmth=this.state.chapter===2?.95:this.state.lit?1.4:1.15;this.sun.intensity+=(warmth-this.sun.intensity)*Math.min(1,dt*.8);
-    this.audio.update(this.time,!['paused','title'].includes(this.state.mode));
+    const revealedThreat=(this.state.mode==='paused'?this.beforePause:this.state.mode)==='dialogue'&&this.dialogue.lines.slice(0,this.dialogue.index+1).some(line=>line.name==='灰爪');
+    const pursuit=this.expedition.active&&this.expedition.kind==='escort';
+    const gateClosed=this.state.chapter===4&&this.story.running==='reunion'&&this.story.elapsed>=1.5;
+    const threat=(this.state.chapter===2||this.state.chapter===4)&&!gateClosed&&(revealedThreat||pursuit||(this.worldCache[this.state.chapter].layer.visible&&this.world.villain?.mesh.visible));
+    this.audio.update(this.time,!['paused','title'].includes(this.state.mode),threat?'tension':'calm');
     if(this.toastDeadline&&this.time>this.toastDeadline){document.getElementById('toast').hidden=true;this.toastDeadline=0;}
     this.renderer.render(this.scene,this.camera);
   }

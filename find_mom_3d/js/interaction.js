@@ -8,7 +8,7 @@ Meadow.Interactions = class {
       items.push({id:'owl',position:world.owl.mesh.position,text:state.forest.separated?'和咕咕一起找新的路':'和咕咕說話'});
       items.push({id:'music',position:world.stand.position,text:state.forest.round===3&&state.forest.gustStage<6?'挑戰疾風小徑':'試奏風鈴旋律'});
       CONFIG.BELLS.forEach(b=>items.push({id:`bell-${b.id}`,position:world.bells.get(b.id).mesh.position,text:`${b.symbol} 敲敲${b.name}`}));
-      items.push({id:'mother',position:world.mother.mesh.position,text:'媽媽，我找到你了！'});
+      if(!state.forest.separated)items.push({id:'mother',position:world.mother.mesh.position,text:'媽媽，我找到你了！'});
       items.push({id:'forest-exit',position:world.exit.position,text:'前往月光河谷步道'});
       return items;
     }
