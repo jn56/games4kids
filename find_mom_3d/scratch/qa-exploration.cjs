@@ -14,10 +14,10 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),path
    const start=Math.round((11+45)/step)*sizeX+Math.round(41/step),queue=[start];visited[start]=1;
    for(let head=0;head<queue.length;head++){const i=queue[head];for(const n of [i-1,i+1,i-sizeX,i+sizeX]){if(n<0||n>=walk.length||visited[n]||!walk[n]||Math.abs(n%sizeX-i%sizeX)>1)continue;visited[n]=1;queue.push(n);}}
    return {chapter:c,ratio:newArea/oldArea,residents:w.residents.map(n=>({name:n.name,reachable:queue.some(i=>{const p=pos(i);return Math.hypot(p.x-n.x,p.z-n.z)<1.8;})})),routes:w.mapRoutes.length};
-  });assert(report.ratio>=4,JSON.stringify(report));assert.equal(report.residents.length,3);assert(report.residents.every(n=>n.reachable),JSON.stringify(report));console.log('PASS terrain',JSON.stringify(report));
-  for(let i=0;i<3;i++){
+  });assert(report.ratio>=4,JSON.stringify(report));assert.equal(report.residents.length,5);assert(report.residents.every(n=>n.reachable),JSON.stringify(report));console.log('PASS terrain',JSON.stringify(report));
+  for(let i=0;i<5;i++){
    const before=await p.evaluate(i=>{const g=meadowGame,n=g.world.residents[i];g.player.setPosition(n.x,n.z+1.3);g.view.update(1,false,true);return JSON.stringify(g.state);},i);await p.waitForTimeout(100);
-   assert((await p.locator('#interaction-prompt').textContent()).includes(report.residents[i].name));await p.keyboard.press('e');assert.equal(await p.locator('#dialogue-name').textContent(),report.residents[i].name);assert.equal(await p.locator('#minimap').isVisible(),false);
+   assert((await p.locator('#interaction-prompt').textContent()).includes(report.residents[i].name));await p.keyboard.press('e');assert.equal(await p.locator('#dialogue-name').textContent(),report.residents[i].name);await p.locator('#minimap').waitFor({state:'hidden'});
    for(let n=0;n<12&&await p.evaluate(()=>meadowGame.state.mode==='dialogue');n++)await p.locator('#dialogue-next').click();
    assert.equal(await p.evaluate(()=>JSON.stringify(meadowGame.state)),before,'optional conversation changed quest state');
    if(i===0)await p.screenshot({path:path.join(out,`chapter-${chapter}-outer.png`)});
@@ -34,5 +34,21 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),path
   const m=boxes.minimap,q=boxes['objective-title'];assert(m.x>=q.right||q.x>=m.right||m.y>=q.bottom||q.y>=m.bottom,'map overlaps objective');
   await p.screenshot({path:path.join(out,`map-${viewport.width}.png`)});
  }
- assert.deepEqual(errors,[]);console.log('PASS 12 dialogue-only NPCs, camera follow, real outer-boundary movement, outer checkpoint reload, map toggle and responsive layout; no runtime errors');await browser.close();
+ // Read every new family conversation on the smallest supported phone layout.
+ await p.setViewportSize({width:320,height:568});
+ for(let chapter=1;chapter<=4;chapter++){
+  await seed(chapter);
+  for(const i of [3,4]){
+   const lines=await p.evaluate(i=>{const g=meadowGame,n=g.world.residents[i];g.player.setPosition(n.x,n.z+1.3);return n.lines;},i);
+   await p.waitForTimeout(100);await p.keyboard.press('e');
+   for(const [speaker,line] of lines){
+    assert.equal(await p.locator('#dialogue-name').textContent(),speaker);assert.equal(await p.locator('#dialogue-text').textContent(),line);
+    const text=await p.locator('#dialogue-text').boundingBox(),next=await p.locator('#dialogue-next').boundingBox();assert(text.x>=0&&text.x+text.width<=321&&text.y>=0&&text.y+text.height<=next.y);assert(next.y+next.height<=569);
+    if(i===3&&speaker!=='小米')await p.screenshot({path:path.join(out,`family-${chapter}-phone.png`)});
+    await p.locator('#dialogue-next').click();
+   }
+   assert.equal(await p.evaluate(()=>meadowGame.state.mode),'playing');
+  }
+ }
+ assert.deepEqual(errors,[]);console.log('PASS 20 dialogue-only NPCs, all eight new family conversations fit on small phones, camera follow, real outer-boundary movement, outer checkpoint reload, map toggle and responsive layout; no runtime errors');await browser.close();
 })().catch(async e=>{console.error(e);if(browser)await browser.close();process.exit(1);});

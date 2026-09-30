@@ -356,3 +356,8 @@ body.in-action #play-hud,body.in-action #world-labels,body.in-action #mobile-con
 @media(max-width:700px){#journey-ui[data-kind=bridge] .action-summary p{display:none}#journey-ui[data-kind=bridge] .action-summary{top:134px}.bridge-question{top:48%}#journey-ui[data-kind=bridge] #bridge-timing{top:calc(48% + 86px)}}
 @media(max-height:500px) and (orientation:landscape){#action-ui .action-summary{width:190px}#journey-ui[data-kind=bridge] .action-summary{top:66px}.bridge-question{top:47%;width:min(370px,54vw)}#journey-ui[data-kind=bridge] #bridge-timing{top:calc(47% + 65px);width:min(370px,54vw)}}
 #journey-ui[data-kind=bridge] #bridge-timing{top:calc(100% + 14px);width:100%}
+#wind-meter{height:10px;accent-color:#d39535}
+#wind-meter::-webkit-progress-value{background:#d39535}
+#action-ui[data-urgent=true] .action-summary{background:#ffe4c5;box-shadow:0 0 0 3px #b94e2d}
+#action-ui[data-urgent=true] #action-status{color:#963719;font-weight:800}
+#action-ui[data-urgent=true] #wind-meter::-webkit-progress-value{background:#b94e2d}

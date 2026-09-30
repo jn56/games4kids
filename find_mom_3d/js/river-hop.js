@@ -18,7 +18,7 @@ Meadow.RiverHop = class {
       const safe=lane===this.safeLane(row-1),mesh=A.group(this.root,(lane-1)*2,7-row*4);
       A.part(mesh,'cylinder',safe?0xb9b39b:0x668994,[0,safe?.12:-.1,0],[safe?.88:.6,safe?.48:.3,safe?.82:.6]);
       if(!safe){const crack=A.part(mesh,'box',0x456c78,[0,.06,0],[.07,.025,.65]);crack.rotation.y=.4;}
-      const light=A.disk(mesh,0xf1d181,0,0,.57,.53,.37);light.visible=false;
+      const light=A.disk(mesh,0xf1d181,0,0,.57,.53,.37);light.material=light.material.clone();light.visible=false;
       this.stones.push({row,lane,safe,mesh,light});
     }
     this.ring=new THREE.Mesh(new THREE.RingGeometry(.9,1.02,40),new THREE.MeshBasicMaterial({color:0xffe6a2,side:THREE.DoubleSide}));this.ring.rotation.x=-Math.PI/2;this.root.add(this.ring);
@@ -27,31 +27,42 @@ Meadow.RiverHop = class {
     const before=this.root.children.length;this.owl=new Meadow.Owl(this.root);this.root.children.slice(before).filter(o=>o!==this.owl.mesh).forEach(o=>o.visible=false);this.owl.mesh.scale.setScalar(.6);
   }
   safeLane(stage){return [0,2,1,2,0,1,0,2,1][stage];}
-  ready(){const t=this.trials;return t.stage<3||(t.elapsedVisual+t.stage*.31)%2.9>.8&&(t.elapsedVisual+t.stage*.31)%2.9<2.55;}
+  // Each landing starts one reaction window. Waiting never opens another cycle.
+  limit(){return 3.2-this.trials.stage*.19+(this.game.state.forest.dashFails>=6?.75:0);}
+  cue(){return this.trials.stage<3?0:.3+(this.trials.stage%3)*.08;}
+  ready(){return this.elapsed>=this.cue()&&this.elapsed<this.limit();}
+  remaining(){return Math.max(0,this.limit()-this.elapsed);}
+  jumpDuration(){return .64-this.trials.stage*.022;}
   stone(row,lane){return this.stones.find(s=>s.row===row&&s.lane===lane);}
-  start(){this.jump=null;this.currentLane=this.trials.stage===0?1:this.safeLane(this.trials.stage-1);this.trials.lane=this.currentLane;this.place();}
-  place(){const t=this.trials,g=this.game,stone=this.stone(t.stage,this.currentLane);g.player.setPosition(stone?stone.mesh.position.x:0,7-t.stage*4);g.player.mesh.position.y=.38;g.view.override.set(0,0,g.player.mesh.position.z-3);}
+  start(){this.jump=null;this.elapsed=0;this.warned=false;this.trials.dashRunning=false;this.stones.forEach(s=>s.mesh.position.y=0);this.currentLane=this.trials.stage===0?1:this.safeLane(this.trials.stage-1);this.trials.lane=this.currentLane;this.place();this.paintTimer();}
+  place(){const t=this.trials,g=this.game,stone=this.stone(t.stage,this.currentLane);g.player.setPosition(stone?stone.mesh.position.x:0,7-t.stage*4);g.player.mesh.position.y=.38+(stone?stone.mesh.position.y:0);g.view.override.set(0,0,g.player.mesh.position.z-3);}
+  paintTimer(){const meter=document.getElementById('wind-meter');meter.max=this.limit();meter.value=this.remaining();this.trials.panel.dataset.urgent=String(!this.jump&&this.remaining()<.85);}
   launch(){
     const t=this.trials,g=this.game;
     if(this.jump)return;
-    if(!this.ready()){t.noticeUntil=t.elapsedVisual+.8;t.hud('浪還蓋著石頭，等金光亮起再跳！');return;}
+    if(!this.ready()){t.noticeUntil=t.elapsedVisual+.18;t.hud('看藍光落點，變金色就跳！');return;}
     this.jump={elapsed:0,from:g.player.mesh.position.clone(),lane:t.lane,valid:t.lane===this.safeLane(t.stage)};t.dashRunning=true;g.audio.note(587,.15,.035);
   }
   update(dt){
-    const t=this.trials,g=this.game,time=t.elapsedVisual,ready=this.ready();
-    this.foam.forEach((f,i)=>f.position.z=13-((time*4+i*1.83)%51));
+    const t=this.trials,g=this.game,time=t.elapsedVisual;
+    if(!this.jump){this.elapsed+=dt;if(this.elapsed>=this.limit()){t.fail();t.hud('浪追上來了！咕咕接住你，再快一點！');return;}}
+    const ready=this.ready(),pressure=Math.min(1,this.elapsed/this.limit());this.paintTimer();
+    this.foam.forEach((f,i)=>f.position.z=13-(((g.reducedMotion?0:time*(5+t.stage*.3))+i*1.83)%51));
     for(const s of this.stones){
-      s.mesh.position.x=(s.lane-1)*2+(s.row>=4&&s.safe?Math.sin(time*1.3+s.row)*.24:0);
-      s.light.visible=s.safe&&(s.row<=t.stage||s.row===t.stage+1&&ready);
+      s.mesh.position.x=(s.lane-1)*2+(s.row>=4&&s.safe&&!g.reducedMotion?Math.sin(time*1.3+s.row)*.24:0);
+      s.mesh.position.y=s.row===t.stage&&s.lane===this.currentLane?-.32*pressure*pressure:0;
+      s.light.visible=s.safe&&(s.row<=t.stage||s.row===t.stage+1);
+      s.light.material.color.set(s.row===t.stage+1&&!ready?0x9ce6ff:0xffd15e);
     }
     const target=this.stone(t.stage+1,t.lane);this.ring.position.set(target.mesh.position.x,.42,target.mesh.position.z);this.ring.material.color.set(t.lane===this.safeLane(t.stage)?ready?0xffdc7a:0xc6e4ee:0xf0a28f);
-    this.wave.visible=!ready;this.wave.position.z=target.mesh.position.z+.5+Math.sin(time*5)*.3;
+    this.wave.visible=true;this.wave.position.z=ready?7-t.stage*4+3*(1-pressure):target.mesh.position.z+.5;
     this.owl.mesh.position.set(-3.8,1.1,7-t.stage*4);this.owl.update(g.time,g.player,g.reducedMotion,true);
     for(const id of ['action-left','action-right','action-run'])document.getElementById(id).disabled=!!this.jump;
     t.panel.dataset.wind=ready?'calm':'gust';
+    if(!this.jump&&this.remaining()<.85&&!this.warned){this.warned=true;g.audio.note(784,.1,.04);}
     if(this.jump){
-      const j=this.jump;j.elapsed+=dt;const u=Math.min(1,j.elapsed/.82),dest=this.stone(t.stage+1,j.lane).mesh.position;
-      g.player.mesh.position.set(j.from.x+(dest.x-j.from.x)*u,.38+Math.sin(u*Math.PI)*1.9,j.from.z+(dest.z-j.from.z)*u);
+      const j=this.jump;j.elapsed+=dt;const u=Math.min(1,j.elapsed/this.jumpDuration()),dest=this.stone(t.stage+1,j.lane).mesh.position;
+      g.player.mesh.position.set(j.from.x+(dest.x-j.from.x)*u,j.from.y+(.38-j.from.y)*u+Math.sin(u*Math.PI)*1.9,j.from.z+(dest.z-j.from.z)*u);
       g.player.mesh.rotation.y=Math.atan2(dest.x-j.from.x,dest.z-j.from.z);g.player.arms.forEach(a=>a.rotation.x=-.8);g.player.legs.forEach((leg,i)=>leg.rotation.x=(i?-.3:.4)*Math.sin(u*Math.PI));
       t.hud('跳！落穩後再選下一顆。');
       if(u===1){
@@ -60,11 +71,11 @@ Meadow.RiverHop = class {
         if(!valid){t.fail();return;}
         t.stage++;const f=g.state.forest;f.dashStage=Math.floor(t.stage/3);f.dashLeg=t.stage%3;g.saveProgress();g.audio.chime();
         if(t.stage===9){t.complete();return;}
-        this.currentLane=j.lane;this.place();t.hud('站穩了！看看下一顆金色石頭。');
+        this.currentLane=j.lane;this.elapsed=0;this.warned=false;this.place();this.paintTimer();t.hud('落地！立刻選下一顆！');
       }
     }else{
       this.place();g.player.mesh.rotation.y=Math.PI;
-      if(time>=t.noticeUntil)t.hud(ready?'選'+['左','中','右'][this.safeLane(t.stage)]+'邊金色石頭，按一下跳躍！':'白浪來了，先站穩，等金光亮起！');
+      if(time>=t.noticeUntil)t.hud(ready?(this.remaining()<.85?'快跳！':'選金光，立即跳！')+' 剩 '+this.remaining().toFixed(1)+' 秒':'選藍光落點，變金色就跳！');
     }
     g.view.override.set(0,0,g.player.mesh.position.z-3);
   }

@@ -146,10 +146,10 @@ Meadow.ActionTrials = class {
     g.view.override=new THREE.Vector3(0,0,kind==='dash'?startZ-3:1);g.view.focus.copy(g.view.override);g.player.setPosition(0,startZ);g.player.mesh.rotation.y=Math.PI;
     this.gustScenery.forEach(o=>o.visible=kind==='gust');this.shelters.forEach(s=>s.visible=false);this.river.root.visible=kind==='dash';if(kind==='dash')this.river.start();this.bands.forEach(b=>b.visible=false);this.laneMarks.forEach(m=>m.material.opacity=0);
     document.getElementById('action-title').textContent=kind==='gust'?'疾風小徑':'河上跳石頭';
-    document.getElementById('action-instruction').textContent=kind==='gust'?'十八波陣風逐波加速！出現橘色「逆風」警告時，左右相反。':'← → 選下一顆金色石頭，按 E／空白鍵或「跳躍」。後段要等浪退，連跳九顆！';
+    document.getElementById('action-instruction').textContent=kind==='gust'?'十八波陣風逐波加速！出現橘色「逆風」警告時，左右相反。':'石頭會下沉！← → 選落點，E／空白鍵跳。藍光變金色就跳，落地立刻選下一顆，越後面越快！';
     document.getElementById('action-ready').hidden=false;
     document.getElementById('action-steer').hidden=false;document.getElementById('action-run').hidden=kind!=='dash';
-    document.getElementById('wind-meter').hidden=true;document.getElementById('action-run').innerHTML='跳躍<small>點一下 / E</small>';this.syncGustControls();
+    document.getElementById('wind-meter').hidden=kind!=='dash';document.getElementById('wind-meter').setAttribute('aria-label','這顆石頭下沉前的剩餘時間');document.getElementById('action-run').innerHTML='跳躍<small>點一下 / E</small>';this.syncGustControls();
     this.hud('準備好了再出發');document.getElementById('action-start').focus();g.interactions.update();
   }
   begin(){if(!this.active||this.game.state.mode!=='action')return;this.started=true;this.release();document.getElementById('action-ready').hidden=true;document.getElementById('action-start').blur();this.syncGustControls();}
@@ -218,7 +218,7 @@ Meadow.ActionTrials = class {
     this.active=false;this.started=false;this.dashRunning=false;this.queued=false;this.release();
     for(const id of ['action-left','action-right','action-run'])document.getElementById(id).disabled=false;
     if(this.root)this.root.visible=false;
-    this.panel.hidden=true;document.getElementById('gust-warning').hidden=true;delete this.panel.dataset.reverse;delete this.panel.dataset.wind;
+    this.panel.hidden=true;document.getElementById('gust-warning').hidden=true;delete this.panel.dataset.reverse;delete this.panel.dataset.wind;delete this.panel.dataset.urgent;
     if(this.river){this.river.root.visible=false;this.river.jump=null;}this.game.player.mesh.position.y=0;document.body.classList.remove('in-action');
     this.game.view.override=null;if(this.game.worldCache[2])this.game.worldCache[2].layer.visible=this.game.state.chapter===2;
   }
