@@ -61,7 +61,7 @@ Meadow.RiverHop = class {
     const t=this.trials;if(this.jump)return;
     this.jump={elapsed:0,from:this.game.player.mesh.position.clone(),flow:this.flow,lane:t.lane,duration:this.jumpDuration()};t.dashRunning=true;this.game.audio.note(587,.15,.035);
   }
-  lose(message){this.lastFailure={message,screen:this.project(this.game.player.mesh.position)};this.jump=null;this.trials.dashRunning=false;this.trials.fail();this.trials.hud(message+' 咕咕接住你了。');}
+  lose(message){this.lastFailure={message,screen:this.project(this.game.player.mesh.position)};this.jump=null;this.trials.dashRunning=false;this.trials.fail();this.trials.hud(message);}
   update(dt){
     const t=this.trials,g=this.game;this.elapsed+=dt;this.flow+=this.speed()*dt;this.moveStones();
     this.foam.forEach((f,i)=>f.position.z=-26+((this.flow*1.2+i*1.83)%54));
@@ -74,11 +74,11 @@ Meadow.RiverHop = class {
       // Both endpoints drift with the current, including during flight.
       g.player.mesh.position.set(j.from.x+(p.x-j.from.x)*u,.38+Math.sin(u*Math.PI)*1.9,j.from.z+this.flow-j.flow-this.spacing*u);
       g.player.mesh.rotation.y=Math.atan2(p.x-j.from.x,-this.spacing);g.player.arms.forEach(a=>a.rotation.x=-.8);g.player.legs.forEach((leg,i)=>leg.rotation.x=(i?-.3:.4)*Math.sin(u*Math.PI));
-      if(this.outside(g.player.mesh.position)){this.lose('漂出畫面了，這次挑戰失敗！');return;}
-      t.hud('跳！落地後立刻看下一排。');
+      if(this.outside(g.player.mesh.position)){this.lose('出界！再試一次');return;}
+      t.hud('');
       if(u===1){
         if(dest.hazard){
-          const message=dest.hazard==='mushroom'?'踩到毒香菇，挑戰失敗！':'踩到炸彈，挑戰失敗！';
+          const message=dest.hazard==='mushroom'?'毒香菇！重試':'炸彈！重試';
           if(j.elapsed<j.duration+.3){this.splash.visible=true;this.splash.position.copy(p);g.player.mesh.position.y=.15;t.hud(message);return;}
           this.lose(message);return;
         }
@@ -89,8 +89,8 @@ Meadow.RiverHop = class {
       }
     }else{
       this.place();g.player.mesh.rotation.y=Math.PI;
-      if(this.outside(g.player.mesh.position)){this.lose('漂出畫面了，這次挑戰失敗！');return;}
-      const danger=target.hazard==='mushroom'?'前方有毒香菇！換個落點。':target.hazard==='bomb'?'前方有炸彈！換個落點。':this.project(g.player.mesh.position).y<-.5?'快往前跳！快被沖出畫面了！':this.ready()?'選空石頭，繼續往前跳！':'下一排還在上方，先看好落點。';
+      if(this.outside(g.player.mesh.position)){this.lose('出界！再試一次');return;}
+      const danger=target.hazard==='mushroom'?'毒香菇！換邊':target.hazard==='bomb'?'炸彈！換邊':this.project(g.player.mesh.position).y<-.5?'快跳！':this.ready()?'':'等石頭漂近';
       t.hud(danger);
     }
     this.paintTimer();

@@ -146,11 +146,11 @@ Meadow.ActionTrials = class {
     g.view.override=new THREE.Vector3(0,0,kind==='dash'?startZ-3:1);g.view.focus.copy(g.view.override);g.player.setPosition(0,startZ);g.player.mesh.rotation.y=Math.PI;
     this.gustScenery.forEach(o=>o.visible=kind==='gust');this.shelters.forEach(s=>s.visible=false);this.river.root.visible=kind==='dash';if(kind==='dash')this.river.start();this.bands.forEach(b=>b.visible=false);this.laneMarks.forEach(m=>m.material.opacity=0);
     document.getElementById('action-title').textContent=kind==='gust'?'疾風小徑':'河上跳石頭';
-    document.getElementById('action-instruction').textContent=kind==='gust'?'十八波陣風逐波加速！出現橘色「逆風」警告時，左右相反。':'石頭一直往下漂！← → 選下一排，E／空白鍵跳。避開毒香菇和炸彈，別被帶出畫面！';
+    document.getElementById('action-instruction').textContent=kind==='gust'?'← → 躲風；橘色警告時左右相反。':'← → 選石頭，E 跳。避開危險，別漂出畫面。';
     document.getElementById('action-ready').hidden=false;
     document.getElementById('action-steer').hidden=false;document.getElementById('action-run').hidden=kind!=='dash';
-    document.getElementById('wind-meter').hidden=kind!=='dash';document.getElementById('wind-meter').setAttribute('aria-label','距離畫面下緣的餘裕');document.getElementById('action-run').innerHTML='跳躍<small>點一下 / E</small>';this.syncGustControls();
-    this.hud('準備好了再出發');document.getElementById('action-start').focus();g.interactions.update();
+    document.getElementById('wind-meter').hidden=kind!=='dash';document.getElementById('wind-meter').setAttribute('aria-label','距離畫面下緣的餘裕');document.getElementById('action-run').innerHTML='跳躍<small>E</small>';this.syncGustControls();
+    this.hud('');document.getElementById('action-start').focus();g.interactions.update();
   }
   begin(){if(!this.active||this.game.state.mode!=='action')return;this.started=true;this.release();document.getElementById('action-ready').hidden=true;document.getElementById('action-start').blur();this.syncGustControls();}
   steer(direction){if(this.active&&this.started&&this.game.state.mode==='action'&&!this.dashRunning)this.lane=Math.max(0,Math.min(2,this.lane+(this.isReversed()?-direction:direction)));}
@@ -163,7 +163,7 @@ Meadow.ActionTrials = class {
     const g=this.game,f=g.state.forest;f[this.kind+'Fails']=Math.min(99,f[this.kind+'Fails']+1);
     this.stage=f[this.kind+'Stage']*3+f[this.kind==='gust'?'gustWave':'dashLeg'];this.retry=1.05;this.elapsed=0;this.phase=0;this.travel=0;this.lane=1;this.shake=.35;this.release();
     if(this.kind==='gust')g.player.setPosition(0,7);else this.river.start();g.saveProgress();g.audio.note(196,.3,.035);
-    this.hud(this.kind==='dash'?'咕咕拉住你了！回到上一顆石頭。':f.gustFails>=6?'風慢一點了，再試一次！':'咕咕接住你了！回到安全點');
+    this.hud(this.kind==='dash'?'回到存點':f.gustFails>=6?'風速已降低':'再試一次');
     this.bands.forEach(b=>b.visible=false);this.laneMarks.forEach(m=>m.material.opacity=0);
   }
   update(dt){
@@ -196,7 +196,7 @@ Meadow.ActionTrials = class {
     const p=g.player.mesh.position;p.x+=((this.lane-1)*2-p.x)*Math.min(1,dt*14);
     this.laneMarks.forEach((m,i)=>{m.material.color.set(0xda963d);m.material.opacity=lanes.includes(i)?.34:0;});
     this.bands.forEach((b,i)=>{b.visible=lanes.includes(i);b.position.z=z;});
-    this.hud(this.elapsed<warn?'先看方向提示，再選空跑道！':'避開亮起的風道！');
+    this.hud('');
     if(z>=6.2&&z<=7.8&&lanes.some(i=>Math.abs(p.x-(i-1)*2)<1.05)){this.fail();return;}
     if(z>10){
       this.stage++;this.elapsed=0;g.audio.note(659,.15,.025);

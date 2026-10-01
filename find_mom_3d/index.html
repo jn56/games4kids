@@ -44,14 +44,14 @@
         <button data-chapter="3"><small>第 3 關 · 勇氣</small><strong>月光河谷</strong></button>
         <button data-chapter="4"><small>第 4 關 · 重逢</small><strong>星光山丘</strong></button>
       </div>
-      <button id="chapter-picker-close" class="secondary-btn">先不換關，返回</button>
+      <button id="chapter-picker-close" class="secondary-btn">返回</button>
     </dialog>
     <section id="play-hud" hidden aria-label="冒險進度">
       <aside class="quest-card">
         <p class="eyebrow">小小的一步 <span id="step-count">01 / 07</span></p>
         <h2 id="objective-title">找找媽媽的線索</h2><p id="objective-detail">沿著小路，看看那條紅色髮帶。</p>
-        <div class="quest-bottom"><span id="emotion-tag">一點想念</span><button id="hint-btn" class="hint-btn">✧ 給我提示</button></div>
-        <button id="journal-btn" class="journal-btn" hidden>✉ 媽媽的信與線索手帳 <span>↗</span></button>
+        <div class="quest-bottom"><span id="emotion-tag">一點想念</span><button id="hint-btn" class="hint-btn">? 提示</button></div>
+        <button id="journal-btn" class="journal-btn" hidden>✉ 筆記</button>
       </aside>
       <div id="collection" class="collection" hidden aria-label="光花收集進度">
         <div class="collection-heading"><span>引路燈的小小光芒</span><b id="flower-count">0 / 3</b></div>
@@ -72,20 +72,20 @@
     <button id="prologue-skip" class="prologue-skip" hidden>略過前情 →</button>
     <section id="action-ui" hidden aria-label="即時挑戰">
       <div class="action-summary"><strong id="action-title">疾風小徑</strong><span id="action-progress">0 / 6</span><progress id="action-meter" value="0" max="6" aria-label="挑戰進度"></progress><p id="action-status" role="status" aria-live="polite"></p><progress id="wind-meter" value="0" max="3" aria-label="下一陣風之前剩下的時間" hidden></progress></div>
-      <button id="action-leave" class="action-leave">稍後再試 ×</button>
-      <div id="action-ready" class="action-ready"><span aria-hidden="true">≋</span><p id="action-instruction"></p><button id="action-start" class="primary-btn">準備好了，出發！ →</button></div>
+      <button id="action-leave" class="action-leave">返回 ×</button>
+      <div id="action-ready" class="action-ready"><span aria-hidden="true">≋</span><p id="action-instruction"></p><button id="action-start" class="primary-btn">開始 →</button></div>
       <div id="gust-warning" class="gust-warning" role="status" aria-live="assertive" hidden><strong></strong><span></span></div>
       <div id="action-steer" class="action-controls"><button id="action-left" aria-label="向左換跑道">←<small>向左 / A</small></button><button id="action-right" aria-label="向右換跑道">→<small>向右 / D</small></button></div>
-      <button id="action-run" class="action-run" hidden>出發<small>點一下 / E</small></button>
+      <button id="action-run" class="action-run" hidden>出發<small>E</small></button>
     </section>
     <section id="journey-ui" hidden aria-label="合作挑戰">
       <div class="action-summary"><strong id="journey-title"></strong><span id="journey-progress"></span><progress id="journey-meter" value="0" max="3" aria-label="挑戰進度"></progress><p id="journey-status" role="status" aria-live="polite"></p></div>
-      <button id="journey-leave" class="action-leave">稍後再試 ×</button>
-      <div id="journey-ready" class="action-ready"><span aria-hidden="true">✦</span><p id="journey-instruction"></p><button id="journey-start" class="primary-btn">準備好了！ →</button></div>
-      <div id="bridge-question" class="bridge-question" hidden><small id="bridge-question-count"></small><strong id="bridge-question-text"></strong><span>算出答案，瞄準下方數字再敲</span>
+      <button id="journey-leave" class="action-leave">返回 ×</button>
+      <div id="journey-ready" class="action-ready"><span aria-hidden="true">✦</span><p id="journey-instruction"></p><button id="journey-start" class="primary-btn">開始 →</button></div>
+      <div id="bridge-question" class="bridge-question" hidden><small id="bridge-question-count"></small><strong id="bridge-question-text"></strong><span></span>
         <div id="bridge-timing" hidden aria-label="金色區域與移動指針"><span id="bridge-zone"></span><b id="bridge-needle"></b></div>
       </div>
-      <button id="journey-hit" class="action-run" hidden>敲一下<small>空白鍵 / E</small></button>
+      <button id="journey-hit" class="action-run" hidden>敲一下<small>E</small></button>
       <div id="journey-steer" class="action-controls"><button id="journey-left">←<small>按住 / A</small></button><button id="journey-right">→<small>按住 / D</small></button></div>
     </section>
     <section id="dialogue-ui" class="dialogue" hidden aria-label="故事對話">
@@ -94,26 +94,26 @@
     </section>
     <section id="puzzle-screen" class="modal-backdrop puzzle-backdrop" hidden>
       <div class="puzzle-paper" role="dialog" aria-modal="true" aria-labelledby="puzzle-title" aria-describedby="puzzle-description">
-        <div class="puzzle-top"><p id="puzzle-kicker" class="eyebrow"></p><button id="puzzle-close" class="puzzle-close">先收起 <span>×</span></button></div>
+        <div class="puzzle-top"><p id="puzzle-kicker" class="eyebrow"></p><button id="puzzle-close" class="puzzle-close">關閉 <span>×</span></button></div>
         <h2 id="puzzle-title"></h2><p id="puzzle-description" class="puzzle-description"></p>
         <div class="puzzle-layout"><div id="puzzle-stage"></div><aside id="puzzle-notes"></aside></div>
         <p id="puzzle-feedback" class="puzzle-feedback" role="status" aria-live="polite"></p>
-        <div class="puzzle-actions"><div><button id="puzzle-hint" class="secondary-btn">給我一點提示</button><button id="puzzle-clear" class="secondary-btn">全部收回</button></div><button id="puzzle-submit" class="primary-btn">試送一陣風 →</button></div>
+        <div class="puzzle-actions"><div><button id="puzzle-hint" class="secondary-btn">提示</button><button id="puzzle-clear" class="secondary-btn">全部收回</button></div><button id="puzzle-submit" class="primary-btn">試送一陣風 →</button></div>
       </div>
     </section>
     <section id="song-screen" class="modal-backdrop puzzle-backdrop" hidden>
       <div class="puzzle-paper song-paper" role="dialog" aria-modal="true" aria-labelledby="song-title">
-        <div class="puzzle-top"><p id="song-kicker" class="eyebrow"></p><button id="song-close" class="puzzle-close">先收起 <span>×</span></button></div>
+        <div class="puzzle-top"><p id="song-kicker" class="eyebrow"></p><button id="song-close" class="puzzle-close">關閉 <span>×</span></button></div>
         <h2 id="song-title"></h2><p id="song-rule" class="puzzle-description"></p>
         <div id="song-progress" class="song-progress"></div>
-        <div class="song-workspace"><div class="song-demo-column"><div id="song-demonstration" class="song-demonstration" aria-live="polite"></div><div id="song-score" class="song-score" hidden></div><button id="song-sound" class="text-btn">♪ 開關聲音（靜音也能玩）</button></div>
+        <div class="song-workspace"><div class="song-demo-column"><div id="song-demonstration" class="song-demonstration" aria-live="polite"></div><div id="song-score" class="song-score" hidden></div><button id="song-sound" class="text-btn">♪ 聲音</button></div>
           <div><div id="song-bells" class="song-bells"></div><p class="answer-label">你敲出的旋律</p><div id="song-input" class="song-input" aria-live="polite"></div></div></div>
         <p id="song-feedback" class="puzzle-feedback" role="status" aria-live="polite"></p>
-        <div class="puzzle-actions"><div><button id="song-replay" class="secondary-btn">播放旋律 ▶</button><button id="song-hint" class="secondary-btn">咕咕，幫幫我</button></div><button id="song-next" class="primary-btn" hidden>下一段旋律 →</button></div>
+        <div class="puzzle-actions"><div><button id="song-replay" class="secondary-btn">播放旋律 ▶</button><button id="song-hint" class="secondary-btn">看歌譜</button></div><button id="song-next" class="primary-btn" hidden>下一段旋律 →</button></div>
       </div>
     </section>
     <div id="mobile-controls" hidden><div id="joystick" role="group" aria-label="拖曳搖桿移動"><span class="joystick-cross">✣</span><div id="joystick-stick"></div></div><button id="touch-action" class="touch-action" aria-label="互動" disabled>✦<span>互動</span></button></div>
-    <section id="pause-screen" class="modal-backdrop" hidden><div class="paper-modal" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="modal-symbol">☁</span><p class="eyebrow">休息一下，也很好</p><h2 id="pause-title">花田會等你。</h2><p>喝口水、伸個懶腰，<br>準備好了再繼續找媽媽。</p><button id="resume-btn" class="primary-btn">繼續冒險 <span>→</span></button><button id="restart-btn" class="secondary-btn">重新開始第一章</button><button id="pause-chapters-btn" class="secondary-btn">選擇其他關卡</button><p class="modal-hint">WASD／方向鍵移動 · E／空白鍵互動<br>手機請使用左下搖桿與右下互動鈕</p></div></section>
+    <section id="pause-screen" class="modal-backdrop" hidden><div class="paper-modal" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="modal-symbol">☁</span><h2 id="pause-title">花田會等你。</h2><p></p><button id="resume-btn" class="primary-btn">繼續冒險 <span>→</span></button><button id="restart-btn" class="secondary-btn">重新開始第一章</button><button id="pause-chapters-btn" class="secondary-btn">選擇其他關卡</button><p class="modal-hint">WASD／方向鍵移動 · E／空白鍵互動<br>手機請使用左下搖桿與右下互動鈕</p></div></section>
     <section id="ending-screen" class="modal-backdrop ending" hidden><div class="paper-modal ending-paper" role="dialog" aria-modal="true" aria-labelledby="ending-title">
       <div class="award-light" aria-hidden="true">✦</div><p id="ending-kicker" class="eyebrow">第一章完成 · 黃昏花田</p><h2 id="ending-title">原來，媽媽也在找我。</h2><p id="ending-description">你幫小米點亮了第一盞燈。<br>雖然還沒見到媽媽，心裡已經有了光。</p>
       <div id="ending-award" class="award-label">01 <span>希望之光</span> ✦</div><div id="ending-lessons" class="ending-lessons"></div>

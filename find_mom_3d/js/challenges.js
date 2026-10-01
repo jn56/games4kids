@@ -86,22 +86,23 @@ Meadow.Challenges = class {
     document.body.classList.remove('in-puzzle');
   }
   render(focusSelector) {
+    this.panel.dataset.kind=this.kind;
     const s = this.game.state, wind = this.kind === 'wind', journal = this.kind === 'journal';
     const titles = { wind: '幫風找到送信的路', lamp: '六樣回憶，該怎麼排？', journal: '小米的線索手帳' };
     document.getElementById('puzzle-title').textContent = titles[this.kind];
     document.getElementById('puzzle-kicker').textContent = wind ? '栗栗的風車郵局 · 觀察管口' : journal ? '想一想，也可以翻一翻' : '引路燈的祕密 · 合併三條線索';
-    document.getElementById('puzzle-description').textContent = wind ? '點一格轉一下，讓風經過全部十六格，從左下方吹出去。' : journal ? '媽媽的信與光花的線索，都好好收在這裡。' : '先選一樣回憶，再點位置放入。依 1→6 號位置放入，讓三張卡上的條件都成立。';
+    document.getElementById('puzzle-description').textContent = wind ? '轉管接通 16 格；同號齒輪反向連動。' : journal ? '' : '依三張線索，排好六樣物品。';
     document.getElementById('puzzle-stage').innerHTML = wind ? this.windMarkup() : journal ? this.letterMarkup() : this.lampMarkup();
     document.getElementById('puzzle-notes').innerHTML = wind ? this.windNotes() : this.clueMarkup();
-    document.getElementById('puzzle-feedback').textContent = this.feedback || (wind ? '可以先沿著管子用手指走一遍，再試著送風。' : journal ? '找到花朵時，新的線索會自動記下來。' : '沒有時間限制。放好的回憶可以點一下取回。');
+    document.getElementById('puzzle-feedback').textContent = this.feedback || (wind ? '' : journal ? '' : '');
     const submit = document.getElementById('puzzle-submit');
     submit.hidden = journal;
-    submit.textContent = wind ? '試送一陣風 →' : '試著點亮引路燈 ✦';
+    submit.textContent = wind ? '送風 →' : '點亮 ✦';
     submit.disabled = !wind && !Meadow.PuzzleRules.completeOrder(s.arrangement);
     document.getElementById('puzzle-clear').hidden = wind || journal;
     const hint = document.getElementById('puzzle-hint');
     hint.hidden = journal;
-    hint.textContent = wind && s.windHints >= 2 ? '示範轉對一格' : !wind && s.lampHints >= 2 ? '看看完整推理' : '給我一點提示';
+    hint.textContent = wind && s.windHints >= 2 ? '示範轉對一格' : !wind && s.lampHints >= 2 ? '看看完整推理' : '提示';
     if (focusSelector) this.panel.querySelector(focusSelector)?.focus({ preventScroll: true });
   }
   windMarkup() {
@@ -114,23 +115,23 @@ Meadow.Challenges = class {
       const path = CONFIG.WIND_KINDS[i] === 'bend' ? 'M 50 0 V 35 Q 50 50 65 50 H 100' : 'M 50 0 V 100';
       return `<button class="wind-tile${active ? ' has-wind' : ''}${stopped ? ' wind-stop' : ''}" data-tile="${i}" aria-label="第 ${Math.floor(i / 4) + 1} 列第 ${i % 4 + 1} 格，管口朝${opens.map(d => directions[d]).join('、')}；點一下順時針旋轉${link<0?'':'，同號齒輪會逆轉'}"><svg viewBox="0 0 100 100" aria-hidden="true"><g transform="rotate(${turn * 90} 50 50)"><path class="pipe-rim" d="${path}"/><path class="pipe-core" d="${path}"/><path class="pipe-shine" d="${path}"/></g></svg><span class="tile-turn" aria-hidden="true">${link<0?'↻':'⚙'+(link+1)}</span></button>`;
     }).join('');
-    return `<div class="wind-machine"><div class="wind-inlet">入口：風從這裡吹進 <b>↓</b></div><div class="wind-grid-wrap"><span class="inlet-arrow" aria-hidden="true">→</span><div class="wind-grid">${tiles}</div><span class="outlet-arrow" aria-hidden="true">←</span></div><div class="wind-outlet">左下出口 ← 栗栗的郵箱 ✉</div></div>`;
+    return `<div class="wind-machine"><div class="wind-inlet">入口 <b>↓</b></div><div class="wind-grid-wrap"><span class="inlet-arrow" aria-hidden="true">→</span><div class="wind-grid">${tiles}</div><span class="outlet-arrow" aria-hidden="true">←</span></div><div class="wind-outlet">← 出口</div></div>`;
   }
   windNotes() {
-    return `<div class="helper-heading"><span>🦔</span><div><strong>栗栗的小提醒</strong><small>同號齒輪會反向連動。</small></div></div><ol class="wind-rules"><li>相鄰管口要相對。轉動 ⚙1／2／3，同號另一格會逆轉。</li><li>風從左上格的左邊進來。</li><li>讓十六格都通風，最後從左下格的左邊離開。</li></ol><div class="wind-counter">已通風 <strong>${this.result?.visited.length || 0}</strong> / 16 格<span>按「試送一陣風」檢查</span></div>`;
+    return `<div class="wind-counter">通風 <strong>${this.result?.visited.length || 0}</strong> / 16</div>`;
   }
   lampMarkup() {
     const s = this.game.state;
     const slots = Array.from({ length: 6 }, (_, i) => {
       const item = CONFIG.LAMP_ITEMS.find(it => it.id === s.arrangement[i]);
-      return `<button class="memory-slot${item ? ' filled' : ''}" data-slot="${i}" aria-label="第 ${i + 1} 個位置${item ? '，' + item.name + '，點擊取回' : '，空位'}"><small>${i + 1}</small><span class="memory-symbol ${item?.id || ''}">${item?.symbol || '＋'}</span><span>${item?.name || '放在這裡'}</span></button>`;
+      return `<button class="memory-slot${item ? ' filled' : ''}" data-slot="${i}" aria-label="第 ${i + 1} 個位置${item ? '，' + item.name + '，點擊取回' : '，空位'}"><small>${i + 1}</small><span class="memory-symbol ${item?.id || ''}">${item?.symbol || '＋'}</span><span>${item?.name || ''}</span></button>`;
     }).join('');
     const items = CONFIG.LAMP_ITEMS.map(item => {
       const used = s.arrangement.includes(item.id);
-      return `<button class="memory-choice${this.selected === item.id ? ' selected' : ''}" data-item="${item.id}" ${used ? 'disabled' : ''} aria-pressed="${this.selected === item.id}"><span class="memory-symbol ${item.id}">${item.symbol}</span><span>${item.name}</span><small>${used ? '已放好' : this.selected === item.id ? '選好了，點空位' : '點我選取'}</small></button>`;
+      return `<button class="memory-choice${this.selected === item.id ? ' selected' : ''}" data-item="${item.id}" ${used ? 'disabled' : ''} aria-pressed="${this.selected === item.id}"><span class="memory-symbol ${item.id}">${item.symbol}</span><span>${item.name}</span><small>${used ? '✓' : this.selected === item.id ? '已選' : ''}</small></button>`;
     }).join('');
-    const instruction = this.selected ? '選好了！點一個空位放入。' : s.arrangement.every(Boolean) ? '想換位置？點上面的回憶取回，再放到空位。' : '從下面選一樣回憶，再點上面的空位。';
-    return `<div class="memory-board"><div class="arrange-direction"><span>1</span><span>按編號 1 → 6 排列</span><span>6</span></div><div class="memory-slots">${slots}</div><p class="memory-instruction">${instruction}</p><div class="memory-choices">${items}</div></div>`;
+    const instruction = this.selected ? '點空位放入' : s.arrangement.every(Boolean) ? '點物品取回' : '選物品 → 點空位';
+    return `<div class="memory-board"><div class="arrange-direction"><span>1</span><span>1 → 6</span><span>6</span></div><div class="memory-slots">${slots}</div><p class="memory-instruction">${instruction}</p><div class="memory-choices">${items}</div></div>`;
   }
   clueMarkup() {
     const s = this.game.state;
@@ -153,7 +154,7 @@ Meadow.Challenges = class {
   rotate(index) {
     if (this.kind !== 'wind') return;
     this.turnPipe(index,1);
-    this.result = null; this.feedback = '管子轉好了。可以接著轉，或試送一陣風看看。';
+    this.result = null; this.feedback = '';
     this.game.saveProgress(); this.game.audio.note(440, .08, .02); this.render(`[data-tile="${index}"]`);
   }
   select(id) {

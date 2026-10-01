@@ -48,7 +48,7 @@ Meadow.Exploration = {
     if(chapter===1)routes.push([[-25,10],[-25,-4],[-22,-19],[0,-28],[23,-19],[25,13]],[[0,-14],[0,-28],[0,-37]]);
     routes.forEach(points=>world.path(points,2.2));
     world.residents=Meadow.Residents[chapter].map((data,i)=>{
-      const npc={...data,id:`resident-${chapter}-${i}`};npc.mesh=this.character(root,npc);npc.label=world.label(npc.mesh,`${npc.name} · ${npc.role}`,2.6);npc.label.el.classList.add('chat-label');
+      const npc={...data,id:`resident-${chapter}-${i}`};npc.mesh=this.character(root,npc);npc.label=world.label(npc.mesh,npc.name,2.6);npc.label.el.classList.add('chat-label');
       world.colliders.push({x:npc.x,z:npc.z,r:.45});
       this.restStop(world,npc,i);return npc;
     });
@@ -147,7 +147,7 @@ Meadow.Exploration = {
     const visible=state.mode==='playing'||state.mode==='dialogue';
     for(const npc of world.residents||[]){
       const p=player.mesh.position,d=Math.hypot(npc.x-p.x,npc.z-p.z);
-      npc.label.enabled=visible&&d<4;npc.placeLabel.enabled=visible&&d<15&&d>5;
+      npc.label.enabled=visible&&d<4;npc.placeLabel.enabled=visible&&d<8&&d>5;
       if(visible&&d<10)npc.mesh.rotation.y=Math.atan2(p.x-npc.x,p.z-npc.z);
       if(state.mode!=='paused')npc.body.position.y=reduced?0:Math.sin(time*1.7+npc.x)*.025;
     }

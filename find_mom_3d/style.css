@@ -363,3 +363,13 @@ body.in-action #play-hud,body.in-action #world-labels,body.in-action #mobile-con
 #action-ui[data-urgent=true] #wind-meter::-webkit-progress-value{background:#b94e2d}
 @media(min-width:901px){#action-ui[data-kind=dash] .action-summary{left:20px;transform:none;width:240px}}
 @media(max-width:700px) and (orientation:portrait){#action-ui[data-kind=dash] .action-summary{top:76px;width:235px;padding:7px 10px;gap:4px 8px}#action-ui[data-kind=dash] .action-summary p{font-size:13px;min-height:20px}#action-ui[data-kind=dash] .action-leave{top:180px;padding:8px 12px}}
+/* Keep instructions available in pause, hints and notes; the field stays quiet. */
+.desktop-controls,body:not(.cover) .chapter-tag,#puzzle-kicker,#song-kicker{display:none}
+.action-summary p:empty,.puzzle-feedback:empty,.puzzle-description:empty,.song-demonstration small:empty,.bridge-question>span:empty,.paper-modal>p:empty{display:none}
+.action-summary{padding:9px 12px;gap:5px 10px}
+.action-ready{padding:18px}.action-ready>span{display:none}.action-ready p{font-size:19px;line-height:1.6;margin:0 0 16px}
+.puzzle-top{justify-content:flex-end}.song-progress .song-round{font-size:13px}
+#puzzle-screen[data-kind=wind] .puzzle-paper{width:min(560px,94vw)}
+#puzzle-screen[data-kind=wind] .puzzle-layout{grid-template-columns:1fr;gap:8px}
+#puzzle-screen[data-kind=wind] #puzzle-notes{padding:0;background:none;border:0}
+#puzzle-screen[data-kind=wind] .wind-counter{border:0;margin:0;padding:0;text-align:center}

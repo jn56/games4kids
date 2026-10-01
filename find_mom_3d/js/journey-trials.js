@@ -34,17 +34,17 @@ Meadow.JourneyTrials = class {
     document.getElementById('journey-hit').classList.toggle('multi-action',kind!=='bridge');
     document.getElementById('journey-hit').innerHTML='<span>'+(kind==='raft'?'煞船':kind==='star'?'拍攝':'敲一下')+'</span><small>空白鍵 / E</small>';
     document.getElementById('bridge-timing').hidden=kind!=='bridge';
-    document.getElementById('journey-title').textContent={bridge:'一起修好月光橋',raft:'木木掌舵，你來引路',star:'追上星光'}[kind];
-    document.getElementById('journey-instruction').textContent={bridge:'先心算，再在正確數字區按空白鍵敲擊。每段三枚鉚釘，共九枚。',raft:'十二道移動水門！← → 掌舵，空白鍵切換煞船；煞船最多 1.8 秒，放開後回充。',star:'← → 對準星星充能；星星變金色時按空白鍵拍下。每盞燈需三次成功曝光。'}[kind];
+    document.getElementById('journey-title').textContent={bridge:'修好月光橋',raft:'木筏渡河',star:'追上星光'}[kind];
+    document.getElementById('journey-instruction').textContent={bridge:'算答案，指針到答案時按 E。',raft:'← → 掌舵，E 切換煞船。',star:'← → 對準，金光時按 E 拍照。'}[kind];
     if(kind==='escort'){
-      document.getElementById('journey-title').textContent='媽媽，這次換我保護妳';
-      document.getElementById('journey-instruction').textContent='灰爪追來了！按住 ← →，帶媽媽躲進金燈中間，避開灰爪推來的樹枝。';
+      document.getElementById('journey-title').textContent='保護媽媽';
+      document.getElementById('journey-instruction').textContent='← → 帶媽媽走金燈中間。';
     }
     for(const side of ['left','right'])document.getElementById(`journey-${side}`).setAttribute('aria-label',`${side==='left'?'向左':'向右'}${kind==='raft'?'划船':'移動光圈'}`);
     if(kind==='escort')for(const side of ['left','right'])document.getElementById(`journey-${side}`).setAttribute('aria-label',`${side==='left'?'向左':'向右'}護送媽媽`);
     if(kind==='bridge'){g.player.setPosition(-1.5,4.5);g.view.override=new THREE.Vector3(0,0,1);}
     else {this.buildArena();g.worldCache[s.chapter].layer.visible=false;g.view.override=new THREE.Vector3(0,0,kind==='raft'?1:-1);}
-    this.setStatus('準備好了再開始。');this.paint();document.getElementById('journey-start').focus({preventScroll:true});
+    this.setStatus('');this.paint();document.getElementById('journey-start').focus({preventScroll:true});
   }
   buildArena(){
     const g=this.game,A=Meadow.Art;this.root=new THREE.Group();g.scene.add(this.root);
@@ -74,9 +74,9 @@ Meadow.JourneyTrials = class {
   begin(){
     if(!this.active||this.game.state.mode!=='journey')return;
     this.running=true;document.getElementById('journey-ready').hidden=true;document.activeElement?.blur();this.elapsed=0;
-    this.setStatus(this.kind==='bridge'?'看準金色區域，再敲一下。':this.kind==='raft'?'跟著金色浮燈！':'讓光圈跟上星星。');
-    if(this.kind==='escort')this.setStatus('我在前面帶路，媽媽跟緊我！');
-    if(this.kind==='bridge'){this.setStatus('看中央題目，瞄準答案再敲！');this.paint();}
+    this.setStatus(this.kind==='bridge'?'':this.kind==='raft'?'':'');
+    if(this.kind==='escort')this.setStatus('');
+    if(this.kind==='bridge'){this.setStatus('');this.paint();}
   }
   setStatus(text,hold=1.4){
     if(hold===0&&this.elapsed<this.statusUntil)return;
@@ -92,13 +92,13 @@ Meadow.JourneyTrials = class {
     if(this.kind==='raft'){this.braking=!this.braking&&this.brakeCharge>.15;return;}
     if(this.kind==='star'){
       this.cooldown=.35;const i=Meadow.BEACONS.findIndex(b=>b.id===this.beacon),h=g.state.hill;
-      if(this.focus>=2.8&&this.aligned&&this.exposure){h.starLocks[i]++;this.focus=0;this.roundTime=0;g.saveProgress();g.audio.chime();if(h.starLocks[i]===3){h.lights.push(this.beacon);g.saveProgress();this.finish();return;}this.setStatus('拍到了！換下一顆星。');}
-      else {this.focus=Math.max(0,this.focus-1.2);this.setStatus('先充滿，再等星星變金色！');}this.paint();return;
+      if(this.focus>=2.8&&this.aligned&&this.exposure){h.starLocks[i]++;this.focus=0;this.roundTime=0;g.saveProgress();g.audio.chime();if(h.starLocks[i]===3){h.lights.push(this.beacon);g.saveProgress();this.finish();return;}this.setStatus('拍到了！');}
+      else {this.focus=Math.max(0,this.focus-1.2);this.setStatus('先充滿，再等金光');}this.paint();return;
     }
     if(this.kind!=='bridge')return;
     this.cooldown=.35;const {center,width}=this.bridgeSettings();
-    if(Math.abs(this.needle-center)<=width/2){v.nails++;if(v.nails===3){v.bridge++;v.nails=0;}g.saveProgress();g.refresh();g.audio.chime();if(v.bridge===3){this.finish();return;}this.setStatus('固定好了！中央換下一題。');}
-    else{v.hammerFails++;g.saveProgress();this.setStatus('再算一次，瞄準正確數字。');g.audio.note(220,.1,.02);}this.paint();
+    if(Math.abs(this.needle-center)<=width/2){v.nails++;if(v.nails===3){v.bridge++;v.nails=0;}g.saveProgress();g.refresh();g.audio.chime();if(v.bridge===3){this.finish();return;}this.setStatus('✓ 下一題');}
+    else{v.hammerFails++;g.saveProgress();this.setStatus('答案不對，再試');g.audio.note(220,.1,.02);}this.paint();
   }
   paint(){
     const s=this.game.state,progress=this.kind==='bridge'?s.valley.bridge*3+s.valley.nails:this.kind==='raft'?s.valley.raft*3+s.valley.raftGate:this.kind==='escort'?s.hill.escort*3+s.hill.escortWave:s.hill.starLocks[Meadow.BEACONS.findIndex(b=>b.id===this.beacon)],total=this.kind==='raft'?12:this.kind==='star'?3:9;
@@ -127,13 +127,13 @@ Meadow.JourneyTrials = class {
       this.boat.position.x=this.raftX;g.player.mesh.position.x=this.raftX;
       const gateIndex=v.raft*3+v.raftGate;this.gateCenter=[-2.5,1.8,-.7,2.4,-2.1,1.2,-2.4,.4,2.2,1.7,-2.3,.3][gateIndex]+Math.sin(this.elapsed*1.6)*.45;const assist=v.raftFails>=6,gap=assist?1.25:.95;
       this.brakeCharge=THREE.MathUtils.clamp(this.brakeCharge+dt*(this.braking?-1:.45),0,1.8);if(this.brakeCharge===0)this.braking=false;
-      const brake=document.getElementById('journey-hit');brake.querySelector('span').textContent=this.braking?'放開':'煞船';brake.querySelector('small').textContent=this.brakeCharge.toFixed(1)+' 秒 · E';this.setStatus(this.braking?'煞船中，趁機修正方向！':'預判移動入口，連續掌舵！',0);
+      const brake=document.getElementById('journey-hit');brake.querySelector('span').textContent=this.braking?'放開':'煞船';brake.querySelector('small').textContent=this.brakeCharge.toFixed(1)+' 秒 · E';this.setStatus(this.braking?'煞船中':'',0);
       this.buoys.forEach(b=>b.mesh.position.x=this.gateCenter+b.side*gap);
       this.rocks.forEach(r=>r.visible=Math.abs(r.position.x-this.gateCenter)>gap+.3);
       this.roundTime+=dt*(this.braking?.45:1);this.gate.position.z=-9+Math.max(0,this.roundTime-.45)*([7.8,8.5,9.2,10][v.raft]*(assist?.8:1));
       if(this.gate.position.z>=6.5){
-        if(Math.abs(this.raftX-this.gateCenter)>gap-.25){v.raftFails++;this.failTimer=1.1;this.setStatus(v.raftFails>=6?'木木放慢水流，再試這一道就好！':'木木穩住木筏了！往金色浮燈中間划。');g.saveProgress();this.roundTime=0;this.gate.position.z=-9;}
-        else {v.raftGate++;if(v.raftGate===3){v.raft++;v.raftGate=0;}g.saveProgress();g.audio.chime();this.roundTime=0;this.gate.position.z=-9;this.paint();if(v.raft===4){this.finish();return;}this.setStatus(`第 ${v.raft*3+v.raftGate} 道通過！看前方的浮燈。`);}
+        if(Math.abs(this.raftX-this.gateCenter)>gap-.25){v.raftFails++;this.failTimer=1.1;this.setStatus(v.raftFails>=6?'水流已放慢':'偏了，再試');g.saveProgress();this.roundTime=0;this.gate.position.z=-9;}
+        else {v.raftGate++;if(v.raftGate===3){v.raft++;v.raftGate=0;}g.saveProgress();g.audio.chime();this.roundTime=0;this.gate.position.z=-9;this.paint();if(v.raft===4){this.finish();return;}this.setStatus(`第 ${v.raft*3+v.raftGate} 道通過！`);}
       }
     }else{
       const index=Meadow.BEACONS.findIndex(b=>b.id===this.beacon),h=g.state.hill,help=h.focusHelp[index];
@@ -142,11 +142,11 @@ Meadow.JourneyTrials = class {
       const aligned=Math.abs(this.aim-this.target)<[.095,.08,.065][index]+help*.02;
       this.focus=THREE.MathUtils.clamp(this.focus+dt*(aligned?1:-.8),0,2.8);
       this.aligned=aligned;this.exposure=this.elapsed%3>1.6;this.star.traverse(o=>{if(o.isMesh)o.material=Meadow.Art.material(this.exposure?0xffde8f:0x929bbd);});
-      this.setStatus(this.focus>=2.8?(this.exposure?'金色曝光窗！對準後按 E 拍下':'能量已滿，等金色曝光窗。'):'追蹤星光充能，再等金色曝光窗。',0);
+      this.setStatus(this.focus>=2.8?(this.exposure?'按 E 拍照':'等金光'):'對準充能',0);
       this.star.position.x=this.target*8;this.ring.position.x=this.aim*8;this.ring.material.color.set(aligned?0xffdc86:0xd7eee7);
       if(!g.reducedMotion)this.star.rotation.z=Math.sin(this.elapsed)*.1;
       this.helper.update(g.time,g.player,g.reducedMotion);this.roundTime+=dt;
-      if(this.roundTime>=30&&help<3){h.focusHelp[index]++;this.roundTime=0;g.saveProgress();this.setStatus('星星幫你穩住望遠鏡，更容易對準囉。');}
+      if(this.roundTime>=30&&help<3){h.focusHelp[index]++;this.roundTime=0;g.saveProgress();this.setStatus('瞄準更穩了');}
       this.paint();
     }
   }
@@ -201,14 +201,14 @@ Meadow.JourneyTrials = class {
     g.player.arms[0].rotation.x=-.9;
     this.roundTime+=dt;const warning=h.escortFails>=6?1.25:.8,speed=[6.2,7,7.8][h.escort]*(h.escortFails>=6?.8:1);
     this.gate.position.z=-11+Math.max(0,this.roundTime-warning)*speed;
-    this.setStatus(this.feint?'佯攻！先等金燈穩定再選路。':this.roundTime<warning?'看穩金燈，灰爪要衝了！':'護住媽媽，跟緊移動的安全路！');
+    this.setStatus(this.feint?'佯攻！等一下':this.roundTime<warning?'準備躲避':'跟著金燈');
     // His charge and pushed branches must miss both daughter and mother.
     if(this.gate.position.z>=3.4&&this.gate.position.z<=6.4&&Math.max(Math.abs(this.escortX-this.gateCenter),Math.abs(this.escortX+.5-this.gateCenter))>this.gap-.25){
       h.escortFails=Math.min(99,h.escortFails+1);this.failTimer=1.1;this.roundTime=0;this.gate.position.z=-11;g.saveProgress();this.layoutEscort();
       this.guardGlow.visible=true;this.guardGlow.position.set(this.escortX,1.2,3.65);g.player.arms.forEach(a=>a.rotation.x=-1.25);
-      this.setStatus(h.escortFails>=6?'星星用燈光牽制灰爪，安全路變寬了！':'小米舉燈護住媽媽，拉她退回安全點！');return;
+      this.setStatus(h.escortFails>=6?'安全路變寬了':'退回安全點');return;
     }
-    if(this.gate.position.z>7){h.escortWave++;if(h.escortWave===3){h.escort++;h.escortWave=0;}g.saveProgress();g.audio.chime();this.paint();if(h.escort===3){this.finish();return;}this.roundTime=0;this.gate.position.z=-11;this.failTimer=.65;this.layoutEscort();this.setStatus('媽媽安全了！下一段繼續牽緊。');}
+    if(this.gate.position.z>7){h.escortWave++;if(h.escortWave===3){h.escort++;h.escortWave=0;}g.saveProgress();g.audio.chime();this.paint();if(h.escort===3){this.finish();return;}this.roundTime=0;this.gate.position.z=-11;this.failTimer=.65;this.layoutEscort();this.setStatus('✓ 安全');}
   }
   leave(){
     if(!this.active)return;const g=this.game;this.reset();g.state.mode='playing';g.player.setPosition(this.returnPoint.x,this.returnPoint.z);g.refresh();document.activeElement?.blur();
