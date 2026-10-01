@@ -1,5 +1,5 @@
 'use strict';
-// Optional conversations never modify quest milestones, inventory or checkpoints.
+// Resident side stories save separately from main quest milestones and checkpoints.
 Meadow.Residents = {
   1:[
     {name:'桃桃',role:'果園園丁',kind:'cat',x:-25,z:10,color:0xd6a475,accent:0xb57064,place:'蘋果小園',lines:[['桃桃','我正把落下的蘋果分給鄰居。樹上的，留給明天。'],['小米','原來不是每顆蘋果，都要今天摘完。'],['桃桃','對呀。想做的事很多，就先照顧眼前這一件。']]},

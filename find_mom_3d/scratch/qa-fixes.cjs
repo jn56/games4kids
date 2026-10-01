@@ -20,9 +20,9 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),path
  assert.equal(await p.evaluate(()=>meadowGame.state.mode),'dialogue');console.log('PASS song: every tap shows exactly N notes, all final notes persist, stable buttons, phone/landscape fit');
  await seed(2,{forest:{metOwl:true,round:3,gustStage:6,reunited:true,separated:true,routeKnown:true}});
  await p.evaluate(()=>meadowGame.trials.start('dash'));await p.locator('#action-start').tap();
- // Wrong landing returns to the last stone. A short tap performs one complete jump.
- await p.locator('#action-run').tap();await p.waitForFunction(()=>meadowGame.state.forest.dashFails===1);await p.waitForFunction(()=>meadowGame.trials.retry<=0);assert.equal(await p.evaluate(()=>meadowGame.trials.stage),0);
- await p.locator('#action-left').tap();await p.locator('#action-run').tap();await p.waitForFunction(()=>meadowGame.trials.dashRunning);
+ // Waiting drifts offscreen and returns to the last stone. A short tap performs one jump.
+ await p.waitForFunction(()=>meadowGame.state.forest.dashFails===1);await p.waitForFunction(()=>meadowGame.trials.retry<=0);assert.equal(await p.evaluate(()=>meadowGame.trials.stage),0);
+ await p.locator(await p.evaluate(()=>meadowGame.trials.river.safeLane(0)===0?'#action-left':'#action-right')).tap();await p.waitForFunction(()=>meadowGame.trials.river.ready());await p.locator('#action-run').tap();await p.waitForFunction(()=>meadowGame.trials.dashRunning);
  await p.keyboard.press('Escape');const travel=await p.evaluate(()=>meadowGame.trials.river.jump.elapsed);await p.waitForTimeout(200);assert.equal(await p.evaluate(()=>meadowGame.trials.river.jump.elapsed),travel);await p.locator('#resume-btn').tap();
  await p.waitForFunction(()=>meadowGame.trials.stage===1);await p.waitForTimeout(200);assert.equal(await p.evaluate(()=>meadowGame.trials.stage),1);assert.equal(await p.locator('#action-meter').getAttribute('max'),'9');assert.equal(await p.evaluate(()=>meadowGame.trials.queued),false);
  await p.locator('#action-leave').tap();await p.evaluate(()=>meadowGame.start(true));assert.equal(await p.evaluate(()=>meadowGame.state.forest.dashLeg),1);console.log('PASS river: wrong-landing rescue, single-tap jump, automatic stop, pause/resume and saved stone');

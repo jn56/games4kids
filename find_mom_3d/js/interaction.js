@@ -35,7 +35,7 @@ Meadow.Interactions = class {
   act() {
     this.update();if(!this.current)return;
     const g=this.game,npc=g.world.residents?.find(n=>n.id===this.current.id);
-    if(npc){g.dialogue.show(npc.lines.map(([name,text])=>({name,text})));return;}
+    if(npc){Meadow.SideStories.talk(g,npc);return;}
     g.story.interact(this.current.id);
   }
 };

@@ -8,7 +8,7 @@ Meadow.Progress = {
   fresh() {
     return { version:6, prologueSeen:false, chapter:1, entryChapter:1, forest:this.forestFresh(),valley:this.valleyFresh(),hill:this.hillFresh(), ribbon:false, metRabbit:false, metHedgehog:false,
       windSolved:false, windTurns:[...CONFIG.WIND_START], windHints:0,
-      flowers:[], arrangement:Array(6).fill(null), lampHints:0,
+      flowers:[], arrangement:Array(6).fill(null), lampHints:0,sideStories:[0,0,0,0],sideSecrets:[false,false,false,false],
       lit:false, completed:false, checkpoint:{...CONFIG.START} };
   },
   read() {
@@ -23,6 +23,8 @@ Meadow.Progress = {
         if(raw.forest)raw.forest.input=[];
       }
       const state=this.fresh();state.ribbon=raw.ribbon===true;state.metRabbit=state.ribbon&&raw.metRabbit===true;
+      state.sideStories=Array.from({length:4},(_,i)=>Number.isInteger(raw.sideStories?.[i])?Math.max(0,Math.min(4,raw.sideStories[i])):0);
+      state.sideSecrets=Array.from({length:4},(_,i)=>state.sideStories[i]===4&&raw.sideSecrets?.[i]===true);
       state.entryChapter=raw.version>=5&&[1,2,3,4].includes(raw.entryChapter)?raw.entryChapter:1;
       state.prologueSeen=raw.version<4||raw.prologueSeen===true||state.ribbon;
       state.metHedgehog=state.metRabbit&&raw.metHedgehog===true;
@@ -83,7 +85,7 @@ Meadow.Progress = {
   write(state) {
     try{
       const {version,prologueSeen,chapter,entryChapter,forest,valley,hill,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint}=state;
-      localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify({version,prologueSeen,chapter,entryChapter,forest,valley,hill,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint}));return true;
+      localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify({version,prologueSeen,chapter,entryChapter,forest,valley,hill,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint,sideStories:state.sideStories,sideSecrets:state.sideSecrets}));return true;
     }catch(_){return false;}
   }
 };

@@ -7,7 +7,7 @@ Meadow.ForestStory = class {
   }
   readJournal(){
     const f=this.game.state.forest;
-    if(f.routeKnown&&f.dashStage<3){this.say([['咕咕','石頭會下沉！左右選落點，金光一亮就按 E 跳。落地立刻找下一顆，別讓浪追上！每顆落點都保存。']]);return;}
+    if(f.routeKnown&&f.dashStage<3){this.say([['咕咕','石頭會一直往下漂！左右選下一排空石頭，按 E 往前跳。'],['咕咕','不要踩毒香菇或炸彈，也別漂出畫面！失手我會接住你。']]);return;}
     if(f.round===3&&f.gustStage<6){this.say([['咕咕','十八波風會越來越快，每波都會存點。看到橘色「逆風」警告時，左右相反，記得看按鈕上的方向！']]);return;}
     this.say([['小米','花田帶來的媽媽歌譜還在。最後一段是回聲，要從最後一音往回敲。'],['咕咕',`你已經找回 ${f.round} / 3 段旋律。第一段正序，第二段把首音移到最後，第三段倒序。`],['咕咕',f.separated?'媽媽抓著浮木，被水流帶往河谷。我們沿岸去找木木接應。':'需要時可以重播，或請我留下圖案樂譜。旋律裡藏著媽媽的心意。']]);
   }
@@ -107,13 +107,13 @@ Meadow.ForestStory = class {
     if(!f.reunited)return {step:3,total:5,title:'走到媽媽身邊',detail:'藤蔓已經讓開了。走近媽媽，給她一個擁抱。',emotion:'找回 · 媽媽，我在這裡',target:'mother'};
     if(!f.separated)return {step:3,total:5,title:'留在咕咕身邊',detail:'媽媽擋住灰爪，先和咕咕待在岸上。',emotion:'找回 · 熟悉的擁抱',target:'mother'};
     if(!f.routeKnown)return {step:4,total:5,title:'和咕咕一起想辦法',detail:'媽媽被水帶往河谷。找咕咕，沿岸去找木木接應。',emotion:'再失去 · 也可以繼續往前',target:'owl'};
-    if(f.dashStage<3)return {step:5,total:5,title:'沿著河上石頭前進',detail:'找咕咕開始。選落點、金光亮起就跳，趕在石頭下沉前連跳九顆。',emotion:'勇敢 · 抓準時機',target:'owl'};
+    if(f.dashStage<3)return {step:5,total:5,title:'沿著河上石頭前進',detail:'找咕咕開始。踩著漂流石頭往前跳，避開毒香菇、炸彈與畫面邊緣。',emotion:'勇敢 · 抓準時機',target:'owl'};
     return {step:5,total:5,title:'前往月光河谷步道',detail:'沿右邊的小路走，到河谷找接應媽媽的木木。',emotion:'勇敢 · 這次我知道方向',target:'forest-exit'};
   }
   target(){
     const g=this.game,id=this.objective().target;
     const targets={owl:[g.world.owl.mesh,g.world.owlLabel,'跟著光點找咕咕，他會陪你想辦法。'],music:[g.world.stand,g.world.standLabel,'到合奏台按互動。先播放旋律，再跟著圖案敲；最後一段要倒過來。'],mother:[g.world.mother.mesh,g.world.motherLabel,'媽媽在橋前。穿過藤蔓門，走近她再按互動。'],'forest-exit':[g.world.exit,g.world.exitLabel,'往畫面右邊走，找到「月光河谷步道」路牌，再按互動。']};
     const [object,label,text]=targets[id];const f=g.state.forest;
-    return {position:object.position,label,text:f.round===3&&f.gustStage<6?'到合奏台按互動，挑戰疾風小徑。':f.routeKnown&&f.dashStage<3?'找咕咕挑戰河上跳石頭。左右選落點，等金光亮起再跳。':text};
+    return {position:object.position,label,text:f.round===3&&f.gustStage<6?'到合奏台按互動，挑戰疾風小徑。':f.routeKnown&&f.dashStage<3?'找咕咕挑戰河上跳石頭。往前跳空石頭，別被帶出畫面。':text};
   }
 };

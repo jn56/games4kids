@@ -137,7 +137,7 @@ Meadow.ActionTrials = class {
   start(kind){
     const g=this.game,f=g.state.forest;
     if(this.active||g.state.chapter!==2||g.state.mode!=='playing'||(kind==='gust'?f.round<3||f.gustStage>=6:!f.routeKnown||f.dashStage>=3))return;
-    this.build();this.kind=kind;this.active=true;this.started=false;this.lane=1;this.elapsed=0;this.elapsedVisual=0;this.retry=0;this.shake=0;this.phase=0;this.travel=0;this.dashRunning=false;this.queued=false;this.noticeUntil=0;this.release();
+    this.build();this.kind=kind;this.panel.dataset.kind=kind;this.active=true;this.started=false;this.lane=1;this.elapsed=0;this.elapsedVisual=0;this.retry=0;this.shake=0;this.phase=0;this.travel=0;this.dashRunning=false;this.queued=false;this.noticeUntil=0;this.release();
     this.stage=kind==='gust'?f.gustStage*3+f.gustWave:f.dashStage*3+f.dashLeg;this.failed=false;
     g.checkpoint(kind==='gust'?0:4,kind==='gust'?4.1:-3.7);
     this.returnPosition={...g.state.checkpoint};g.state.mode='action';g.input.reset();
@@ -146,10 +146,10 @@ Meadow.ActionTrials = class {
     g.view.override=new THREE.Vector3(0,0,kind==='dash'?startZ-3:1);g.view.focus.copy(g.view.override);g.player.setPosition(0,startZ);g.player.mesh.rotation.y=Math.PI;
     this.gustScenery.forEach(o=>o.visible=kind==='gust');this.shelters.forEach(s=>s.visible=false);this.river.root.visible=kind==='dash';if(kind==='dash')this.river.start();this.bands.forEach(b=>b.visible=false);this.laneMarks.forEach(m=>m.material.opacity=0);
     document.getElementById('action-title').textContent=kind==='gust'?'疾風小徑':'河上跳石頭';
-    document.getElementById('action-instruction').textContent=kind==='gust'?'十八波陣風逐波加速！出現橘色「逆風」警告時，左右相反。':'石頭會下沉！← → 選落點，E／空白鍵跳。藍光變金色就跳，落地立刻選下一顆，越後面越快！';
+    document.getElementById('action-instruction').textContent=kind==='gust'?'十八波陣風逐波加速！出現橘色「逆風」警告時，左右相反。':'石頭一直往下漂！← → 選下一排，E／空白鍵跳。避開毒香菇和炸彈，別被帶出畫面！';
     document.getElementById('action-ready').hidden=false;
     document.getElementById('action-steer').hidden=false;document.getElementById('action-run').hidden=kind!=='dash';
-    document.getElementById('wind-meter').hidden=kind!=='dash';document.getElementById('wind-meter').setAttribute('aria-label','這顆石頭下沉前的剩餘時間');document.getElementById('action-run').innerHTML='跳躍<small>點一下 / E</small>';this.syncGustControls();
+    document.getElementById('wind-meter').hidden=kind!=='dash';document.getElementById('wind-meter').setAttribute('aria-label','距離畫面下緣的餘裕');document.getElementById('action-run').innerHTML='跳躍<small>點一下 / E</small>';this.syncGustControls();
     this.hud('準備好了再出發');document.getElementById('action-start').focus();g.interactions.update();
   }
   begin(){if(!this.active||this.game.state.mode!=='action')return;this.started=true;this.release();document.getElementById('action-ready').hidden=true;document.getElementById('action-start').blur();this.syncGustControls();}
@@ -218,7 +218,7 @@ Meadow.ActionTrials = class {
     this.active=false;this.started=false;this.dashRunning=false;this.queued=false;this.release();
     for(const id of ['action-left','action-right','action-run'])document.getElementById(id).disabled=false;
     if(this.root)this.root.visible=false;
-    this.panel.hidden=true;document.getElementById('gust-warning').hidden=true;delete this.panel.dataset.reverse;delete this.panel.dataset.wind;delete this.panel.dataset.urgent;
+    this.panel.hidden=true;document.getElementById('gust-warning').hidden=true;delete this.panel.dataset.reverse;delete this.panel.dataset.wind;delete this.panel.dataset.urgent;delete this.panel.dataset.kind;
     if(this.river){this.river.root.visible=false;this.river.jump=null;}this.game.player.mesh.position.y=0;document.body.classList.remove('in-action');
     this.game.view.override=null;if(this.game.worldCache[2])this.game.worldCache[2].layer.visible=this.game.state.chapter===2;
   }

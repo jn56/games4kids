@@ -16,10 +16,10 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),path
    return {chapter:c,ratio:newArea/oldArea,residents:w.residents.map(n=>({name:n.name,reachable:queue.some(i=>{const p=pos(i);return Math.hypot(p.x-n.x,p.z-n.z)<1.8;})})),routes:w.mapRoutes.length};
   });assert(report.ratio>=4,JSON.stringify(report));assert.equal(report.residents.length,5);assert(report.residents.every(n=>n.reachable),JSON.stringify(report));console.log('PASS terrain',JSON.stringify(report));
   for(let i=0;i<5;i++){
-   const before=await p.evaluate(i=>{const g=meadowGame,n=g.world.residents[i];g.player.setPosition(n.x,n.z+1.3);g.view.update(1,false,true);return JSON.stringify(g.state);},i);await p.waitForTimeout(100);
+   const before=await p.evaluate(i=>{const g=meadowGame,n=g.world.residents[i];g.player.setPosition(n.x,n.z+1.3);g.view.update(1,false,true);return JSON.stringify({...g.state,sideStories:undefined,sideSecrets:undefined});},i);await p.waitForTimeout(100);
    assert((await p.locator('#interaction-prompt').textContent()).includes(report.residents[i].name));await p.keyboard.press('e');assert.equal(await p.locator('#dialogue-name').textContent(),report.residents[i].name);await p.locator('#minimap').waitFor({state:'hidden'});
    for(let n=0;n<12&&await p.evaluate(()=>meadowGame.state.mode==='dialogue');n++)await p.locator('#dialogue-next').click();
-   assert.equal(await p.evaluate(()=>JSON.stringify(meadowGame.state)),before,'optional conversation changed quest state');
+   assert.equal(await p.evaluate(()=>JSON.stringify({...meadowGame.state,sideStories:undefined,sideSecrets:undefined})),before,'resident conversation changed main quest state');
    if(i===0)await p.screenshot({path:path.join(out,`chapter-${chapter}-outer.png`)});
   }
   // Every chapter's enlarged corner follows the camera; boundaries and story gates still apply.

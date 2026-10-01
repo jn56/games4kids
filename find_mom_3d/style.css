@@ -361,3 +361,5 @@ body.in-action #play-hud,body.in-action #world-labels,body.in-action #mobile-con
 #action-ui[data-urgent=true] .action-summary{background:#ffe4c5;box-shadow:0 0 0 3px #b94e2d}
 #action-ui[data-urgent=true] #action-status{color:#963719;font-weight:800}
 #action-ui[data-urgent=true] #wind-meter::-webkit-progress-value{background:#b94e2d}
+@media(min-width:901px){#action-ui[data-kind=dash] .action-summary{left:20px;transform:none;width:240px}}
+@media(max-width:700px) and (orientation:portrait){#action-ui[data-kind=dash] .action-summary{top:76px;width:235px;padding:7px 10px;gap:4px 8px}#action-ui[data-kind=dash] .action-summary p{font-size:13px;min-height:20px}#action-ui[data-kind=dash] .action-leave{top:180px;padding:8px 12px}}

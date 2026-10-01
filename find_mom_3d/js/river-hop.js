@@ -1,82 +1,98 @@
 'use strict';
-// The old dashStage/dashLeg save slots now record the nine stepping stones.
+// Keep the existing nine-stone save milestones, but use a fixed-camera drifting river.
 Meadow.RiverHop = class {
   constructor(trials){
     this.trials=trials;this.game=trials.game;const A=Meadow.Art;
     this.root=A.group(trials.root);this.root.visible=false;this.jump=null;
     A.part(this.root,'box',0x83a9b1,[0,-1,0],[300,.1,300],false);
-    A.part(this.root,'box',0x548f9f,[0,-.17,-10],[9,.35,53],false);
+    A.part(this.root,'box',0x548f9f,[0,-.17,-12],[9,.35,90],false);
     for(const side of [-1,1]){
-      A.part(this.root,'box',0x92aa8e,[side*6,-.1,-10],[3,.3,54]);
-      for(let i=0;i<14;i++)A.part(this.root,'pebble',0x9daa94,[side*4.65,.1,12-i*3.8],[.6,.45,.8]);
-      for(let i=0;i<7;i++){const tree=A.group(this.root,side*6.3,10-i*7);A.part(tree,'cylinder',0x7e8266,[0,1,0],[.16,2,.16]);A.part(tree,'cone',0x769780,[0,2.3,0],[1.1,2.4,1.1]);}
+      A.part(this.root,'box',0x92aa8e,[side*6,-.1,-12],[3,.3,90]);
+      for(let i=0;i<22;i++)A.part(this.root,'pebble',0x9daa94,[side*4.65,.1,24-i*3.8],[.6,.45,.8]);
+      for(let i=0;i<12;i++){const tree=A.group(this.root,side*6.3,24-i*7);A.part(tree,'cylinder',0x7e8266,[0,1,0],[.16,2,.16]);A.part(tree,'cone',0x769780,[0,2.3,0],[1.1,2.4,1.1]);}
     }
-    A.part(this.root,'cylinder',0xc7bc94,[0,.16,7],[3.1,.4,1.7]);
-    A.part(this.root,'box',0xbac49b,[0,.15,-31],[8,.3,4]);
-    this.stones=[];
-    for(let row=1;row<=9;row++)for(let lane=0;lane<3;lane++){
-      const safe=lane===this.safeLane(row-1),mesh=A.group(this.root,(lane-1)*2,7-row*4);
-      A.part(mesh,'cylinder',safe?0xb9b39b:0x668994,[0,safe?.12:-.1,0],[safe?.88:.6,safe?.48:.3,safe?.82:.6]);
-      if(!safe){const crack=A.part(mesh,'box',0x456c78,[0,.06,0],[.07,.025,.65]);crack.rotation.y=.4;}
-      const light=A.disk(mesh,0xf1d181,0,0,.57,.53,.37);light.material=light.material.clone();light.visible=false;
-      this.stones.push({row,lane,safe,mesh,light});
+    this.stones=[];this.spacing=4.5;
+    for(let row=0;row<=9;row++)for(let lane=0;lane<3;lane++){
+      const mesh=A.group(this.root,(lane-1)*2,6-row*this.spacing);
+      A.part(mesh,'cylinder',0xb9b39b,[0,.12,0],[.9,.48,.84]);
+      const mushroom=A.group(mesh);mushroom.visible=false;
+      A.part(mushroom,'cylinder',0xd8d3ad,[0,.65,0],[.12,.55,.12]);
+      A.part(mushroom,'ball',0x9255ad,[0,.98,0],[.5,.23,.43]);
+      for(let i=0;i<5;i++)A.part(mushroom,'ball',0xc4ef80,[Math.cos(i*1.26)*.28,1.16,Math.sin(i*1.26)*.23],[.07,.035,.07]);
+      const bomb=A.group(mesh);bomb.visible=false;
+      A.part(bomb,'ball',0x39404b,[0,.74,0],[.4,.4,.4]);
+      A.part(bomb,'cylinder',0x9f8a65,[.05,1.15,0],[.045,.24,.045]);
+      const spark=A.part(bomb,'ball',0xffbf55,[.05,1.29,0],[.12,.12,.12]);
+      this.stones.push({row,lane,mesh,mushroom,bomb,spark,hazard:null});
     }
-    this.ring=new THREE.Mesh(new THREE.RingGeometry(.9,1.02,40),new THREE.MeshBasicMaterial({color:0xffe6a2,side:THREE.DoubleSide}));this.ring.rotation.x=-Math.PI/2;this.root.add(this.ring);
-    this.foam=Array.from({length:28},(_,i)=>A.part(this.root,'box',0xc1e1de,[(i%7-3)*1.1,.025,0],[.36,.018,.75],false));
-    this.wave=A.group(this.root);for(let i=0;i<10;i++)A.part(this.wave,'ball',0xc1e1de,[-3.7+i*.82,.15,0],[.55,.16,.25],false);
+    this.ring=new THREE.Mesh(new THREE.RingGeometry(.93,1.05,40),new THREE.MeshBasicMaterial({color:0xffe6a2,side:THREE.DoubleSide}));this.ring.rotation.x=-Math.PI/2;this.root.add(this.ring);
+    this.foam=Array.from({length:36},(_,i)=>A.part(this.root,'box',0xc1e1de,[(i%7-3)*1.1,.025,0],[.36,.018,.75],false));
+    this.splash=A.group(this.root);this.splash.visible=false;for(let i=0;i<8;i++)A.part(this.splash,'ball',0xd8eeeb,[Math.cos(i*Math.PI/4)*.6,.2,Math.sin(i*Math.PI/4)*.6],[.15,.22,.15],false);
     const before=this.root.children.length;this.owl=new Meadow.Owl(this.root);this.root.children.slice(before).filter(o=>o!==this.owl.mesh).forEach(o=>o.visible=false);this.owl.mesh.scale.setScalar(.6);
   }
-  safeLane(stage){return [0,2,1,2,0,1,0,2,1][stage];}
-  // Each landing starts one reaction window. Waiting never opens another cycle.
-  limit(){return 3.2-this.trials.stage*.19+(this.game.state.forest.dashFails>=6?.75:0);}
-  cue(){return this.trials.stage<3?0:.3+(this.trials.stage%3)*.08;}
-  ready(){return this.elapsed>=this.cue()&&this.elapsed<this.limit();}
-  remaining(){return Math.max(0,this.limit()-this.elapsed);}
-  jumpDuration(){return .64-this.trials.stage*.022;}
   stone(row,lane){return this.stones.find(s=>s.row===row&&s.lane===lane);}
-  start(){this.jump=null;this.elapsed=0;this.warned=false;this.trials.dashRunning=false;this.stones.forEach(s=>s.mesh.position.y=0);this.currentLane=this.trials.stage===0?1:this.safeLane(this.trials.stage-1);this.trials.lane=this.currentLane;this.place();this.paintTimer();}
-  place(){const t=this.trials,g=this.game,stone=this.stone(t.stage,this.currentLane);g.player.setPosition(stone?stone.mesh.position.x:0,7-t.stage*4);g.player.mesh.position.y=.38+(stone?stone.mesh.position.y:0);g.view.override.set(0,0,g.player.mesh.position.z-3);}
-  paintTimer(){const meter=document.getElementById('wind-meter');meter.max=this.limit();meter.value=this.remaining();this.trials.panel.dataset.urgent=String(!this.jump&&this.remaining()<.85);}
-  launch(){
-    const t=this.trials,g=this.game;
-    if(this.jump)return;
-    if(!this.ready()){t.noticeUntil=t.elapsedVisual+.18;t.hud('看藍光落點，變金色就跳！');return;}
-    this.jump={elapsed:0,from:g.player.mesh.position.clone(),lane:t.lane,valid:t.lane===this.safeLane(t.stage)};t.dashRunning=true;g.audio.note(587,.15,.035);
+  safeLane(stage){return this.stones.find(s=>s.row===stage+1&&!s.hazard).lane;}
+  speed(){return (3.15+this.trials.stage*.15)*(this.game.state.forest.dashFails>=6?.82:1);}
+  jumpDuration(){return .62-this.trials.stage*.015;}
+  project(position){return position.clone().add(new THREE.Vector3(0,1,0)).project(this.game.camera);}
+  outside(position){const p=this.project(position);return p.y< -1||p.y>1||p.x< -1||p.x>1;}
+  ready(){
+    const target=this.stone(this.trials.stage+1,this.trials.lane),p=target.mesh.position.clone();
+    p.z+=this.speed()*this.jumpDuration();const screen=this.project(p);
+    return screen.y>-.9&&screen.y<.84;
   }
-  update(dt){
-    const t=this.trials,g=this.game,time=t.elapsedVisual;
-    if(!this.jump){this.elapsed+=dt;if(this.elapsed>=this.limit()){t.fail();t.hud('浪追上來了！咕咕接住你，再快一點！');return;}}
-    const ready=this.ready(),pressure=Math.min(1,this.elapsed/this.limit());this.paintTimer();
-    this.foam.forEach((f,i)=>f.position.z=13-(((g.reducedMotion?0:time*(5+t.stage*.3))+i*1.83)%51));
-    for(const s of this.stones){
-      s.mesh.position.x=(s.lane-1)*2+(s.row>=4&&s.safe&&!g.reducedMotion?Math.sin(time*1.3+s.row)*.24:0);
-      s.mesh.position.y=s.row===t.stage&&s.lane===this.currentLane?-.32*pressure*pressure:0;
-      s.light.visible=s.safe&&(s.row<=t.stage||s.row===t.stage+1);
-      s.light.material.color.set(s.row===t.stage+1&&!ready?0x9ce6ff:0xffd15e);
+  setHazard(stone,hazard){stone.hazard=hazard;stone.mushroom.visible=hazard==='mushroom';stone.bomb.visible=hazard==='bomb';}
+  start(){
+    const t=this.trials,g=this.game;this.startStage=t.stage;this.jump=null;this.elapsed=0;this.flow=0;this.splash.visible=false;t.dashRunning=false;
+    this.currentLane=1;t.lane=1;
+    // Generate ahead of the player, never while a stone is being approached.
+    for(const s of this.stones)this.setHazard(s,null);
+    for(let row=t.stage+1;row<=9;row++){
+      const count=[0,0,1,1,0,2,1,2,1,2][row],lanes=[0,1,2];
+      for(let i=0;i<count;i++){const lane=lanes.splice(Math.floor(Math.random()*lanes.length),1)[0];this.setHazard(this.stone(row,lane),(row+i)%2?'bomb':'mushroom');}
     }
-    const target=this.stone(t.stage+1,t.lane);this.ring.position.set(target.mesh.position.x,.42,target.mesh.position.z);this.ring.material.color.set(t.lane===this.safeLane(t.stage)?ready?0xffdc7a:0xc6e4ee:0xf0a28f);
-    this.wave.visible=true;this.wave.position.z=ready?7-t.stage*4+3*(1-pressure):target.mesh.position.z+.5;
-    this.owl.mesh.position.set(-3.8,1.1,7-t.stage*4);this.owl.update(g.time,g.player,g.reducedMotion,true);
+    this.moveStones();g.view.override.set(0,0,1);g.view.focus.copy(g.view.override);g.view.update(0,false,true);g.camera.updateMatrixWorld();this.place();this.paintTimer();
+    for(const id of ['action-left','action-right','action-run'])document.getElementById(id).disabled=false;
+  }
+  moveStones(){for(const s of this.stones){s.mesh.position.z=6-(s.row-this.startStage)*this.spacing+this.flow;}}
+  place(){const p=this.stone(this.trials.stage,this.currentLane).mesh.position;this.game.player.setPosition(p.x,p.z);this.game.player.mesh.position.y=.38;}
+  paintTimer(){const y=this.project(this.game.player.mesh.position).y,meter=document.getElementById('wind-meter');meter.max=1;meter.value=Math.max(0,Math.min(1,(y+1)/2));this.trials.panel.dataset.urgent=String(y<-.5);}
+  launch(){
+    const t=this.trials;if(this.jump)return;
+    this.jump={elapsed:0,from:this.game.player.mesh.position.clone(),flow:this.flow,lane:t.lane,duration:this.jumpDuration()};t.dashRunning=true;this.game.audio.note(587,.15,.035);
+  }
+  lose(message){this.lastFailure={message,screen:this.project(this.game.player.mesh.position)};this.jump=null;this.trials.dashRunning=false;this.trials.fail();this.trials.hud(message+' 咕咕接住你了。');}
+  update(dt){
+    const t=this.trials,g=this.game;this.elapsed+=dt;this.flow+=this.speed()*dt;this.moveStones();
+    this.foam.forEach((f,i)=>f.position.z=-26+((this.flow*1.2+i*1.83)%54));
+    for(const s of this.stones)if(s.hazard==='bomb')s.spark.scale.setScalar(.12*(g.reducedMotion?1:.9+Math.sin(this.elapsed*9+s.row)*.15));
+    const target=this.stone(t.stage+1,t.lane);this.ring.position.set(target.mesh.position.x,.4,target.mesh.position.z);this.ring.material.color.set(target.hazard?0xf08669:0xffe6a2);
+    this.owl.mesh.position.set(-3.8,1.1,Math.min(9,g.player.mesh.position.z));this.owl.update(g.time,g.player,g.reducedMotion,true);
     for(const id of ['action-left','action-right','action-run'])document.getElementById(id).disabled=!!this.jump;
-    t.panel.dataset.wind=ready?'calm':'gust';
-    if(!this.jump&&this.remaining()<.85&&!this.warned){this.warned=true;g.audio.note(784,.1,.04);}
     if(this.jump){
-      const j=this.jump;j.elapsed+=dt;const u=Math.min(1,j.elapsed/this.jumpDuration()),dest=this.stone(t.stage+1,j.lane).mesh.position;
-      g.player.mesh.position.set(j.from.x+(dest.x-j.from.x)*u,j.from.y+(.38-j.from.y)*u+Math.sin(u*Math.PI)*1.9,j.from.z+(dest.z-j.from.z)*u);
-      g.player.mesh.rotation.y=Math.atan2(dest.x-j.from.x,dest.z-j.from.z);g.player.arms.forEach(a=>a.rotation.x=-.8);g.player.legs.forEach((leg,i)=>leg.rotation.x=(i?-.3:.4)*Math.sin(u*Math.PI));
-      t.hud('跳！落穩後再選下一顆。');
+      const j=this.jump;j.elapsed+=dt;const u=Math.min(1,j.elapsed/j.duration),dest=this.stone(t.stage+1,j.lane),p=dest.mesh.position;
+      // Both endpoints drift with the current, including during flight.
+      g.player.mesh.position.set(j.from.x+(p.x-j.from.x)*u,.38+Math.sin(u*Math.PI)*1.9,j.from.z+this.flow-j.flow-this.spacing*u);
+      g.player.mesh.rotation.y=Math.atan2(p.x-j.from.x,-this.spacing);g.player.arms.forEach(a=>a.rotation.x=-.8);g.player.legs.forEach((leg,i)=>leg.rotation.x=(i?-.3:.4)*Math.sin(u*Math.PI));
+      if(this.outside(g.player.mesh.position)){this.lose('漂出畫面了，這次挑戰失敗！');return;}
+      t.hud('跳！落地後立刻看下一排。');
       if(u===1){
-        const valid=j.valid;this.jump=null;t.dashRunning=false;
-        for(const id of ['action-left','action-right','action-run'])document.getElementById(id).disabled=false;
-        if(!valid){t.fail();return;}
-        t.stage++;const f=g.state.forest;f.dashStage=Math.floor(t.stage/3);f.dashLeg=t.stage%3;g.saveProgress();g.audio.chime();
+        if(dest.hazard){
+          const message=dest.hazard==='mushroom'?'踩到毒香菇，挑戰失敗！':'踩到炸彈，挑戰失敗！';
+          if(j.elapsed<j.duration+.3){this.splash.visible=true;this.splash.position.copy(p);g.player.mesh.position.y=.15;t.hud(message);return;}
+          this.lose(message);return;
+        }
+        this.jump=null;t.dashRunning=false;t.stage++;this.currentLane=j.lane;
+        const f=g.state.forest;f.dashStage=Math.floor(t.stage/3);f.dashLeg=t.stage%3;g.saveProgress();g.audio.chime();
         if(t.stage===9){t.complete();return;}
-        this.currentLane=j.lane;this.elapsed=0;this.warned=false;this.place();this.paintTimer();t.hud('落地！立刻選下一顆！');
+        this.place();for(const id of ['action-left','action-right','action-run'])document.getElementById(id).disabled=false;
       }
     }else{
       this.place();g.player.mesh.rotation.y=Math.PI;
-      if(time>=t.noticeUntil)t.hud(ready?(this.remaining()<.85?'快跳！':'選金光，立即跳！')+' 剩 '+this.remaining().toFixed(1)+' 秒':'選藍光落點，變金色就跳！');
+      if(this.outside(g.player.mesh.position)){this.lose('漂出畫面了，這次挑戰失敗！');return;}
+      const danger=target.hazard==='mushroom'?'前方有毒香菇！換個落點。':target.hazard==='bomb'?'前方有炸彈！換個落點。':this.project(g.player.mesh.position).y<-.5?'快往前跳！快被沖出畫面了！':this.ready()?'選空石頭，繼續往前跳！':'下一排還在上方，先看好落點。';
+      t.hud(danger);
     }
-    g.view.override.set(0,0,g.player.mesh.position.z-3);
+    this.paintTimer();
   }
 };

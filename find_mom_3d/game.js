@@ -43,7 +43,7 @@ Meadow.Game = class {
     on('restart-btn',()=>this.restartCurrent());on('replay-btn',()=>this.restartCurrent());
     on('next-chapter-btn',()=>this.enterNext());
     on('hint-btn',()=>{if(this.state.mode==='playing'){this.refreshTarget();this.toast(this.story.target().text,6000);this.audio.note(659,.5,.025);}});
-    on('journal-btn',()=>{if(this.state.chapter>=2){if(this.state.mode==='playing')this.story.readJournal();}else this.challenges.open('journal');});
+    on('journal-btn',()=>{if(this.state.mode!=='playing')return;const s=this.state;if(s.chapter===1&&!s.metHedgehog||s.chapter===2&&!s.forest.metOwl)this.dialogue.show([{name:'小米',text:'路上朋友託付的小事，我都記在這裡。'}]);else if(s.chapter>=2)this.story.readJournal();else this.challenges.open('journal');Meadow.SideStories.appendJournal(this);});
     on('sound-btn',async()=>{
       const enabled=await this.audio.toggle(),button=document.getElementById('sound-btn');
       button.setAttribute('aria-pressed',String(enabled));button.setAttribute('aria-label',enabled?'關閉聲音':'開啟聲音');button.title=enabled?'關閉聲音':'開啟聲音';
@@ -194,6 +194,7 @@ Meadow.Game = class {
     if(late)document.getElementById('journey-count').textContent=this.state.chapter===3?this.state.valley.bridge<3?'修橋 '+this.state.valley.bridge+' / 3':'渡河 '+this.state.valley.raft+' / 4':'✦ '+this.state.hill.lights.length+' / 3';
     document.getElementById('forest-hud').hidden=!forest||!this.state.forest.metOwl;
     document.getElementById('journal-btn').hidden=late?false:forest?!this.state.forest.metOwl:!this.state.metHedgehog;
+    if(this.state.sideStories.some(stage=>stage>0))document.getElementById('journal-btn').hidden=false;
     document.getElementById('journal-btn').textContent=late?'✦ 筆記':forest?'♪ 筆記':'✉ 手帳';
     if(forest){
       document.getElementById('melody-count').textContent=`${this.state.forest.round} / 3`;
