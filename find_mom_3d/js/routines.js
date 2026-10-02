@@ -29,6 +29,26 @@ Meadow.Routines={
     const workers=chapter===1?[[world.hedgehog,'mail',()=>true],[world.rabbit,'garden',s=>!s.lit]]:chapter===2?[[world.owl,'inspect',s=>!s.forest.reunited]]:chapter===3?[[world.beaver,'hammer',()=>true]]:[[world.squirrel,'inspect',()=>true]];
     world.workers=workers.map(([actor,job,available],i)=>{this.attach(world,actor,job,chapter*3+i,true);return {actor,available};});
   },
+  clear(world,npc,x,z,player){
+    const p=npc.mesh.position,q=player.mesh.position,before=Math.hypot(p.x-q.x,p.z-q.z),after=Math.hypot(x-q.x,z-q.z);
+    return world.canWalk(x,z,npc.collider,p)&&(after>=.95||after>before+.00001);
+  },
+  yield(world,npc,player,move,range=3){
+    const p=npc.mesh.position,q=player.mesh.position,r=npc.routine,dx=p.x-q.x,dz=p.z-q.z;
+    const length=Math.hypot(move.x,move.z);if(!length||npc.dodge)return false;
+    const mx=move.x/length,mz=move.z/length,ahead=dx*mx+dz*mz,lateral=dx*mz-dz*mx;
+    if(ahead<-.4||ahead>range||Math.abs(lateral)>1.15)return false;
+    // Step out of the whole walking corridor, not just half a body width.
+    const preferred=Math.abs(lateral)>.12?-Math.sign(lateral):(r.seed%2?1:-1);
+    for(const side of [preferred,-preferred]){
+      const x=p.x-mz*1.35*side,z=p.z+mx*1.35*side;
+      if(Math.hypot(x-r.home.x,z-r.home.z)>3.5)continue;
+      let safe=true;
+      for(let i=1;i<=10;i++)if(!this.clear(world,npc,p.x+(x-p.x)*i/10,p.z+(z-p.z)*i/10,player)){safe=false;break;}
+      if(safe){npc.dodge={x,z};return true;}
+    }
+    return false;
+  },
   step(world,npc,dt,player,reduced){
     const r=npc.routine,p=npc.mesh.position,target=player.mesh.position;
     if(Math.hypot(p.x-r.home.x,p.z-r.home.z)>5){r.home={x:p.x,z:p.z};r.point=0;r.wait=1;}
@@ -45,13 +65,17 @@ Meadow.Routines={
         const angle=Math.atan2(x-p.x,z-p.z),step=Math.min(distance,dt*(npc.kind==='turtle'?.5:.74));
         for(const turn of [0,.55,-.55,1,-1]){
           const nx=p.x+Math.sin(angle+turn)*step,nz=p.z+Math.cos(angle+turn)*step;
-          if(Math.hypot(nx-r.home.x,nz-r.home.z)>3.5||!world.canWalk(nx,nz,npc.collider))continue;
+          if(Math.hypot(nx-r.home.x,nz-r.home.z)>3.5||!this.clear(world,npc,nx,nz,player))continue;
           p.x=nx;p.z=nz;npc.mesh.rotation.y=angle+turn;r.walking=true;r.phase+=step*12;r.blocked=0;break;
         }
         if(!r.walking){r.blocked+=dt;if(r.blocked>1){r.point=(r.point+1)%points.length;r.wait=.8;r.blocked=0;}}
       }
     }
-    if(npc.dodge){const d=Math.hypot(npc.dodge.x-p.x,npc.dodge.z-p.z),t=Math.min(1,dt*2.8/Math.max(.01,d)),x=p.x+(npc.dodge.x-p.x)*t,z=p.z+(npc.dodge.z-p.z)*t;if(world.canWalk(x,z,npc.collider)){p.x=x;p.z=z;r.walking=true;r.phase+=dt*10;}else npc.dodge=null;if(d<.04)npc.dodge=null;}
+    if(npc.dodge){
+      const d=Math.hypot(npc.dodge.x-p.x,npc.dodge.z-p.z),t=Math.min(1,dt*4.8/Math.max(.01,d)),x=p.x+(npc.dodge.x-p.x)*t,z=p.z+(npc.dodge.z-p.z)*t;
+      if(this.clear(world,npc,x,z,player)){npc.mesh.rotation.y=Math.atan2(x-p.x,z-p.z);p.x=x;p.z=z;r.walking=true;r.phase+=dt*10;}else npc.dodge=null;
+      if(d<.04){npc.dodge=null;r.wait=1.2;}
+    }
     if(npc.collider){npc.collider.x=p.x;npc.collider.z=p.z;}
     const working=!nearby&&!r.walking&&r.wait>0,swing=reduced?0:r.walking?Math.sin(r.phase)*.4:0;
     npc.body.position.y=reduced?0:r.walking?Math.abs(Math.sin(r.phase))*.045:0;

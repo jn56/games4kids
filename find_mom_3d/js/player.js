@@ -39,14 +39,19 @@ Meadow.Player = class {
   update(dt, input, world, canMove, reducedMotion) {
     const move = canMove ? input.movement() : { x: 0, z: 0 };
     const oldX = this.mesh.position.x, oldZ = this.mesh.position.z;
-    const speed=CONFIG.PLAYER_SPEED*(this.speedMultiplier||1);
-    const dx = move.x * speed * dt, dz = move.z * speed * dt;
-    if (world.canWalk(oldX + dx, oldZ)) this.mesh.position.x += dx;
-    if (world.canWalk(this.mesh.position.x, oldZ + dz)) this.mesh.position.z += dz;
+    this.sprinting=canMove&&!this.riding&&!!input.sprinting?.();
+    const speed=CONFIG.PLAYER_SPEED*(this.speedMultiplier||1)*(this.sprinting?1.45:1);
+    const moving=!!(move.x||move.z),response=this.riding?(moving?5:17):(moving?18:30);
+    const blend=1-Math.exp(-response*dt);
+    this.vx=(this.vx||0)+(move.x*speed-(this.vx||0))*blend;
+    this.vz=(this.vz||0)+(move.z*speed-(this.vz||0))*blend;
+    if(!canMove){this.vx=this.vz=0;}
+    Meadow.Motion.move(world,this.mesh.position,this.vx*dt,this.vz*dt);
+    this.actualSpeed=dt>0?Math.hypot(this.mesh.position.x-oldX,this.mesh.position.z-oldZ)/dt:0;
     const walking = Math.hypot(this.mesh.position.x - oldX, this.mesh.position.z - oldZ) > .001;
     if (walking) {
-      this.phase += dt * 11;
-      const target = Math.atan2(move.x, move.z), current = this.mesh.rotation.y;
+      this.phase += dt * (this.sprinting?16:11);
+      const target = Math.atan2(this.mesh.position.x-oldX, this.mesh.position.z-oldZ), current = this.mesh.rotation.y;
       const diff = Math.atan2(Math.sin(target - current), Math.cos(target - current));
       this.mesh.rotation.y += diff * (1 - Math.exp(-14 * dt));
     }
@@ -56,5 +61,5 @@ Meadow.Player = class {
     this.body.position.y = walking && !reducedMotion ? Math.abs(Math.sin(this.phase)) * .055 : 0;
     this.shadow.position.x = this.mesh.position.x; this.shadow.position.z = this.mesh.position.z;
   }
-  setPosition(x, z) { this.mesh.position.set(x, 0, z); }
+  setPosition(x, z) { this.mesh.position.set(x, 0, z);this.vx=this.vz=this.actualSpeed=0; }
 };

@@ -29,6 +29,7 @@ Meadow.Game = class {
     this.voices=new Meadow.VoiceStudio(this);
     this.travel=new Meadow.Travel(this);
     this.sandbox=new Meadow.Sandbox(this);
+    this.streetRun=new Meadow.StreetRun(this);
     this.fullscreen=new Meadow.Fullscreen(this);
     this.time=0;this.lastTime=performance.now();this.lastHUD=0;this.toastDeadline=0;
     document.body.classList.add('cover');this.bindUI();this.refresh();
@@ -46,7 +47,7 @@ Meadow.Game = class {
     on('pause-btn',()=>this.togglePause());on('resume-btn',()=>this.togglePause());
     on('restart-btn',()=>this.restartCurrent());on('replay-btn',()=>this.restartCurrent());
     on('next-chapter-btn',()=>this.enterNext());
-    on('hint-btn',()=>{if(this.state.mode==='playing'){this.travel.selected=0;this.refresh();this.audio.note(659,.5,.025);}});
+    on('hint-btn',()=>{if(this.state.mode==='playing'){this.streetRun.stop();this.travel.selected=0;this.refresh();this.audio.note(659,.5,.025);}});
     on('journal-btn',()=>{if(this.state.mode!=='playing')return;const s=this.state;if(s.chapter===1&&!s.metHedgehog||s.chapter===2&&!s.forest.metOwl)this.dialogue.show([{name:'小米',text:'路上朋友託付的小事，我都記在這裡。'}]);else if(s.chapter>=2)this.story.readJournal();else this.challenges.open('journal');Meadow.SideStories.appendJournal(this);});
     on('sound-btn',async()=>{
       this.soundChosen=true;this.voices.stop();
@@ -105,6 +106,7 @@ Meadow.Game = class {
     if(document.activeElement instanceof HTMLElement)document.activeElement.blur();
   }
   loadWorld(chapter) {
+    this.streetRun?.stop(null,false);
     this.sandbox?.release(true);
     if(!this.worldCache[chapter]){
       const layer=new THREE.Group();this.scene.add(layer);
@@ -231,9 +233,10 @@ Meadow.Game = class {
     this.refreshTarget();
   }
   refreshTarget() {
-    const target=this.sandbox?.target()||this.travel?.target()||this.story.target();this.world.setTarget(target.position);
-    document.getElementById('objective-title').textContent=Meadow.JourneyUI.summary(this);
-    document.getElementById('quest-progress').hidden=!!(this.sandbox?.target()||this.travel?.target());
+    const race=this.streetRun?.target(),target=race||this.sandbox?.target()||this.travel?.target()||this.story.target();this.world.setTarget(target.position);
+    document.getElementById('objective-title').textContent=race?.text||Meadow.JourneyUI.summary(this);
+    document.getElementById('quest-progress').hidden=!!(race||this.sandbox?.target()||this.travel?.target());
+    const hint=document.getElementById('hint-btn');hint.textContent=race?'×':'◎';hint.title=race?'取消環道計時':'指向目前任務';hint.setAttribute('aria-label',hint.title);
     this.world.labels.forEach(label=>label.el.classList.toggle('active',label===target.label));
   }
   animate(now) {
@@ -249,6 +252,7 @@ Meadow.Game = class {
     if(!paused)this.world.update(this.time,dt,this.player,this.state,this.reducedMotion);
     Meadow.Exploration.update(this.world,this.time,this.player,this.state,this.reducedMotion,dt);
     this.sandbox.update(paused?0:dt);
+    this.streetRun.update(paused?0:dt);
     this.view.update(dt,this.state.mode==='title',this.reducedMotion);
     this.minimap.update();
     if(this.trials.active&&this.state.mode==='action'&&!this.reducedMotion&&this.trials.shake>0)this.camera.position.x+=Math.sin(this.time*35)*.045;

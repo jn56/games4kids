@@ -10,7 +10,7 @@ Meadow.Input = class {
         if(document.fullscreenElement||document.webkitFullscreenElement){event.preventDefault();fullscreen?.();return;}
         event.preventDefault(); pause(); return;
       }
-      if (movement.includes(event.code)) { event.preventDefault(); this.keys.add(event.code); }
+      if (movement.includes(event.code)||['ShiftLeft','ShiftRight'].includes(event.code)) { event.preventDefault(); this.keys.add(event.code); }
       if (['KeyE', 'Space'].includes(event.code)) {
         // Space on a focused button must activate that button once, not also the game.
         if (event.target instanceof HTMLElement && event.target.closest('button,a') && event.code === 'Space') return;
@@ -28,6 +28,7 @@ Meadow.Input = class {
       const length = Math.hypot(x, z); if (length > radius) { x *= radius / length; z *= radius / length; }
       this.axis.x = x / radius; this.axis.z = z / radius;
       this.stick.style.transform = `translate(${x}px, ${z}px)`;
+      pad.classList.toggle('sprinting',this.sprinting());
     };
     pad.addEventListener('pointerdown', event => {
       if (this.pointerId !== null) return;
@@ -47,5 +48,6 @@ Meadow.Input = class {
     const length = Math.hypot(x, z);
     return length < .15 ? { x: 0, z: 0 } : { x: x / Math.max(1, length), z: z / Math.max(1, length) };
   }
-  reset() { this.keys.clear(); this.axis.x = this.axis.z = 0; this.pointerId = null; this.stick.style.transform = ''; }
+  sprinting(){return this.keys.has('ShiftLeft')||this.keys.has('ShiftRight')||Math.hypot(this.axis.x,this.axis.z)>.88;}
+  reset() { this.keys.clear(); this.axis.x = this.axis.z = 0; this.pointerId = null; this.stick.style.transform = '';document.getElementById('joystick').classList.remove('sprinting'); }
 };

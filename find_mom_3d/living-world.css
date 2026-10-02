@@ -12,7 +12,7 @@
 .quest-card .journal-btn{grid-column:3;grid-row:1/3}
 .quest-card:has(.journal-btn[hidden]){grid-template-columns:1fr 38px;width:205px}
 body:not(.cover) .brand small{display:none}
-.minimap{padding:6px}.minimap #minimap-toggle{min-height:34px}.minimap #minimap-toggle strong{font-size:13px;font-weight:500}
+.minimap{width:160px;padding:5px;background:#fff9e838;border-color:#fffef455;box-shadow:0 3px 14px #294f2b0d}.minimap #minimap-toggle{min-height:34px}.minimap #minimap-toggle strong{font-size:13px;font-weight:500}
 #route-strip{display:flex;align-items:center;justify-content:center;gap:3px;padding:7px 1px 3px}#route-strip span{display:grid;place-items:center;width:21px;height:21px;border-radius:50%;font-size:15px;color:#9eaa97;background:#e5e6d6}#route-strip span.open{color:#506b54;background:#e7dbb5}#route-strip span.here{color:#fff5d1;background:#46664f;box-shadow:0 0 0 2px #d5b76e}#route-strip i{width:9px;height:2px;background:#c0c6af}
 .map-exits{display:flex;gap:5px;justify-content:center;margin-top:2px}.minimap .map-exits button{min-width:44px;min-height:44px;justify-content:center;font-size:22px;padding:0;border-radius:9px;flex:1;color:#476451}.minimap .map-exits button[aria-pressed=true]{background:#e5d7b0;box-shadow:inset 0 0 0 1px #a78648}.minimap .map-exits button:disabled{opacity:.3}
 #travel-fade{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:#f3eddc;pointer-events:all}#travel-place{font-family:var(--serif);font-size:clamp(28px,4vw,44px);font-weight:500;letter-spacing:6px;color:#506551}
@@ -29,3 +29,12 @@ body.travelling #play-hud,body.travelling #mobile-controls,body.travelling #mini
 @media(max-width:700px){.top-actions{gap:6px}.top-actions .icon-btn{width:44px;height:44px;flex-shrink:0}.quest-card,.quest-card:has(.journal-btn[hidden]){top:calc(85px + env(safe-area-inset-top,0px))}.minimap{top:calc(83px + env(safe-area-inset-top,0px))}}
 @media(max-width:700px) and (orientation:portrait){#sandbox-release{bottom:calc(var(--control-bottom) + 111px)}body.sandbox-busy .interaction-prompt{bottom:calc(var(--control-bottom) + 161px)}}
 @media(max-height:500px) and (orientation:landscape){#joystick{left:calc(clamp(56px,12vw,180px) + env(safe-area-inset-left,0px))}#touch-action{right:calc(clamp(136px,18vw,220px) + env(safe-area-inset-right,0px));bottom:calc(var(--control-bottom) + 12px)}.quest-card,.quest-card:has(.journal-btn[hidden]),.minimap{top:calc(68px + env(safe-area-inset-top,0px))}}
+/* Terrain recedes; streets, destinations and the player remain easy to read. */
+#route-strip span{background:#e5e6d655}#route-strip span.open{background:#e7dbb577}#route-strip span.here{background:#46664fd9}#route-strip i{background:#c0c6af77}
+.minimap .map-exits button[aria-pressed=true]{background:#e5d7b099}
+#joystick.sprinting{border:2px solid #f8da86;box-shadow:0 0 0 5px #f8da862e}
+#scooter-bell{position:fixed;z-index:12;right:calc(clamp(36px,7vw,96px) + env(safe-area-inset-right,0px) + 15px);bottom:calc(var(--control-bottom) + 111px);width:48px;height:48px;border:1px solid #fff4d6a0;border-radius:50%;background:#446047c9;color:#fff3cc;font-size:26px;touch-action:manipulation}
+#ride-speed{position:fixed;z-index:12;right:calc(clamp(36px,7vw,96px) + env(safe-area-inset-right,0px) + 5px);bottom:calc(var(--control-bottom) + 1px);width:68px;height:7px;accent-color:#d5ba72;pointer-events:none}
+@media(max-width:700px){.minimap{width:108px;padding:4px}#route-strip span{width:17px;height:17px}#route-strip i{width:5px}.minimap .map-exits{gap:2px}.minimap .map-exits button{min-width:44px}}
+@media(pointer:coarse){body.sandbox-riding .interaction-prompt{display:none}}
+@media(max-height:500px) and (orientation:landscape){.minimap{width:104px}.minimap canvas{max-height:84px}#route-strip{gap:1px}#route-strip i{width:4px}#scooter-bell{right:calc(clamp(136px,18vw,220px) + env(safe-area-inset-right,0px) + 82px);bottom:calc(var(--control-bottom) + 23px)}#ride-speed{right:calc(clamp(136px,18vw,220px) + env(safe-area-inset-right,0px) + 1px);bottom:calc(var(--control-bottom) - 2px)}}

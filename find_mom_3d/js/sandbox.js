@@ -72,11 +72,13 @@ Meadow.Sandbox=class {
     this.game=game;this.held=null;this.riding=null;this.seated=null;this.clock=0;this.releaseButton=document.getElementById('sandbox-release');
     this.releaseButton.onclick=()=>{if(game.state.mode==='playing')this.release(false,this.held?'held':null);};
     window.addEventListener('keydown',event=>{if(event.code==='KeyQ'&&!event.repeat&&game.state.mode==='playing'&&!game.voices.panel.open&&!document.getElementById('chapter-picker').open){event.preventDefault();this.release(false,this.held?'held':null);}});
+    this.bellButton=document.getElementById('scooter-bell');this.bellButton.onclick=()=>this.ringBell();
+    window.addEventListener('keydown',event=>{if(event.code==='KeyH'&&!event.repeat&&game.state.mode==='playing'&&!game.voices.panel.open){event.preventDefault();this.ringBell();}});
     const A=Meadow.Art;this.can=A.group(game.player.body,.48,.55);this.can.position.y=.8;this.can.visible=false;
     A.part(this.can,'cylinder',0x81afb7,[0,0,0],[.19,.27,.19]);const spout=A.part(this.can,'cylinder',0x9ca985,[.23,0,0],[.04,.4,.04]);spout.rotation.z=-1;
   }
   enter(){
-    const w=this.game.world,p=w.playground;this.held=this.riding=this.seated=null;this.waterTime=0;this.can.visible=false;this.game.player.speedMultiplier=1;
+    const w=this.game.world,p=w.playground;this.held=this.riding=this.seated=null;this.waterTime=0;this.can.visible=false;this.game.player.speedMultiplier=1;this.game.player.riding=false;this.bellAt=-10;
     for(const item of p.items){item.mesh.position.set(item.home.x,0,item.home.z);item.mesh.rotation.set(0,0,0);item.vx=item.vz=item.age=item.cooldown=0;item.resetIn=0;item.mesh.scale.setScalar(1);if(item.collider){item.collider.x=item.home.x;item.collider.z=item.home.z;}}
     for(const n of [...w.locals,...w.residents]){n.reaction=0;n.reactionText='';n.dodge=null;n.greetAt=this.clock+1;n.dodgeAt=0;}
     for(const fx of p.effects){fx.life=0;fx.mesh.visible=false;}this.sync();this.ui();
@@ -107,6 +109,10 @@ Meadow.Sandbox=class {
     const visible=this.game.state.mode==='playing'&&!!this.held;this.releaseButton.hidden=!visible;
     this.releaseButton.setAttribute('aria-label','放下包裹，鍵盤 Q');
     document.body.classList.toggle('sandbox-busy',!!visible);
+    document.body.classList.toggle('sandbox-riding',!!this.riding);
+    this.bellButton.hidden=this.game.state.mode!=='playing'||!this.riding;
+    const meter=document.getElementById('ride-speed');meter.hidden=this.bellButton.hidden;
+    meter.value=Math.min(1,(this.game.player.actualSpeed||0)/(CONFIG.PLAYER_SPEED*1.85));
   }
   release(returnHome=false,only=null){
     const g=this.game,w=g.world;
@@ -117,7 +123,7 @@ Meadow.Sandbox=class {
     }
     if(only!=='riding')this.held=null;if(only!=='held')this.riding=null;
     if(this.seated&&only!=='held'){g.player.setPosition(this.seatStart.x,this.seatStart.z);this.seated=null;}
-    g.player.mesh.position.y=this.riding?.14:0;g.player.speedMultiplier=this.riding?1.7:1;this.ui();
+    g.player.mesh.position.y=this.riding?.14:0;g.player.speedMultiplier=this.riding?1.85:1;g.player.riding=!!this.riding;g.player.vx=g.player.vz=0;this.ui();
   }
   candidates(){
     const g=this.game,w=g.world,p=w.playground,items=[];
@@ -143,6 +149,12 @@ Meadow.Sandbox=class {
     n.reaction=2.2;n.reactionText=text;n.routine.wait=2.5;
     if(voice)this.game.voices.playLine(n.name,text);this.burst(n.mesh.position,n.accent);this.game.audio.note(660,.15,.014);
   }
+  ringBell(){
+    const g=this.game;if(!this.riding||g.state.mode!=='playing'||this.clock-this.bellAt<.65)return;
+    this.bellAt=this.clock;g.audio.note(1046,.18,.03);g.audio.note(1568,.35,.018);this.burst(g.player.mesh.position,0x91d1cd);
+    const move={x:Math.sin(g.player.mesh.rotation.y),z:Math.cos(g.player.mesh.rotation.y)};
+    for(const n of [...g.world.locals,...g.world.residents])if(n.mesh.position.distanceTo(g.player.mesh.position)<6){Meadow.Routines.yield(g.world,n,g.player,move,6);this.react(n,'♫');}
+  }
   act(current){
     const g=this.game,w=g.world,p=w.playground;
     if(current.id==='toy-release'){this.release(false,this.riding?'riding':null);return;}
@@ -159,7 +171,7 @@ Meadow.Sandbox=class {
     const item=current.item;if(!item||item.cooldown>0)return;item.cooldown=['parcel','scooter','bench'].includes(item.kind)?0:.35;
     const pos=g.player.mesh.position,dx=item.position.x-pos.x,dz=item.position.z-pos.z,len=Math.hypot(dx,dz)||1;
     if(item.kind==='ball'||item.kind==='crate'){item.vx=dx/len*(item.kind==='ball'?8:3);item.vz=dz/len*(item.kind==='ball'?8:3);this.burst(item.position);g.audio.note(180,.1,.025);}
-    else if(item.kind==='scooter'){this.riding=item;this.react(w.locals[1],'♫');g.audio.note(880,.15,.02);}
+    else if(item.kind==='scooter'){this.riding=item;g.player.riding=true;g.player.vx=g.player.vz=0;this.react(w.locals[1],'♫');g.audio.note(880,.15,.02);}
     else if(item.kind==='parcel'){this.held=item;g.toast('✉ → '+w.locals[item.to].name,1500);this.react(w.locals[item.to],'✉');}
     else if(item.kind==='planter'){
       this.waterTime=1.2;this.burst(item.position,0x8ac3d6);item.bloomed=true;item.flowers.scale.setScalar(1);
@@ -187,17 +199,12 @@ Meadow.Sandbox=class {
     if(item.collider){item.collider.x=item.position.x;item.collider.z=item.position.z;}return hit;
   }
   beforeMove(dt){
-    const g=this.game;g.player.speedMultiplier=this.riding?1.7:1;
+    const g=this.game;g.player.riding=!!this.riding;g.player.speedMultiplier=this.riding?1.85:1;
     if(g.state.mode!=='playing')return;
     const move=g.input.movement(),p=g.player.mesh.position;if(this.seated&&(move.x||move.z))this.release();
     if(!move.x&&!move.z)return;
     for(const n of [...g.world.locals,...g.world.residents]){
-      const dx=n.mesh.position.x-p.x,dz=n.mesh.position.z-p.z,d=Math.hypot(dx,dz);
-      if(d<3&&this.riding)g.player.speedMultiplier=1;
-      if(d>1.7||d<.1||(dx*move.x+dz*move.z)/d<.5||this.clock<(n.dodgeAt||0))continue;
-      n.dodgeAt=this.clock+3;
-      for(const side of [1,-1]){const x=n.mesh.position.x-move.z*.7*side,z=n.mesh.position.z+move.x*.7*side;if(g.world.canWalk(x,z,n.collider)&&Math.hypot(x-n.routine.home.x,z-n.routine.home.z)<3.5){n.dodge={x,z};break;}}
-      this.react(n,'！');
+      if(Meadow.Routines.yield(g.world,n,g.player,move,this.riding?4.2:3)&&this.clock>=(n.dodgeAt||0)){n.dodgeAt=this.clock+2;this.react(n,'！');}
     }
     for(const item of g.world.playground.items)if(['ball','crate'].includes(item.kind)&&!item.resetIn){
       const dx=item.position.x-p.x,dz=item.position.z-p.z,d=Math.hypot(dx,dz);

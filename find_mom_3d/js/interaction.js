@@ -4,6 +4,7 @@ Meadow.Interactions = class {
   candidates() {
     const {world,state}=this.game, items=this.game.travel?.candidates()||[];
     const sandbox=this.game.sandbox?.candidates()||[];
+    const run=this.game.streetRun?.candidate();if(run)sandbox.push(run);
     if(this.game.sandbox?.riding||this.game.sandbox?.seated)return sandbox;
     items.push(...sandbox);
     const residents=(world.residents||[]).map(n=>({id:n.id,position:n.mesh.position,text:`和${n.name}聊聊`}));
@@ -30,15 +31,17 @@ Meadow.Interactions = class {
     this.current=null;
     if(state.mode==='playing'){
       const p=player.mesh.position;let distance=CONFIG.INTERACT_DISTANCE;
-      this.candidates().forEach(item=>{const d=Math.hypot(item.position.x-p.x,item.position.z-p.z);if(d<distance){distance=d;this.current=item;}});
+      this.candidates().forEach(item=>{const d=Math.hypot(item.position.x-p.x,item.position.z-p.z),rank=d+(item.id==='toy-release'&&this.game.sandbox.riding?1.9:0);if(rank<distance){distance=rank;this.current=item;}});
     }
     this.prompt.hidden=!this.current;this.touch.disabled=!this.current;
+    this.touch.querySelector('span').textContent=this.current?.id==='street-run'?'計時':this.game.sandbox?.riding?'下車':this.game.sandbox?.seated?'起身':'互動';
     this.game.sandbox?.highlight(this.current);
     if(this.current){const text=this.current.text;this.prompt.querySelector('span').textContent=text.replace(/^和(.+?)(說話|聊聊)$/,'💬 $1');this.touch.setAttribute('aria-label',text);}
   }
   act() {
     this.update();if(!this.current)return;
     const g=this.game,npc=g.world.residents?.find(n=>n.id===this.current.id);
+    if(this.current.id==='street-run'){g.streetRun.start();return;}
     if(this.current.id.startsWith('toy-')||this.current.id.startsWith('local-')){g.sandbox.act(this.current);return;}
     if(this.current.id.startsWith('travel-')){g.travel.go(this.current.to);return;}
     if(g.chapterComplete()&&['exit','forest-exit'].includes(this.current.id)&&g.state.chapter<4){g.travel.point(1);return;}

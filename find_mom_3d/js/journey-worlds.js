@@ -77,7 +77,7 @@ Meadow.JourneyWorld = class extends Meadow.World {
     }
     if(!reduced){const a=this.particles.geometry.attributes.position;this.particleSeeds.forEach((base,i)=>a.array[i*3+1]=base+Math.sin(time*.6+i)*.2);a.needsUpdate=true;}
   }
-  bounds(x,z,ignore=null){return (x/CONFIG.MAP_RADIUS_X)**2+((z+1)/CONFIG.MAP_RADIUS_Z)**2<.96&&!this.colliders.some(c=>!c.disabled&&c!==ignore&&Math.hypot(x-c.x,z-c.z)<c.r+CONFIG.PLAYER_RADIUS);}
+  bounds(x,z,ignore=null,origin=null){return (x/CONFIG.MAP_RADIUS_X)**2+((z+1)/CONFIG.MAP_RADIUS_Z)**2<.96&&!this.colliders.some(c=>Meadow.Motion.blocked(c,x,z,ignore,origin));}
 };
 
 Meadow.Valley = class extends Meadow.JourneyWorld {
@@ -125,8 +125,8 @@ Meadow.Valley = class extends Meadow.JourneyWorld {
     this.beaverLabel.enabled=true;this.benchLabel.enabled=v.metBeaver&&v.bridge<3;this.dockLabel.enabled=v.bridge===3&&v.raft<4;this.exitLabel.enabled=v.raft===4;
     this.beaver.mesh.position.set(v.raft===4?-2:-3,0,v.raft===4?-12:7);this.raft.visible=v.raft<4;
   }
-  canWalk(x,z,ignore=null){
-    if(!this.bounds(x,z,ignore))return false;
+  canWalk(x,z,ignore=null,origin=null){
+    if(!this.bounds(x,z,ignore,origin))return false;
     if(this.returnCrossing&&Math.abs(x-5)<.85&&z>=-11.6&&z<=3.4)return true;
     if(z>3.2||z<-11.4)return true;
     if(Math.hypot(x,z+4)<2.95)return true;
@@ -196,7 +196,7 @@ Meadow.Hill = class extends Meadow.JourneyWorld {
     this.friends.visible=h.signal;this.gates.forEach(g=>g.mesh.rotation.y=h.signal?g.side*1.4:0);
     if(!this.cutscene){this.protecting=false;this.villain.mesh.visible=false;this.safetyGate.visible=h.reunited;this.safetyGate.position.y=0;this.mother.mesh.rotation.z=0;if(!h.reunited)this.mother.mesh.position.set(4,0,-13);}
   }
-  canWalk(x,z,ignore=null){return this.bounds(x,z,ignore)&&z>=-10.3;}
+  canWalk(x,z,ignore=null,origin=null){return this.bounds(x,z,ignore,origin)&&z>=-10.3;}
   update(time,dt,player,state,reduced){
     const h=state.hill;this.squirrel.update(time,player,reduced);
     let walking=this.cutscene&&!this.hug;

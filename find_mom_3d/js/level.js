@@ -253,10 +253,9 @@ Meadow.World = class {
       l.el.style.transform=`translate(${(v.x*.5+.5)*innerWidth}px,${(-v.y*.5+.5)*innerHeight}px) translate(-50%,-100%)`;
     }
   }
-  canWalk(x,z,ignore=null) {
-    const r=CONFIG.PLAYER_RADIUS;
+  canWalk(x,z,ignore=null,origin=null) {
     if((x/CONFIG.MAP_RADIUS_X)**2+((z+1)/CONFIG.MAP_RADIUS_Z)**2>.96||this.inPond(x,z))return false;
-    return !this.colliders.some(c=>!c.disabled&&c!==ignore&&Math.hypot(x-c.x,z-c.z)<c.r+r);
+    return !this.colliders.some(c=>Meadow.Motion.blocked(c,x,z,ignore,origin));
   }
   setTarget(position) { this.target=position;this.hintRing.visible=!!position; }
   sync(state) {

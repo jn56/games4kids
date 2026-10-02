@@ -9,7 +9,7 @@ Meadow.Progress = {
     return { version:6, prologueSeen:false, chapter:1, entryChapter:1, visited:[true,false,false,false],forest:this.forestFresh(),valley:this.valleyFresh(),hill:this.hillFresh(), ribbon:false, metRabbit:false, metHedgehog:false,
       windSolved:false, windTurns:[...CONFIG.WIND_START], windHints:0,
       flowers:[], arrangement:Array(6).fill(null), lampHints:0,sideStories:[0,0,0,0],sideSecrets:[false,false,false,false],
-      familyStories:[0,0,0,0],familySecrets:[0,0,0,0],playgrounds:Array.from({length:4},()=>({parcels:[],flowers:[],goals:0})),lit:false, completed:false, checkpoint:{...CONFIG.START} };
+      familyStories:[0,0,0,0],familySecrets:[0,0,0,0],playgrounds:Array.from({length:4},()=>({parcels:[],flowers:[],goals:0,bestRun:0})),lit:false, completed:false, checkpoint:{...CONFIG.START} };
   },
   read() {
     try{
@@ -23,7 +23,7 @@ Meadow.Progress = {
         if(raw.forest)raw.forest.input=[];
       }
       const state=this.fresh();state.ribbon=raw.ribbon===true;state.metRabbit=state.ribbon&&raw.metRabbit===true;
-      state.playgrounds=state.playgrounds.map((empty,i)=>{const p=raw.playgrounds?.[i];return {parcels:[0,1,2,3].filter(n=>Array.isArray(p?.parcels)&&p.parcels.includes(n)),flowers:[0,1].filter(n=>Array.isArray(p?.flowers)&&p.flowers.includes(n)),goals:Number.isInteger(p?.goals)?Math.max(0,Math.min(99,p.goals)):0};});
+      state.playgrounds=state.playgrounds.map((empty,i)=>{const p=raw.playgrounds?.[i];return {parcels:[0,1,2,3].filter(n=>Array.isArray(p?.parcels)&&p.parcels.includes(n)),flowers:[0,1].filter(n=>Array.isArray(p?.flowers)&&p.flowers.includes(n)),bestRun:Number.isFinite(p?.bestRun)&&p.bestRun>0&&p.bestRun<=45?Math.round(p.bestRun*10)/10:0,goals:Number.isInteger(p?.goals)?Math.max(0,Math.min(99,p.goals)):0};});
       state.sideStories=Array.from({length:4},(_,i)=>Number.isInteger(raw.sideStories?.[i])?Math.max(0,Math.min(4,raw.sideStories[i])):0);
       state.sideSecrets=Array.from({length:4},(_,i)=>state.sideStories[i]===4&&raw.sideSecrets?.[i]===true);
       state.familyStories=Array.from({length:4},(_,i)=>Number.isInteger(raw.familyStories?.[i])?Math.max(0,Math.min(4,raw.familyStories[i])):0);
