@@ -20,7 +20,7 @@ Meadow.Game = class {
     const firstLayer=new THREE.Group();this.scene.add(firstLayer);
     this.world=new Meadow.World(firstLayer);Meadow.Exploration.expand(this.world,1);this.worldCache={1:{layer:firstLayer,world:this.world}};
     this.player=new Meadow.Player(this.scene);this.view=new Meadow.Camera(this.camera,this.player);
-    this.audio=new Meadow.Audio();this.input=new Meadow.Input(()=>this.action(),()=>this.togglePause());
+    this.audio=new Meadow.Audio();this.input=new Meadow.Input(()=>this.action(),()=>this.togglePause(),()=>this.fullscreen?.toggle());
     this.interactions=new Meadow.Interactions(this);this.dialogue=new Meadow.Dialogue(this);this.story=new Meadow.Story(this);
     this.challenges=new Meadow.Challenges(this);
     this.song=new Meadow.SongPuzzle(this);this.stories={1:this.story,2:new Meadow.ForestStory(this),3:new Meadow.JourneyStory(this,3),4:new Meadow.JourneyStory(this,4)};
@@ -29,6 +29,7 @@ Meadow.Game = class {
     this.voices=new Meadow.VoiceStudio(this);
     this.travel=new Meadow.Travel(this);
     this.sandbox=new Meadow.Sandbox(this);
+    this.fullscreen=new Meadow.Fullscreen(this);
     this.time=0;this.lastTime=performance.now();this.lastHUD=0;this.toastDeadline=0;
     document.body.classList.add('cover');this.bindUI();this.refresh();
     if(this.saved){document.getElementById('start-btn').innerHTML=this.saved.chapter>=2?`繼續${['','黃昏花田','風鈴森林','月光河谷','星光山丘'][this.saved.chapter]} <span>→</span>`:this.saved.completed?'看看希望之光 <span>→</span>':'繼續小米的冒險 <span>→</span>';document.getElementById('new-game-btn').hidden=false;}
