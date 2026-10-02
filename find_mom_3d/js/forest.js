@@ -188,12 +188,12 @@ Meadow.Forest = class extends Meadow.World {
       this.mistAmount=f.separated?.3:0;
     }
   }
-  canWalk(x,z) {
+  canWalk(x,z,ignore=null) {
     if((x/CONFIG.MAP_RADIUS_X)**2+((z+1)/CONFIG.MAP_RADIUS_Z)**2>.96)return false;
     if(z>-10.65&&z< -5.35&&(Math.abs(x-2)>.72||this.bridgeOpen<.98))return false;
     // A low hedge closes the bank approach until the song opens the vine gate.
     if(z< -2.4&&z> -3.1&&(Math.abs(x-2)>1.25||!this.currentState||this.currentState.gustStage<6))return false;
-    return !this.colliders.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+CONFIG.PLAYER_RADIUS);
+    return !this.colliders.some(c=>!c.disabled&&c!==ignore&&Math.hypot(x-c.x,z-c.z)<c.r+CONFIG.PLAYER_RADIUS);
   }
   update(time,dt,player,state,reduced) {
     const f=state.forest;

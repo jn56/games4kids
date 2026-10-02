@@ -6,7 +6,7 @@ Meadow.Progress = {
     return { metOwl:false, round:0, input:[], mistakes:[0,0,0], assists:[0,0,0], gustStage:0, gustWave:0, dashStage:0, dashLeg:0, gustFails:0, dashFails:0, reunited:false, separated:false, routeKnown:false, completed:false };
   },
   fresh() {
-    return { version:6, prologueSeen:false, chapter:1, entryChapter:1, forest:this.forestFresh(),valley:this.valleyFresh(),hill:this.hillFresh(), ribbon:false, metRabbit:false, metHedgehog:false,
+    return { version:6, prologueSeen:false, chapter:1, entryChapter:1, visited:[true,false,false,false],forest:this.forestFresh(),valley:this.valleyFresh(),hill:this.hillFresh(), ribbon:false, metRabbit:false, metHedgehog:false,
       windSolved:false, windTurns:[...CONFIG.WIND_START], windHints:0,
       flowers:[], arrangement:Array(6).fill(null), lampHints:0,sideStories:[0,0,0,0],sideSecrets:[false,false,false,false],
       familyStories:[0,0,0,0],familySecrets:[0,0,0,0],lit:false, completed:false, checkpoint:{...CONFIG.START} };
@@ -79,6 +79,8 @@ Meadow.Progress = {
       h.escortFails=count(rh.escortFails,99);
       h.reunited=h.signal&&h.escort===3&&rh.reunited===true;h.completed=h.reunited&&rh.completed===true;
       state.chapter=raw.chapter===4&&(v.completed||state.entryChapter===4)?4:raw.chapter>=3&&(f.completed||state.entryChapter>=3)?3:raw.chapter>=2&&(state.completed||state.entryChapter>=2)?2:1;
+      const unlocked=Math.max(state.entryChapter,state.completed?2:1,f.completed?3:1,v.completed?4:1);
+      state.visited=Array.from({length:4},(_,i)=>i+1<=unlocked&&(raw.visited?.[i]===true||i+1===state.chapter||[state.completed,f.metOwl,v.metBeaver,h.metSquirrel][i]));
       state.upgraded=raw.version===1&&state.metRabbit;
       const p=raw.checkpoint;if(p&&Number.isFinite(p.x)&&Number.isFinite(p.z)&&Math.abs(p.x)<CONFIG.MAP_RADIUS_X&&Math.abs(p.z+1)<CONFIG.MAP_RADIUS_Z)state.checkpoint={x:p.x,z:p.z};
       return state;
@@ -87,7 +89,7 @@ Meadow.Progress = {
   write(state) {
     try{
       const {version,prologueSeen,chapter,entryChapter,forest,valley,hill,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint}=state;
-      localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify({version,prologueSeen,chapter,entryChapter,forest,valley,hill,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint,sideStories:state.sideStories,sideSecrets:state.sideSecrets,familyStories:state.familyStories,familySecrets:state.familySecrets}));return true;
+      localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify({version,prologueSeen,chapter,entryChapter,forest,valley,hill,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint,visited:state.visited,sideStories:state.sideStories,sideSecrets:state.sideSecrets,familyStories:state.familyStories,familySecrets:state.familySecrets}));return true;
     }catch(_){return false;}
   }
 };

@@ -9,6 +9,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%233d5945'/%3E%3Ctext x='32' y='47' text-anchor='middle' font-size='44'%3E✿%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="story-studio.css">
+  <link rel="stylesheet" href="living-world.css">
 </head>
 <body>
   <div id="game-container" aria-label="黃昏花田 3D 遊戲場景"></div>
@@ -22,7 +23,13 @@
       <button id="pause-btn" class="icon-btn" aria-label="暫停遊戲" title="暫停遊戲" hidden>Ⅱ</button>
     </nav>
   </header>
-  <aside id="minimap" class="minimap" hidden aria-label="關卡小地圖"><button id="minimap-toggle" aria-expanded="true" aria-controls="minimap-body">小地圖 <span>−</span></button><div id="minimap-body"><canvas id="minimap-canvas" width="320" height="320" role="img" aria-label="地圖：紅色箭頭是你，金色菱形是目標，藍色圓點是朋友"></canvas><p><b>▲</b> 你 <em>◆</em> 目標 <i>●</i> 朋友</p></div></aside>
+  <aside id="minimap" class="minimap" hidden aria-label="關卡小地圖">
+    <button id="minimap-toggle" aria-expanded="true" aria-controls="minimap-body" aria-label="展開或收起小地圖"><strong id="map-place">花田</strong><span id="map-toggle-icon">−</span></button>
+    <div id="minimap-body"><canvas id="minimap-canvas" width="320" height="320" role="img" aria-label="紅箭頭是你、金色菱形是目標、藍點是朋友、圓形圖示是出入口"></canvas>
+      <div id="route-strip" aria-label="旅途路線"><span aria-label="花田">✿</span><i></i><span aria-label="森林">♬</span><i></i><span aria-label="河谷">≋</span><i></i><span aria-label="山丘">✦</span></div>
+      <div class="map-exits"><button id="map-back" aria-label="指向上一關入口">←</button><button id="map-next" aria-label="指向下一關入口">→</button></div>
+    </div>
+  </aside>
   <main>
     <section id="title-screen" class="title-screen" aria-labelledby="game-title">
       <div class="cover-copy">
@@ -69,8 +76,9 @@
     <section id="play-hud" hidden aria-label="冒險進度">
       <aside class="quest-card">
         <p class="eyebrow">小小的一步 <span id="step-count">01 / 07</span></p>
-        <h2 id="objective-title">找找媽媽的線索</h2><p id="objective-detail">沿著小路，看看那條紅色髮帶。</p>
-        <div class="quest-bottom"><span id="emotion-tag">一點想念</span><button id="hint-btn" class="hint-btn">? 提示</button></div>
+        <h2 id="objective-title">⋈ 找髮帶</h2><p id="objective-detail">沿著小路，看看那條紅色髮帶。</p>
+        <progress id="quest-progress" value="1" max="7" aria-label="本關進度"></progress>
+        <div class="quest-bottom"><span id="emotion-tag">一點想念</span><button id="hint-btn" class="hint-btn" aria-label="指向目前任務" title="指向目前任務">◎</button></div>
         <button id="journal-btn" class="journal-btn" hidden>✉ 筆記</button>
       </aside>
       <div id="collection" class="collection" hidden aria-label="光花收集進度">
@@ -89,6 +97,7 @@
     <button id="interaction-prompt" class="interaction-prompt" hidden><kbd>E</kbd><span>互動</span></button>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
     <div id="story-caption" class="story-caption" role="status" aria-live="polite" hidden></div>
+    <div id="travel-fade" hidden role="status" aria-live="polite"><strong id="travel-place"></strong></div>
     <button id="prologue-skip" class="prologue-skip" hidden>略過前情 →</button>
     <section id="rescue-ui" hidden aria-label="協助媽媽"><strong id="rescue-title"></strong><progress id="rescue-progress" max="1" value="0" aria-label="求援進度"></progress><button id="rescue-action" class="primary-btn"></button></section>
     <section id="action-ui" hidden aria-label="即時挑戰">
@@ -140,11 +149,12 @@
       <div id="ending-award" class="award-label">01 <span>希望之光</span> ✦</div><div id="ending-lessons" class="ending-lessons"></div>
       <button id="next-chapter-btn" class="primary-btn">前往第二章：風鈴森林 <span>→</span></button><button id="replay-btn" class="secondary-btn">再逛一次花田 ↻</button>
       <button id="ending-chapters-btn" class="secondary-btn">選擇其他關卡</button>
+      <button id="ending-explore" class="secondary-btn">繼續探索</button>
       <p id="ending-next" class="coming-next">下一站：風鈴森林<br><small>咕咕和媽媽的歌，在森林裡等你。</small></p>
     </div></section>
     <section id="error-screen" class="modal-backdrop" hidden><div class="paper-modal"><span class="modal-symbol">☁</span><h2>花田還沒準備好</h2><p id="error-text">瀏覽器無法開啟 3D 畫面，請重新整理，或換用支援 WebGL 的瀏覽器。</p><button class="primary-btn" onclick="location.reload()">重新整理</button></div></section>
   </main>
   <noscript><div class="noscript">請開啟 JavaScript，才能陪小米進入花田。</div></noscript>
-  <script src="three.min.js"></script><script src="config.js"></script><script src="js/art.js"></script><script src="js/input.js"></script><script src="js/player.js"></script><script src="js/camera.js"></script><script src="js/npc.js"></script><script src="js/level.js"></script><script src="js/forest.js"></script><script src="js/journey-worlds.js"></script><script src="js/interaction.js"></script><script src="js/voice-script.js"></script><script src="js/voice-catalog.js"></script><script src="js/voice-studio.js"></script><script src="js/dialogue.js"></script><script src="js/audio.js"></script><script src="js/challenges.js"></script><script src="js/song.js"></script><script src="js/story.js"></script><script src="js/forest-rescue.js"></script><script src="js/forest-story.js"></script><script src="js/river-hop.js"></script><script src="js/adventure.js"></script><script src="js/journey-story.js"></script><script src="js/journey-trials.js"></script><script src="js/exploration.js"></script><script src="js/family-stories.js"></script><script src="js/side-stories.js"></script><script src="js/minimap.js"></script><script src="game.js"></script>
+  <script src="three.min.js"></script><script src="config.js"></script><script src="js/art.js"></script><script src="js/input.js"></script><script src="js/player.js"></script><script src="js/camera.js"></script><script src="js/npc.js"></script><script src="js/level.js"></script><script src="js/forest.js"></script><script src="js/journey-worlds.js"></script><script src="js/interaction.js"></script><script src="js/voice-script.js"></script><script src="js/voice-catalog.js"></script><script src="js/voice-studio.js"></script><script src="js/dialogue.js"></script><script src="js/audio.js"></script><script src="js/challenges.js"></script><script src="js/song.js"></script><script src="js/story.js"></script><script src="js/forest-rescue.js"></script><script src="js/forest-story.js"></script><script src="js/river-hop.js"></script><script src="js/adventure.js"></script><script src="js/journey-story.js"></script><script src="js/journey-trials.js"></script><script src="js/travel.js"></script><script src="js/routines.js"></script><script src="js/exploration.js"></script><script src="js/family-stories.js"></script><script src="js/side-stories.js"></script><script src="js/minimap.js"></script><script src="game.js"></script>
 </body>
 </html>

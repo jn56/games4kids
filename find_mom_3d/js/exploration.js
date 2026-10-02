@@ -47,9 +47,10 @@ Meadow.Exploration = {
     routes.push([[-12,24],[-12,21]],[[12,25],[12,22]]);
     if(chapter===1)routes.push([[-25,10],[-25,-4],[-22,-19],[0,-28],[23,-19],[25,13]],[[0,-14],[0,-28],[0,-37]]);
     routes.forEach(points=>world.path(points,2.2));
+    Meadow.Travel.build(world,chapter);
     world.residents=Meadow.Residents[chapter].map((data,i)=>{
       const npc={...data,id:`resident-${chapter}-${i}`};npc.mesh=this.character(root,npc);npc.label=world.label(npc.mesh,npc.name,2.6);npc.label.el.classList.add('chat-label');
-      world.colliders.push({x:npc.x,z:npc.z,r:.45});
+      npc.collider={x:npc.x,z:npc.z,r:.45};world.colliders.push(npc.collider);
       this.restStop(world,npc,i);return npc;
     });
     const random=A.rng(940+chapter);
@@ -66,8 +67,9 @@ Meadow.Exploration = {
     // Additional northern scenery is reachable in the meadow and after the river crossing.
     if(chapter===1||chapter===3){
       if(chapter===3)world.path([[0,-13],[0,-23],[-17,-27],[0,-34],[19,-25],[0,-23]],2);
-      for(let i=0;i<15;i++){const a=i/14*Math.PI,x=Math.cos(a)*29,z=-18-Math.sin(a)*16;if(chapter===1)world.tree(x,z,.9,i%3);else world.tree(x,z);}
+      for(let i=0;i<15;i++){const a=i/14*Math.PI,x=Math.cos(a)*29,z=-18-Math.sin(a)*16;if(world.nearPath(x,z,1.5))continue;if(chapter===1)world.tree(x,z,.9,i%3);else world.tree(x,z);}
     }
+    Meadow.Routines.setup(world,chapter);
   },
   plantOuterMeadow(world,chapter){
     const A=Meadow.Art,random=A.rng(301+chapter),positions=[];
@@ -93,12 +95,13 @@ Meadow.Exploration = {
   },
   character(root,npc){
     const A=Meadow.Art,g=A.group(root,npc.x,npc.z),body=A.group(g);npc.body=body;
+    npc.legs=[];npc.arms=[];
     A.part(body,'ball',npc.color,[0,.73,0],[.48,.65,.38]);
     A.part(body,'ball',npc.color,[0,1.53,.08],[.48,.43,.38]);
     for(const s of [-1,1]){
       A.part(body,'ball',0x384741,[s*.18,1.58,.425],[.045,.06,.025]);
-      A.part(body,'ball',npc.color,[s*.29,.16,.14],[.2,.14,.28]);
-      A.part(body,'ball',npc.color,[s*.46,.81,.08],[.14,.33,.18]);
+      const leg=A.group(body,s*.29,.14);leg.position.y=.4;A.part(leg,'ball',npc.color,[0,-.24,0],[.2,.14,.28]);npc.legs.push(leg);
+      const arm=A.group(body,s*.46,.08);arm.position.y=1.04;A.part(arm,'ball',npc.color,[0,-.23,0],[.14,.33,.18]);npc.arms.push(arm);
       if(npc.kind==='cat')A.part(body,'cone',npc.color,[s*.31,1.97,.01],[.2,.5,.17]);
     }
     if(npc.kind==='turtle'){
@@ -143,13 +146,12 @@ Meadow.Exploration = {
     if(index===1){A.disk(g,0x9fc4c5,4,1,1.6,1.15,.035);world.colliders.push({x:npc.x+4,z:npc.z+1,r:1.6});}
     if(index===2){const tent=A.part(g,'cone',npc.accent,[0,1.2,-3.5],[2,2.4,1.7]);tent.rotation.y=Math.PI/4;world.colliders.push({x:npc.x,z:npc.z-3.5,r:1.7});}
   },
-  update(world,time,player,state,reduced){
+  update(world,time,player,state,reduced,dt=0){
+    Meadow.Routines.update(world,dt,player,state,reduced);
     const visible=state.mode==='playing'||state.mode==='dialogue';
     for(const npc of world.residents||[]){
-      const p=player.mesh.position,d=Math.hypot(npc.x-p.x,npc.z-p.z);
-      npc.label.enabled=visible&&d<4;npc.placeLabel.enabled=visible&&d<8&&d>5;
-      if(visible&&d<10)npc.mesh.rotation.y=Math.atan2(p.x-npc.x,p.z-npc.z);
-      if(state.mode!=='paused')npc.body.position.y=reduced?0:Math.sin(time*1.7+npc.x)*.025;
+      const p=player.mesh.position,d=Math.hypot(npc.mesh.position.x-p.x,npc.mesh.position.z-p.z),homeDistance=Math.hypot(npc.x-p.x,npc.z-p.z);
+      npc.label.enabled=visible&&d<3;npc.placeLabel.enabled=visible&&homeDistance<7&&homeDistance>5;
     }
   }
 };

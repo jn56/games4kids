@@ -244,19 +244,19 @@ Meadow.World = class {
     const dot=document.createElement('span');dot.className='label-dot';el.append(bubble,dot);document.getElementById('world-labels').append(el);
     const label={object,el,height,enabled:true};this.labels.push(label);return label;
   }
-  updateLabels(camera,show) {
+  updateLabels(camera,show,playerPosition=null) {
     const v=new THREE.Vector3();
     for(const l of this.labels){
       if(!show||!l.enabled){l.el.hidden=true;continue;}
-      l.object.getWorldPosition(v);v.y+=l.height;v.project(camera);
+      l.object.getWorldPosition(v);if(playerPosition&&Math.hypot(v.x-playerPosition.x,v.z-playerPosition.z)>8){l.el.hidden=true;continue;}v.y+=l.height;v.project(camera);
       l.el.hidden=v.z>1||v.z< -1||Math.abs(v.x)>1.15||Math.abs(v.y)>1.15;
       l.el.style.transform=`translate(${(v.x*.5+.5)*innerWidth}px,${(-v.y*.5+.5)*innerHeight}px) translate(-50%,-100%)`;
     }
   }
-  canWalk(x,z) {
+  canWalk(x,z,ignore=null) {
     const r=CONFIG.PLAYER_RADIUS;
     if((x/CONFIG.MAP_RADIUS_X)**2+((z+1)/CONFIG.MAP_RADIUS_Z)**2>.96||this.inPond(x,z))return false;
-    return !this.colliders.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+r);
+    return !this.colliders.some(c=>!c.disabled&&c!==ignore&&Math.hypot(x-c.x,z-c.z)<c.r+r);
   }
   setTarget(position) { this.target=position;this.hintRing.visible=!!position; }
   sync(state) {
