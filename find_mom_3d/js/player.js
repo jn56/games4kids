@@ -42,6 +42,7 @@ Meadow.Player = class {
     this.sprinting=canMove&&!this.riding&&!!input.sprinting?.();
     const speed=CONFIG.PLAYER_SPEED*(this.speedMultiplier||1)*(this.sprinting?1.45:1);
     const moving=!!(move.x||move.z),response=this.riding?(moving?5:17):(moving?18:30);
+    this.moving=moving;
     const blend=1-Math.exp(-response*dt);
     this.vx=(this.vx||0)+(move.x*speed-(this.vx||0))*blend;
     this.vz=(this.vz||0)+(move.z*speed-(this.vz||0))*blend;
@@ -61,5 +62,5 @@ Meadow.Player = class {
     this.body.position.y = walking && !reducedMotion ? Math.abs(Math.sin(this.phase)) * .055 : 0;
     this.shadow.position.x = this.mesh.position.x; this.shadow.position.z = this.mesh.position.z;
   }
-  setPosition(x, z) { this.mesh.position.set(x, 0, z);this.vx=this.vz=this.actualSpeed=0; }
+  setPosition(x, z) { this.mesh.position.set(x, 0, z);this.vx=this.vz=this.actualSpeed=0;this.moving=false; }
 };

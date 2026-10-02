@@ -120,7 +120,7 @@ Meadow.Story = class {
       if(s.flowers.length===3&&!s.lit){g.challenges.open('lamp');return;}
       if(s.lit){this.say([L('阿蹦','我陪著你呢！跟著金色光點，走到花拱門吧。')]);return;}
       const missing=CONFIG.FLOWERS.filter(f=>!s.flowers.includes(f.id));
-      this.say([L('阿蹦',`你已經找到 ${s.flowers.length} 朵光花了。慢慢來，每一小步都很棒。`),L('阿蹦',`可以去${missing[0].clue}，找找「${missing[0].symbol} ${missing[0].name}」。需要時按「給我提示」喔。`)]);return;
+      this.say([L('阿蹦',`你已經找到 ${s.flowers.length} 朵光花了。慢慢來，每一小步都很棒。`),L('阿蹦',`可以去${missing[0].clue}，找找「${missing[0].symbol} ${missing[0].name}」。需要時翻開筆記看看線索喔。`)]);return;
     }
     if(id==='hedgehog'){
       if(!s.metRabbit){this.say([L('栗栗','你好，我是郵差栗栗。你在找媽媽嗎？阿蹦剛才和她說過話，先去問問他吧！')]);return;}

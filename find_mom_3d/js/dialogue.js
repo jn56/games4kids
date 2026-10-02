@@ -9,6 +9,8 @@ Meadow.Dialogue = class {
   show(lines,callback,choices=null) {
     // Keep each page short enough for large, comfortably readable text.
     this.lines=Meadow.Script.pages(lines);this.index=0;this.callback=callback;this.choices=choices;
+    this.game.world.talkingActors=new Set(lines.map(line=>Meadow.Script.role(line.name)));
+    for(const n of [...(this.game.world.residents||[]),...(this.game.world.locals||[])])if(this.game.world.talkingActors.has(n.name))n.dodge=null;
     this.game.state.mode='dialogue';this.game.input.reset();this.panel.hidden=false;
     document.body.classList.add('in-dialogue');this.render();this.game.interactions.update();
     (this.choices&&this.lines.length===1?document.querySelector('#dialogue-choices button'):document.getElementById('dialogue-next')).focus({preventScroll:true});
@@ -41,6 +43,7 @@ Meadow.Dialogue = class {
     const done=this.callback;this.close();if(done)done();
   }
   close() {
+    this.game.world.talkingActors=null;
     this.game.voices?.stop();this.choices=null;document.getElementById('dialogue-choices').hidden=true;document.getElementById('dialogue-next').hidden=false;
     this.panel.hidden=true;this.callback=null;this.lines=[];
     document.body.classList.remove('in-dialogue');this.game.input.reset();this.game.state.mode='playing';

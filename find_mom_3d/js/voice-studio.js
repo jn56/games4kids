@@ -10,7 +10,9 @@ Meadow.VoiceStudio=class {
     this.el('open').onclick=()=>this.open();this.el('close').onclick=()=>this.panel.close();
     this.panel.addEventListener('close',()=>{this.stopRecording(false);this.stop();this.game.input.reset();});
     this.panel.addEventListener('cancel',()=>{this.stopRecording(false);this.stop();});
-    for(const id of ['role','chapter','missing'])this.el(id).onchange=()=>this.renderList();
+    this.el('role').onchange=()=>this.showWholeRole();
+    for(const id of ['chapter','missing'])this.el(id).onchange=()=>this.renderList();
+    this.el('scope-reset').onclick=()=>this.showWholeRole();
     this.el('search').oninput=()=>this.renderList();
     this.el('lines').onchange=()=>{this.stop();this.renderLine();};
     this.el('record').onclick=()=>this.capture?this.stopRecording(true):this.record();
@@ -65,10 +67,11 @@ Meadow.VoiceStudio=class {
     const role=this.el('role').value,chapter=Number(this.el('chapter').value),query=this.el('search').value.trim(),missing=this.el('missing').checked;
     return [...this.catalog].filter(([key,line])=>(!role||line.name===role)&&(!chapter||line.chapters.includes(chapter))&&(!query||line.text.includes(query)||line.name.includes(query))&&(!missing||!this.records.has(key)));
   }
+  showWholeRole(){this.el('chapter').value='0';this.el('search').value='';this.el('missing').checked=false;this.renderList();}
   renderList(preferred=this.el('lines').value){
     this.stop();
     const list=this.el('lines');list.replaceChildren();
-    for(const [key,line] of this.filtered())list.add(new Option(`${this.records.has(key)?'●':'○'} ${line.name}｜${line.text}`,key));
+    for(const [i,[key,line]] of this.filtered().entries())list.add(new Option(`${this.records.has(key)?'●':'○'} ${i+1}. ${this.el('role').value?'':line.name+'｜'}${line.text}`,key));
     if([...list.options].some(o=>o.value===preferred))list.value=preferred;
     else list.selectedIndex=list.options.length?0:-1;
     this.renderLine();
@@ -76,8 +79,11 @@ Meadow.VoiceStudio=class {
   renderLine(){
     const key=this.el('lines').value,line=this.catalog.get(key),locked=!!this.capture||this.busy,take=this.records.get(key);
     this.el('name').textContent=line?line.name:'';this.el('text').textContent=line?line.text:'沒有符合的台詞';
-    this.el('count').textContent=`已錄 ${[...this.catalog.keys()].filter(k=>this.records.has(k)).length} / ${this.catalog.size} 句`;
-    for(const id of ['role','chapter','search','missing','lines','previous','next','import','export'])this.el(id).disabled=locked;
+    const role=this.el('role').value,rows=[...this.catalog].filter(([,row])=>!role||row.name===role),recorded=rows.filter(([key])=>this.records.has(key)).length;
+    this.el('count').textContent=`${this.el('role').options.length-1} 位角色 · ${this.catalog.size} 句台詞`;
+    this.el('scope').textContent=`${role||'全部角色'}：已錄 ${recorded} / ${rows.length} 句 · 顯示 ${this.el('lines').options.length} 句`;
+    for(const option of this.el('role').options){if(!option.value)continue;const own=[...this.catalog].filter(([,row])=>row.name===option.value);option.textContent=option.value+' · '+own.filter(([key])=>this.records.has(key)).length+'/'+own.length;}
+    for(const id of ['role','chapter','search','missing','lines','previous','next','import','export','scope-reset'])this.el(id).disabled=locked;
     this.el('record').disabled=!line||!this.db||this.busy||!!this.capture?.pending||!!this.capture?.stopping;
     this.el('record').textContent=this.capture?'■ 停止並儲存':take?'● 重錄這句':'● 錄這一句';
     this.el('record').classList.toggle('recording',!!this.capture);
@@ -156,6 +162,7 @@ Meadow.VoiceStudio=class {
   preview(){if(!this.capture&&!this.busy)this.play(this.records.get(this.el('lines').value),true);}
   playLine(name,text){
     this.stop();if(!this.enabled||!this.game.audio.enabled||this.game.audio.paused||this.panel.open)return;
+    const pages=Meadow.Script.pages([{name,text}]);if(pages.length>1){this.playSequence(pages);return;}
     this.play(this.records.get(Meadow.Script.key(name,text)));
   }
   playSequence(lines){

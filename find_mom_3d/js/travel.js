@@ -69,7 +69,7 @@ Meadow.Travel=class {
   }
   point(direction){
     const to=this.game.state.chapter+direction,gate=this.game.world.portals.find(p=>p.to===to);
-    if(!gate?.open)return;this.selected=this.selected===to?0:to;this.game.refresh();
+    if(!gate?.open)return;this.game.errands?.track('main');this.selected=this.selected===to?0:to;this.game.refresh();
   }
   target(){
     const g=this.game,to=this.selected||(g.chapterComplete()&&g.state.chapter<4?g.state.chapter+1:0),gate=g.world.portals?.find(p=>p.to===to);
@@ -128,7 +128,7 @@ Meadow.Travel=class {
 
 Meadow.JourneyUI={
   summary(g){
-    const s=g.state,c=s.chapter,delivery=g.sandbox?.target();if(delivery)return delivery.text;
+    const s=g.state,c=s.chapter;
     const route=g.travel?.target();if(route)return '↗ '+route.text;
     if(c===1)return !s.ribbon?'⋈ 找髮帶':!s.metRabbit?'💬 阿蹦':!s.metHedgehog?'💬 栗栗':!s.windSolved?'✣ 修風管':s.flowers.length<3?'✿ '+s.flowers.length+' / 3':!s.lit?'✦ 點燈':'✿ 自由探索';
     if(c===2){const f=s.forest;return !f.metOwl?'💬 咕咕':f.round<3?'♬ '+f.round+' / 3':f.gustStage<6?'≋ 疾風小徑':!f.reunited?'♡ 媽媽':!f.routeKnown?'💬 咕咕':f.dashStage<3?'◒ 河上跳石':'♬ 自由探索';}

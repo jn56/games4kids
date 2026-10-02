@@ -43,12 +43,12 @@ Meadow.FamilyStories={
     const say=(lines,done,choices)=>g.dialogue.show(lines.map(([name,text])=>({name,text})),done,choices);
     if(stage===0&&part===0){
       say([...npc.lines,...story.ask],null,story.options.map((label,i)=>({label,choose:()=>say(story.replies[i],()=>{
-        g.state.familyStories[c]=i+1;g.saveProgress();g.refresh();g.toast('去找'+g.world.residents[4].name+'聊聊');
+        g.state.familyStories[c]=i+1;g.errands?.track('family');g.saveProgress();g.refresh();g.toast('💬 下一步：找'+g.world.residents[4].name);
       })})));return;
     }
     if(stage>0&&stage<3){
       if(part===0)say([[npc.name,'謝謝你陪我想辦法。再去問問'+g.world.residents[4].name+'吧。']]);
-      else say(story.endings[stage-1],()=>{g.state.familyStories[c]=stage+2;g.saveProgress();g.refresh();g.audio.chime();g.toast('旅途回憶：'+story.title);});
+      else say(story.endings[stage-1],()=>{g.state.familyStories[c]=stage+2;g.errands?.track('main');g.saveProgress();g.refresh();g.audio.chime();g.toast('✓ '+story.title);});
       return;
     }
     if(stage>=3){say(story.secrets[part],()=>{g.state.familySecrets[c]|=1<<part;g.saveProgress();g.toast('發現彩蛋：'+story.title);});return;}

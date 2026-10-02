@@ -33,19 +33,19 @@ Meadow.Routines={
     const p=npc.mesh.position,q=player.mesh.position,before=Math.hypot(p.x-q.x,p.z-q.z),after=Math.hypot(x-q.x,z-q.z);
     return world.canWalk(x,z,npc.collider,p)&&(after>=.95||after>before+.00001);
   },
-  yield(world,npc,player,move,range=3){
+  yield(world,npc,player,move,range=1.4){
     const p=npc.mesh.position,q=player.mesh.position,r=npc.routine,dx=p.x-q.x,dz=p.z-q.z;
-    const length=Math.hypot(move.x,move.z);if(!length||npc.dodge)return false;
+    const length=Math.hypot(move.x,move.z);if(!length||npc.dodge||r.clock<(r.yieldUntil||0)||world.talkingActors?.has(npc.name))return false;
     const mx=move.x/length,mz=move.z/length,ahead=dx*mx+dz*mz,lateral=dx*mz-dz*mx;
-    if(ahead<-.4||ahead>range||Math.abs(lateral)>1.15)return false;
-    // Step out of the whole walking corridor, not just half a body width.
+    if(ahead<0||ahead>range||Math.abs(lateral)>.8)return false;
+    // One small sidestep, with a real cooldown, leaves the speaker in talk range.
     const preferred=Math.abs(lateral)>.12?-Math.sign(lateral):(r.seed%2?1:-1);
     for(const side of [preferred,-preferred]){
-      const x=p.x-mz*1.35*side,z=p.z+mx*1.35*side;
+      const distance=Math.max(.25,.88-Math.abs(lateral)),x=p.x-mz*distance*side,z=p.z+mx*distance*side;
       if(Math.hypot(x-r.home.x,z-r.home.z)>3.5)continue;
       let safe=true;
       for(let i=1;i<=10;i++)if(!this.clear(world,npc,p.x+(x-p.x)*i/10,p.z+(z-p.z)*i/10,player)){safe=false;break;}
-      if(safe){npc.dodge={x,z};return true;}
+      if(safe){npc.dodge={x,z};r.yieldUntil=r.clock+3;return true;}
     }
     return false;
   },
@@ -53,8 +53,10 @@ Meadow.Routines={
     const r=npc.routine,p=npc.mesh.position,target=player.mesh.position;
     if(Math.hypot(p.x-r.home.x,p.z-r.home.z)>5){r.home={x:p.x,z:p.z};r.point=0;r.wait=1;}
     r.walking=false;r.clock+=dt;
+    const talking=world.talkingActors?.has(npc.name),distanceToPlayer=Math.hypot(p.x-target.x,p.z-target.z);
+    if(talking||distanceToPlayer<2.55&&!player.moving&&!npc.dodge?.fromBell){npc.dodge=null;}
     const reacting=(npc.reaction||0)>0;if(reacting)npc.reaction=Math.max(0,npc.reaction-dt);
-    const nearby=reacting||Math.hypot(p.x-target.x,p.z-target.z)<2.55;
+    const nearby=talking||reacting||distanceToPlayer<2.55;
     if(nearby){npc.mesh.rotation.y=Math.atan2(target.x-p.x,target.z-p.z);}
     else if(r.wait>0){r.wait-=dt;npc.mesh.rotation.y=Math.atan2(r.home.x+1.8-p.x,r.home.z-1.1-p.z);}
     else{
@@ -72,7 +74,7 @@ Meadow.Routines={
       }
     }
     if(npc.dodge){
-      const d=Math.hypot(npc.dodge.x-p.x,npc.dodge.z-p.z),t=Math.min(1,dt*4.8/Math.max(.01,d)),x=p.x+(npc.dodge.x-p.x)*t,z=p.z+(npc.dodge.z-p.z)*t;
+      const d=Math.hypot(npc.dodge.x-p.x,npc.dodge.z-p.z),t=Math.min(1,dt*1.3/Math.max(.01,d)),x=p.x+(npc.dodge.x-p.x)*t,z=p.z+(npc.dodge.z-p.z)*t;
       if(this.clear(world,npc,x,z,player)){npc.mesh.rotation.y=Math.atan2(x-p.x,z-p.z);p.x=x;p.z=z;r.walking=true;r.phase+=dt*10;}else npc.dodge=null;
       if(d<.04){npc.dodge=null;r.wait=1.2;}
     }

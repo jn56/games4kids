@@ -28,10 +28,10 @@ Meadow.Interactions = class {
   }
   update() {
     const {state,player}=this.game;
-    this.current=null;
+    const previous=this.current;this.current=null;
     if(state.mode==='playing'){
       const p=player.mesh.position;let distance=CONFIG.INTERACT_DISTANCE;
-      this.candidates().forEach(item=>{const d=Math.hypot(item.position.x-p.x,item.position.z-p.z),rank=d+(item.id==='toy-release'&&this.game.sandbox.riding?1.9:0);if(rank<distance){distance=rank;this.current=item;}});
+      this.candidates().forEach(item=>{const d=Math.hypot(item.position.x-p.x,item.position.z-p.z),sticky=previous?.id===item.id&&item.id.startsWith('resident-')?.22:0,rank=d-sticky+(item.id==='toy-release'&&this.game.sandbox.riding?1.9:0);if(rank<distance){distance=rank;this.current=item;}});
     }
     this.prompt.hidden=!this.current;this.touch.disabled=!this.current;
     this.touch.querySelector('span').textContent=this.current?.id==='street-run'?'計時':this.game.sandbox?.riding?'下車':this.game.sandbox?.seated?'起身':'互動';

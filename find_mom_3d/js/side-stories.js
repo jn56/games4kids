@@ -54,7 +54,7 @@ Meadow.SideStories={
       lines=[{name:npc.name,text:'「'+story.reward+'」已經收進你的旅途回憶。謝謝你！'},{name:npc.name,text:'再去找'+cast[2].name+'聊聊吧，好像還藏了一個小祕密。'}];
     }else if(stage===4&&index===2){lines=story.secret.map(text=>({name:npc.name,text}));egg=true;}
     g.dialogue.show(lines,()=>{
-      if(advance){g.state.sideStories[c]=stage+1;g.saveProgress();g.refresh();g.audio.chime();g.toast(stage===3?'旅途回憶：'+story.reward:'小支線：'+story.title+' · 下一站 '+cast[[1,2,0][stage]].name);}
+      if(advance){g.state.sideStories[c]=stage+1;g.errands?.track(stage===3?'main':'story');g.saveProgress();g.refresh();g.audio.chime();g.toast(stage===3?'✓ '+story.reward:'💬 下一步：找'+cast[[1,2,0][stage]].name);}
       if(egg&&!g.state.sideSecrets[c]){g.state.sideSecrets[c]=true;g.saveProgress();g.toast('發現彩蛋：'+story.title);}
     });
   }

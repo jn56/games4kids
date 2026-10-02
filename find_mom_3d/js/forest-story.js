@@ -29,7 +29,7 @@ Meadow.ForestStory = class {
       if(!f.metOwl){g.toast('先和咕咕說話，聽聽這些風鈴的祕密。');return;}
       if(f.round<3){g.song.open();return;}
       if(f.gustStage<6){g.trials.start('gust');return;}
-      g.toast('三段旋律都完成了。媽媽正在橋邊等你。');return;
+      g.toast(f.separated?f.routeKnown?'沿河岸去找媽媽。':'先找咕咕，確認沿河的路。':'三段旋律都完成了。媽媽正在橋邊等你。');return;
     }
     if(id==='mother'){
       if(f.round<3){g.toast('先和咕咕找回三段旋律，讓藤蔓讓路。');return;}

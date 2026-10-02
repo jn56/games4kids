@@ -59,10 +59,11 @@
     <dialog id="voice-studio" aria-labelledby="voice-title">
       <header class="voice-header"><div><h2 id="voice-title">角色配音室</h2><span id="voice-count"></span></div><button id="voice-close" class="secondary-btn">返回 ×</button></header>
       <div class="voice-filters">
-        <label>角色<select id="voice-role"><option value="">全部角色</option></select></label>
+        <label>想幫誰配音？<select id="voice-role"><option value="">全部角色</option></select></label>
         <label>關卡<select id="voice-chapter"><option value="0">全部關卡</option><option value="1">花田</option><option value="2">森林</option><option value="3">河谷</option><option value="4">山丘</option></select></label>
         <label>找台詞<input id="voice-search" type="search" placeholder="輸入關鍵字" maxlength="60"></label>
       </div>
+      <div class="voice-scope"><span id="voice-scope" role="status"></span><button id="voice-scope-reset" class="text-btn">顯示全部台詞</button></div>
       <div class="voice-layout">
         <div class="voice-library"><label class="voice-check"><input id="voice-missing" type="checkbox">只看未錄</label><select id="voice-lines" size="9" aria-label="選擇一句台詞"></select></div>
         <section class="voice-take" aria-label="逐句配音"><strong id="voice-name"></strong><p id="voice-text"></p>
@@ -74,10 +75,11 @@
       <p id="voice-status" role="status" aria-live="polite"></p>
       <footer class="voice-footer"><label class="voice-check"><input id="voice-use" type="checkbox" checked>遊戲中播放配音</label><div><button id="voice-export" class="text-btn">匯出備份</button><button id="voice-import" class="text-btn">匯入備份</button><input id="voice-file" type="file" accept=".json,application/json" hidden></div></footer>
     </dialog>
+    <dialog id="errand-board" class="paper-modal" aria-labelledby="errand-title"><header><h2 id="errand-title">想做哪件事？</h2><button id="errand-close" aria-label="關閉任務清單">×</button></header><div id="errand-list"></div></dialog>
     <section id="play-hud" hidden aria-label="冒險進度">
       <aside class="quest-card">
         <p class="eyebrow">小小的一步 <span id="step-count">01 / 07</span></p>
-        <h2 id="objective-title">⋈ 找髮帶</h2><p id="objective-detail">沿著小路，看看那條紅色髮帶。</p>
+        <button id="objective-title" type="button" aria-haspopup="dialog" title="查看任務清單">⋈ 找髮帶</button><p id="objective-detail">沿著小路，看看那條紅色髮帶。</p>
         <progress id="quest-progress" value="1" max="7" aria-label="本關進度"></progress>
         <div class="quest-bottom"><span id="emotion-tag">一點想念</span><button id="hint-btn" class="hint-btn" aria-label="指向目前任務" title="指向目前任務">◎</button></div>
         <button id="journal-btn" class="journal-btn" hidden>✉ 筆記</button>
@@ -158,6 +160,6 @@
     <section id="error-screen" class="modal-backdrop" hidden><div class="paper-modal"><span class="modal-symbol">☁</span><h2>花田還沒準備好</h2><p id="error-text">瀏覽器無法開啟 3D 畫面，請重新整理，或換用支援 WebGL 的瀏覽器。</p><button class="primary-btn" onclick="location.reload()">重新整理</button></div></section>
   </main>
   <noscript><div class="noscript">請開啟 JavaScript，才能陪小米進入花田。</div></noscript>
-  <script src="three.min.js"></script><script src="config.js"></script><script src="js/art.js"></script><script src="js/input.js"></script><script src="js/motion.js"></script><script src="js/player.js"></script><script src="js/camera.js"></script><script src="js/npc.js"></script><script src="js/level.js"></script><script src="js/forest.js"></script><script src="js/journey-worlds.js"></script><script src="js/interaction.js"></script><script src="js/voice-script.js"></script><script src="js/voice-catalog.js"></script><script src="js/voice-studio.js"></script><script src="js/dialogue.js"></script><script src="js/audio.js"></script><script src="js/challenges.js"></script><script src="js/song.js"></script><script src="js/story.js"></script><script src="js/forest-rescue.js"></script><script src="js/forest-story.js"></script><script src="js/river-hop.js"></script><script src="js/adventure.js"></script><script src="js/journey-story.js"></script><script src="js/journey-trials.js"></script><script src="js/travel.js"></script><script src="js/routines.js"></script><script src="js/street-run.js"></script><script src="js/sandbox.js"></script><script src="js/exploration.js"></script><script src="js/family-stories.js"></script><script src="js/side-stories.js"></script><script src="js/minimap.js"></script><script src="js/fullscreen.js"></script><script src="game.js"></script>
+  <script src="three.min.js"></script><script src="config.js"></script><script src="js/art.js"></script><script src="js/input.js"></script><script src="js/motion.js"></script><script src="js/player.js"></script><script src="js/camera.js"></script><script src="js/npc.js"></script><script src="js/level.js"></script><script src="js/forest.js"></script><script src="js/journey-worlds.js"></script><script src="js/interaction.js"></script><script src="js/voice-script.js"></script><script src="js/voice-catalog.js"></script><script src="js/voice-studio.js"></script><script src="js/dialogue.js"></script><script src="js/audio.js"></script><script src="js/challenges.js"></script><script src="js/song.js"></script><script src="js/story.js"></script><script src="js/forest-rescue.js"></script><script src="js/forest-story.js"></script><script src="js/river-hop.js"></script><script src="js/adventure.js"></script><script src="js/journey-story.js"></script><script src="js/journey-trials.js"></script><script src="js/travel.js"></script><script src="js/routines.js"></script><script src="js/street-run.js"></script><script src="js/sandbox.js"></script><script src="js/exploration.js"></script><script src="js/family-stories.js"></script><script src="js/side-stories.js"></script><script src="js/minimap.js"></script><script src="js/errands.js"></script><script src="js/fullscreen.js"></script><script src="game.js"></script>
 </body>
 </html>

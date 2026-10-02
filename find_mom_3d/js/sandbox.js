@@ -80,7 +80,7 @@ Meadow.Sandbox=class {
   enter(){
     const w=this.game.world,p=w.playground;this.held=this.riding=this.seated=null;this.waterTime=0;this.can.visible=false;this.game.player.speedMultiplier=1;this.game.player.riding=false;this.bellAt=-10;
     for(const item of p.items){item.mesh.position.set(item.home.x,0,item.home.z);item.mesh.rotation.set(0,0,0);item.vx=item.vz=item.age=item.cooldown=0;item.resetIn=0;item.mesh.scale.setScalar(1);if(item.collider){item.collider.x=item.home.x;item.collider.z=item.home.z;}}
-    for(const n of [...w.locals,...w.residents]){n.reaction=0;n.reactionText='';n.dodge=null;n.greetAt=this.clock+1;n.dodgeAt=0;}
+    for(const n of [...w.locals,...w.residents]){n.reaction=0;n.reactionText='';n.dodge=null;n.routine.yieldUntil=0;n.greetAt=this.clock+1;n.dodgeAt=0;}
     for(const fx of p.effects){fx.life=0;fx.mesh.visible=false;}this.sync();this.ui();
   }
   progress(){return this.game.state.playgrounds[this.game.state.chapter-1];}
@@ -116,6 +116,7 @@ Meadow.Sandbox=class {
   }
   release(returnHome=false,only=null){
     const g=this.game,w=g.world;
+    if(this.held&&only!=='riding'&&g.errands?.choice()==='parcel')g.errands.track('main');
     for(const item of [only==='riding'?null:this.held,only==='held'?null:this.riding].filter(Boolean)){
       const p=g.player.mesh.position,a=g.player.mesh.rotation.y;let drop=item.home;
       if(!returnHome)for(let i=0;i<8;i++){const x=p.x+Math.sin(a+i*Math.PI/4)*.9,z=p.z+Math.cos(a+i*Math.PI/4)*.9;if(w.canWalk(x,z)){drop={x,z};break;}}
@@ -153,14 +154,14 @@ Meadow.Sandbox=class {
     const g=this.game;if(!this.riding||g.state.mode!=='playing'||this.clock-this.bellAt<.65)return;
     this.bellAt=this.clock;g.audio.note(1046,.18,.03);g.audio.note(1568,.35,.018);this.burst(g.player.mesh.position,0x91d1cd);
     const move={x:Math.sin(g.player.mesh.rotation.y),z:Math.cos(g.player.mesh.rotation.y)};
-    for(const n of [...g.world.locals,...g.world.residents])if(n.mesh.position.distanceTo(g.player.mesh.position)<6){Meadow.Routines.yield(g.world,n,g.player,move,6);this.react(n,'♫');}
+    for(const n of [...g.world.locals,...g.world.residents])if(n.mesh.position.distanceTo(g.player.mesh.position)<6){if(Meadow.Routines.yield(g.world,n,g.player,move,6))n.dodge.fromBell=true;this.react(n,'♫');}
   }
   act(current){
     const g=this.game,w=g.world,p=w.playground;
     if(current.id==='toy-release'){this.release(false,this.riding?'riding':null);return;}
     if(current.npc){
       const n=current.npc;
-      if(this.held?.to===n.index){const item=this.held;this.held=null;item.mesh.visible=false;const s=this.progress();if(!s.parcels.includes(item.number)){s.parcels.push(item.number);g.saveProgress();}this.react(n,Meadow.Sandbox.lines[1][1],true);g.audio.chime();this.ui();return;}
+      if(this.held?.to===n.index){const item=this.held;this.held=null;item.mesh.visible=false;const s=this.progress();if(!s.parcels.includes(item.number)){s.parcels.push(item.number);g.saveProgress();}g.errands?.track('main');this.react(n,Meadow.Sandbox.lines[1][1],true);g.audio.chime();g.toast('✓ 包裹送到了');this.ui();return;}
       this.react(n,Meadow.Sandbox.lines[n.index][0],true);
       if(n.index===0){
         const ball=p.ball,dx=g.player.mesh.position.x-n.mesh.position.x,dz=g.player.mesh.position.z-n.mesh.position.z,len=Math.hypot(dx,dz)||1,x=n.mesh.position.x+dx/len,z=n.mesh.position.z+dz/len;
@@ -172,7 +173,7 @@ Meadow.Sandbox=class {
     const pos=g.player.mesh.position,dx=item.position.x-pos.x,dz=item.position.z-pos.z,len=Math.hypot(dx,dz)||1;
     if(item.kind==='ball'||item.kind==='crate'){item.vx=dx/len*(item.kind==='ball'?8:3);item.vz=dz/len*(item.kind==='ball'?8:3);this.burst(item.position);g.audio.note(180,.1,.025);}
     else if(item.kind==='scooter'){this.riding=item;g.player.riding=true;g.player.vx=g.player.vz=0;this.react(w.locals[1],'♫');g.audio.note(880,.15,.02);}
-    else if(item.kind==='parcel'){this.held=item;g.toast('✉ → '+w.locals[item.to].name,1500);this.react(w.locals[item.to],'✉');}
+    else if(item.kind==='parcel'){this.held=item;g.errands?.track('parcel');g.toast('✉ 交給'+w.locals[item.to].name,1800);this.react(w.locals[item.to],'✉');}
     else if(item.kind==='planter'){
       this.waterTime=1.2;this.burst(item.position,0x8ac3d6);item.bloomed=true;item.flowers.scale.setScalar(1);
       const s=this.progress();if(!s.flowers.includes(item.number)){s.flowers.push(item.number);g.saveProgress();}
@@ -204,7 +205,7 @@ Meadow.Sandbox=class {
     const move=g.input.movement(),p=g.player.mesh.position;if(this.seated&&(move.x||move.z))this.release();
     if(!move.x&&!move.z)return;
     for(const n of [...g.world.locals,...g.world.residents]){
-      if(Meadow.Routines.yield(g.world,n,g.player,move,this.riding?4.2:3)&&this.clock>=(n.dodgeAt||0)){n.dodgeAt=this.clock+2;this.react(n,'！');}
+      if(Meadow.Routines.yield(g.world,n,g.player,move,this.riding?4.2:g.input.sprinting()?3:1.4)&&this.clock>=(n.dodgeAt||0)){n.dodgeAt=this.clock+2;this.react(n,'！');}
     }
     for(const item of g.world.playground.items)if(['ball','crate'].includes(item.kind)&&!item.resetIn){
       const dx=item.position.x-p.x,dz=item.position.z-p.z,d=Math.hypot(dx,dz);
@@ -215,7 +216,7 @@ Meadow.Sandbox=class {
     const g=this.game,w=g.world,p=w.playground,playing=g.state.mode==='playing';this.ui();this.can.visible=playing&&this.waterTime>0;
     if(!playing){
       if(this.held)this.held.mesh.visible=false;
-      if(!['paused','dialogue'].includes(g.state.mode)&&(this.riding||this.seated))this.release(false,'riding');
+      if(!['paused','dialogue','errands'].includes(g.state.mode)&&(this.riding||this.seated))this.release(false,'riding');
       return;
     }
     if(this.held)this.held.mesh.visible=true;

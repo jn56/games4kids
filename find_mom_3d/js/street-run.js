@@ -34,16 +34,16 @@ Meadow.StreetRun=class {
   update(dt){
     const g=this.game,w=g.world,playing=g.state.mode==='playing';this.prepare();
     w.streetRun.mesh.visible=playing&&!this.active;
-    if(this.active&&(!['playing','paused','dialogue'].includes(g.state.mode)||this.chapter!==g.state.chapter)){this.stop();return;}
+    if(this.active&&(!['playing','paused','dialogue','errands'].includes(g.state.mode)||this.chapter!==g.state.chapter)){this.stop();return;}
     w.streetRun.ring.visible=w.streetRun.arrow.visible=playing&&this.active;
-    if(!playing||!this.active)return;
+    if(!playing)return;
+    if(!this.active){const target=g.errands?.target();if(target)this.pointArrow(target.position);return;}
     this.elapsed+=dt;
     if(this.elapsed>=this.limit){this.stop('⚑ 時間到 · 回旗子再試一次');return;}
     const goal=this.target().position,p=g.player.mesh.position;
     w.streetRun.ring.position.set(goal.x,.12,goal.z);
     w.streetRun.ring.scale.setScalar(g.reducedMotion?1:1+Math.sin(g.time*4)*.06);
-    const dx=goal.x-p.x,dz=goal.z-p.z,angle=Math.atan2(dx,dz);
-    w.streetRun.arrow.position.set(p.x+Math.sin(angle)*2,.12,p.z+Math.cos(angle)*2);w.streetRun.arrow.rotation.y=angle+Math.PI;
+    const dx=goal.x-p.x,dz=goal.z-p.z;this.pointArrow(goal);
     if(Math.hypot(dx,dz)>1.65)return;
     g.sandbox.burst(goal,0x8de0d1);g.audio.note(660+this.index*35,.15,.018);this.index++;
     if(this.index===w.streetRun.points.length){
@@ -51,5 +51,9 @@ Meadow.StreetRun=class {
       if(record){progress.bestRun=time;g.saveProgress();}
       this.stop('⚑ '+time.toFixed(1)+'s'+(record?' · 新紀錄！':' · 完成！'));
     }
+  }
+  pointArrow(goal){
+    const g=this.game,p=g.player.mesh.position,a=g.world.streetRun.arrow,dx=goal.x-p.x,dz=goal.z-p.z,angle=Math.atan2(dx,dz);
+    a.visible=Math.hypot(dx,dz)>2.2;a.position.set(p.x+Math.sin(angle)*1.8,.12,p.z+Math.cos(angle)*1.8);a.rotation.y=angle+Math.PI;
   }
 };
