@@ -1,3 +1,4 @@
+const {helpMother}=require('./rescue-controls.cjs');
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),path=require('node:path'),fs=require('node:fs');let browser;
 (async()=>{
  browser=await chromium.launch({channel:'msedge',headless:true});const p=await browser.newPage({viewport:{width:1280,height:800}}),errors=[],out=path.join(__dirname,'river-update');fs.mkdirSync(out,{recursive:true});p.on('pageerror',e=>errors.push(e.stack));
@@ -18,7 +19,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),path
  await p.keyboard.press('e');await p.waitForFunction(()=>meadowGame.state.forest.dashFails===1);assert.equal(await p.evaluate(()=>meadowGame.trials.stage),1);await p.waitForFunction(()=>meadowGame.trials.retry<=0);
  await p.locator('#action-leave').click();await p.evaluate(()=>{const g=meadowGame;g.saved=Meadow.Progress.read();g.start(true);g.trials.start('dash');});await p.locator('#action-start').click();assert.equal(await p.evaluate(()=>meadowGame.trials.stage),1);
  const until=Date.now()+50000;while(await p.evaluate(()=>meadowGame.trials.active)&&Date.now()<until){const q=await p.evaluate(()=>{const t=meadowGame.trials;return {lane:t.lane,target:t.river.safeLane(t.stage),jump:!!t.river.jump,ready:t.river.ready(),retry:t.retry};});if(!q.jump&&q.retry<=0){if(q.lane!==q.target)await p.keyboard.press(q.target>q.lane?'ArrowRight':'ArrowLeft');else if(q.ready)await p.keyboard.press('e');}await p.waitForTimeout(40);}assert.equal(await p.evaluate(()=>meadowGame.state.forest.dashStage),3);await talk();console.log('PASS 9 river jumps, visible arc, stationary selection, pause, rescue and saved progress');
- await seed(2,{forest:{metOwl:true,round:3,gustStage:6,reunited:true}});await p.waitForFunction(()=>document.getElementById('story-caption').textContent.includes('小米，快逃啊'));assert(await p.evaluate(()=>meadowGame.story.elapsed>=6.8));await p.screenshot({path:path.join(out,'mother-shout.png')});
+ await seed(2,{forest:{metOwl:true,round:3,gustStage:6,reunited:true}});await helpMother(p,'retreat');await helpMother(p,'whistle');await p.waitForFunction(()=>document.getElementById('story-caption').textContent.includes('小米，快逃啊'));assert(await p.evaluate(()=>meadowGame.story.elapsed>=6.8));await p.screenshot({path:path.join(out,'mother-shout.png')});
  await seed(3,{valley:{metBeaver:true}});await p.evaluate(()=>meadowGame.expedition.start('bridge'));await p.locator('#journey-start').click();
  for(const [width,height] of [[1280,800],[390,844],[844,390],[320,568],[667,375]]){
   await p.setViewportSize({width,height});

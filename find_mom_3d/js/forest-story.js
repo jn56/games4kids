@@ -1,6 +1,6 @@
 'use strict';
 Meadow.ForestStory = class {
-  constructor(game){this.game=game;this.elapsed=0;this.running=false;}
+  constructor(game){this.game=game;this.elapsed=0;this.running=false;this.rescue=new Meadow.ForestRescue(this);}
   say(lines,done){this.game.dialogue.show(lines.map(([name,text])=>({name,text})),done);}
   intro(){
     this.say([['阿蹦','前面就是風鈴森林。我回去接栗栗，咕咕會陪你。記得，你可以隨時開口求助。'],['小米','這段歌聲……是媽媽哄我睡覺時唱的！'],['咕咕','小米，歡迎你。我剛看到媽媽，她在橋邊等你。先來和我說說話吧。']]);
@@ -53,7 +53,7 @@ Meadow.ForestStory = class {
   }
   beginCrossing(){
     const g=this.game,w=g.world;if(g.state.forest.separated||!g.state.forest.reunited)return;
-    this.elapsed=0;this.running=true;g.state.mode='cutscene';g.input.reset();
+    this.rescue.reset();this.elapsed=0;this.running=true;g.state.mode='cutscene';g.input.reset();
     w.cutscene=true;w.hug=false;w.protecting=false;w.struggling=false;w.falling=false;w.sweptAway=false;w.bridgeTarget=0;
     w.mother.mesh.visible=true;w.mother.mesh.position.set(2,0,-4.3);w.mother.mesh.rotation.set(0,0,0);
     w.villain.mesh.visible=true;w.villain.mesh.position.set(-7,0,-3.8);w.villain.mesh.rotation.set(0,Math.PI/2,0);
@@ -64,10 +64,13 @@ Meadow.ForestStory = class {
   }
   update(dt){
     const g=this.game;if(!this.running||g.state.mode!=='cutscene')return;
+    if(this.rescue.kind){this.rescue.update(dt);return;}
+    if(this.elapsed>=1.2&&!this.rescue.done.has('retreat')){this.rescue.begin('retreat');return;}
+    if(this.elapsed>=4.2&&!this.rescue.done.has('whistle')){this.rescue.begin('whistle');return;}
     this.elapsed+=dt;const t=this.elapsed,w=g.world,m=w.mother.mesh,v=w.villain.mesh,p=g.player.mesh;
     const clamp=x=>Math.max(0,Math.min(1,x)),caption=document.getElementById('story-caption');
     const approach=clamp(t/2.8);v.position.set(-7+8*approach,0,-3.8-.8*approach);
-    const shelter=clamp(t/2);p.position.set(2+2*shelter,0,-3.35+.25*shelter);p.rotation.y=-Math.PI/2;
+    const shelter=clamp(t/2);p.position.set(this.rescue.done.has('retreat')?5.3:2+shelter*2,0,-3.35+.25*shelter);p.rotation.y=-Math.PI/2;
     w.protecting=t>=1&&t<2.8;w.struggling=t>=2.8&&t<5.6;w.falling=t>=5.6&&t<6.8;
     if(t<2.8){const block=clamp(t/2.5);m.position.set(2,0,-4.3+.25*block);m.rotation.y=-Math.PI/2;}
     if(w.struggling){

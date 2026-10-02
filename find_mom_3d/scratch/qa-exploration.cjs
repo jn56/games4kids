@@ -3,6 +3,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),path
  browser=await chromium.launch({channel:'msedge',headless:true});const p=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
  await p.goto('http://127.0.0.1:4173/find_mom_3d/');await p.waitForFunction(()=>window.meadowGame);const out=path.join(__dirname,'expanded');fs.mkdirSync(out,{recursive:true});
  async function seed(chapter){await p.evaluate(chapter=>{const s=Meadow.Progress.fresh();s.chapter=s.entryChapter=chapter;s.prologueSeen=true;meadowGame.saved=s;meadowGame.start(true);},chapter);await p.waitForTimeout(100);}
+ async function advance(){await p.locator(await p.locator('#dialogue-next').isVisible()?'#dialogue-next':'#dialogue-choices button:first-child').click();}
  for(let chapter=1;chapter<=4;chapter++){
   await seed(chapter);
   const report=await p.evaluate(()=>{
@@ -16,10 +17,10 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),path
    return {chapter:c,ratio:newArea/oldArea,residents:w.residents.map(n=>({name:n.name,reachable:queue.some(i=>{const p=pos(i);return Math.hypot(p.x-n.x,p.z-n.z)<1.8;})})),routes:w.mapRoutes.length};
   });assert(report.ratio>=4,JSON.stringify(report));assert.equal(report.residents.length,5);assert(report.residents.every(n=>n.reachable),JSON.stringify(report));console.log('PASS terrain',JSON.stringify(report));
   for(let i=0;i<5;i++){
-   const before=await p.evaluate(i=>{const g=meadowGame,n=g.world.residents[i];g.player.setPosition(n.x,n.z+1.3);g.view.update(1,false,true);return JSON.stringify({...g.state,sideStories:undefined,sideSecrets:undefined});},i);await p.waitForTimeout(100);
+   const before=await p.evaluate(i=>{const g=meadowGame,n=g.world.residents[i];g.player.setPosition(n.x,n.z+1.3);g.view.update(1,false,true);return JSON.stringify({...g.state,sideStories:undefined,sideSecrets:undefined,familyStories:undefined,familySecrets:undefined});},i);await p.waitForTimeout(100);
    assert((await p.locator('#interaction-prompt').textContent()).includes(report.residents[i].name));await p.keyboard.press('e');assert.equal(await p.locator('#dialogue-name').textContent(),report.residents[i].name);await p.locator('#minimap').waitFor({state:'hidden'});
-   for(let n=0;n<12&&await p.evaluate(()=>meadowGame.state.mode==='dialogue');n++)await p.locator('#dialogue-next').click();
-   assert.equal(await p.evaluate(()=>JSON.stringify({...meadowGame.state,sideStories:undefined,sideSecrets:undefined})),before,'resident conversation changed main quest state');
+   for(let n=0;n<40&&await p.evaluate(()=>meadowGame.state.mode==='dialogue');n++)await advance();
+   assert.equal(await p.evaluate(()=>JSON.stringify({...meadowGame.state,sideStories:undefined,sideSecrets:undefined,familyStories:undefined,familySecrets:undefined})),before,'resident conversation changed main quest state');
    if(i===0)await p.screenshot({path:path.join(out,`chapter-${chapter}-outer.png`)});
   }
   // Every chapter's enlarged corner follows the camera; boundaries and story gates still apply.
@@ -39,14 +40,16 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),path
  for(let chapter=1;chapter<=4;chapter++){
   await seed(chapter);
   for(const i of [3,4]){
-   const lines=await p.evaluate(i=>{const g=meadowGame,n=g.world.residents[i];g.player.setPosition(n.x,n.z+1.3);return n.lines;},i);
+   await p.evaluate(i=>{const g=meadowGame,n=g.world.residents[i];g.player.setPosition(n.x,n.z+1.3);},i);
    await p.waitForTimeout(100);await p.keyboard.press('e');
+   const lines=await p.evaluate(()=>meadowGame.dialogue.lines.map(l=>[l.name,l.text]));
    for(const [speaker,line] of lines){
     assert.equal(await p.locator('#dialogue-name').textContent(),speaker);assert.equal(await p.locator('#dialogue-text').textContent(),line);
-    const text=await p.locator('#dialogue-text').boundingBox(),next=await p.locator('#dialogue-next').boundingBox();assert(text.x>=0&&text.x+text.width<=321&&text.y>=0&&text.y+text.height<=next.y);assert(next.y+next.height<=569);
+    const text=await p.locator('#dialogue-text').boundingBox(),next=await p.locator(await p.locator('#dialogue-next').isVisible()?'#dialogue-next':'#dialogue-choices button:first-child').boundingBox();assert(text.x>=0&&text.x+text.width<=321&&text.y>=0&&text.y+text.height<=next.y);assert(next.y+next.height<=569);
     if(i===3&&speaker!=='小米')await p.screenshot({path:path.join(out,`family-${chapter}-phone.png`)});
-    await p.locator('#dialogue-next').click();
+    await advance();
    }
+   for(let n=0;n<20&&await p.evaluate(()=>meadowGame.state.mode==='dialogue');n++)await advance();
    assert.equal(await p.evaluate(()=>meadowGame.state.mode),'playing');
   }
  }

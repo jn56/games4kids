@@ -8,6 +8,7 @@
   <title>小米找媽媽 · 第一章：黃昏花田</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%233d5945'/%3E%3Ctext x='32' y='47' text-anchor='middle' font-size='44'%3E✿%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="story-studio.css">
 </head>
 <body>
   <div id="game-container" aria-label="黃昏花田 3D 遊戲場景"></div>
@@ -30,6 +31,7 @@
         <p class="cover-description">穿過花田，跟著微光。<br>陪小米找到媽媽，也找到心裡的勇敢。</p>
         <div class="cover-buttons"><button id="start-btn" class="primary-btn">陪小米出發 <span>→</span></button><button id="select-chapter-btn" class="chapter-select-btn">選擇關卡</button></div>
         <button id="new-game-btn" class="text-btn" hidden>重新開始第一章</button>
+        <button id="voice-open" class="text-btn">♫ 角色配音室</button>
         <p class="cover-note">約 12 歲 <b>·</b> 推理挑戰 <b>·</b> 即時冒險</p>
       </div>
       <div class="chapter-card"><span class="chapter-number">01</span><div><small>我們的第一站</small><strong>黃昏花田</strong><p>把想念，變成一點點光。</p></div><span class="card-flower">✿</span></div>
@@ -45,6 +47,24 @@
         <button data-chapter="4"><small>第 4 關 · 重逢</small><strong>星光山丘</strong></button>
       </div>
       <button id="chapter-picker-close" class="secondary-btn">返回</button>
+    </dialog>
+    <dialog id="voice-studio" aria-labelledby="voice-title">
+      <header class="voice-header"><div><h2 id="voice-title">角色配音室</h2><span id="voice-count"></span></div><button id="voice-close" class="secondary-btn">返回 ×</button></header>
+      <div class="voice-filters">
+        <label>角色<select id="voice-role"><option value="">全部角色</option></select></label>
+        <label>關卡<select id="voice-chapter"><option value="0">全部關卡</option><option value="1">花田</option><option value="2">森林</option><option value="3">河谷</option><option value="4">山丘</option></select></label>
+        <label>找台詞<input id="voice-search" type="search" placeholder="輸入關鍵字" maxlength="60"></label>
+      </div>
+      <div class="voice-layout">
+        <div class="voice-library"><label class="voice-check"><input id="voice-missing" type="checkbox">只看未錄</label><select id="voice-lines" size="9" aria-label="選擇一句台詞"></select></div>
+        <section class="voice-take" aria-label="逐句配音"><strong id="voice-name"></strong><p id="voice-text"></p>
+          <button id="voice-record" class="primary-btn">● 錄這一句</button>
+          <div class="voice-pair"><button id="voice-listen" class="secondary-btn">▶ 試聽</button><button id="voice-delete" class="secondary-btn">刪除本句</button></div>
+          <div class="voice-pair"><button id="voice-previous" class="text-btn">← 上一句</button><button id="voice-next" class="text-btn">下一句 →</button></div>
+        </section>
+      </div>
+      <p id="voice-status" role="status" aria-live="polite"></p>
+      <footer class="voice-footer"><label class="voice-check"><input id="voice-use" type="checkbox" checked>遊戲中播放配音</label><div><button id="voice-export" class="text-btn">匯出備份</button><button id="voice-import" class="text-btn">匯入備份</button><input id="voice-file" type="file" accept=".json,application/json" hidden></div></footer>
     </dialog>
     <section id="play-hud" hidden aria-label="冒險進度">
       <aside class="quest-card">
@@ -70,6 +90,7 @@
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
     <div id="story-caption" class="story-caption" role="status" aria-live="polite" hidden></div>
     <button id="prologue-skip" class="prologue-skip" hidden>略過前情 →</button>
+    <section id="rescue-ui" hidden aria-label="協助媽媽"><strong id="rescue-title"></strong><progress id="rescue-progress" max="1" value="0" aria-label="求援進度"></progress><button id="rescue-action" class="primary-btn"></button></section>
     <section id="action-ui" hidden aria-label="即時挑戰">
       <div class="action-summary"><strong id="action-title">疾風小徑</strong><span id="action-progress">0 / 6</span><progress id="action-meter" value="0" max="6" aria-label="挑戰進度"></progress><p id="action-status" role="status" aria-live="polite"></p><progress id="wind-meter" value="0" max="3" aria-label="下一陣風之前剩下的時間" hidden></progress></div>
       <button id="action-leave" class="action-leave">返回 ×</button>
@@ -90,7 +111,7 @@
     </section>
     <section id="dialogue-ui" class="dialogue" hidden aria-label="故事對話">
       <div id="dialogue-portrait" class="portrait" aria-hidden="true">✿</div>
-      <div class="dialogue-copy"><div class="dialogue-meta"><strong id="dialogue-name"></strong><span id="dialogue-count"></span></div><p id="dialogue-text" aria-live="polite"></p><div class="dialogue-footer"><span>慢慢讀，我等你。</span><button id="dialogue-next" class="next-btn">繼續 <span>→</span></button></div></div>
+      <div class="dialogue-copy"><div class="dialogue-meta"><strong id="dialogue-name"></strong><span id="dialogue-count"></span></div><p id="dialogue-text" aria-live="polite"></p><div id="dialogue-choices" hidden></div><div class="dialogue-footer"><span>慢慢讀，我等你。</span><button id="dialogue-next" class="next-btn">繼續 <span>→</span></button></div></div>
     </section>
     <section id="puzzle-screen" class="modal-backdrop puzzle-backdrop" hidden>
       <div class="puzzle-paper" role="dialog" aria-modal="true" aria-labelledby="puzzle-title" aria-describedby="puzzle-description">
@@ -124,6 +145,6 @@
     <section id="error-screen" class="modal-backdrop" hidden><div class="paper-modal"><span class="modal-symbol">☁</span><h2>花田還沒準備好</h2><p id="error-text">瀏覽器無法開啟 3D 畫面，請重新整理，或換用支援 WebGL 的瀏覽器。</p><button class="primary-btn" onclick="location.reload()">重新整理</button></div></section>
   </main>
   <noscript><div class="noscript">請開啟 JavaScript，才能陪小米進入花田。</div></noscript>
-  <script src="three.min.js"></script><script src="config.js"></script><script src="js/art.js"></script><script src="js/input.js"></script><script src="js/player.js"></script><script src="js/camera.js"></script><script src="js/npc.js"></script><script src="js/level.js"></script><script src="js/forest.js"></script><script src="js/journey-worlds.js"></script><script src="js/interaction.js"></script><script src="js/dialogue.js"></script><script src="js/audio.js"></script><script src="js/challenges.js"></script><script src="js/song.js"></script><script src="js/story.js"></script><script src="js/forest-story.js"></script><script src="js/river-hop.js"></script><script src="js/adventure.js"></script><script src="js/journey-story.js"></script><script src="js/journey-trials.js"></script><script src="js/exploration.js"></script><script src="js/side-stories.js"></script><script src="js/minimap.js"></script><script src="game.js"></script>
+  <script src="three.min.js"></script><script src="config.js"></script><script src="js/art.js"></script><script src="js/input.js"></script><script src="js/player.js"></script><script src="js/camera.js"></script><script src="js/npc.js"></script><script src="js/level.js"></script><script src="js/forest.js"></script><script src="js/journey-worlds.js"></script><script src="js/interaction.js"></script><script src="js/voice-script.js"></script><script src="js/voice-catalog.js"></script><script src="js/voice-studio.js"></script><script src="js/dialogue.js"></script><script src="js/audio.js"></script><script src="js/challenges.js"></script><script src="js/song.js"></script><script src="js/story.js"></script><script src="js/forest-rescue.js"></script><script src="js/forest-story.js"></script><script src="js/river-hop.js"></script><script src="js/adventure.js"></script><script src="js/journey-story.js"></script><script src="js/journey-trials.js"></script><script src="js/exploration.js"></script><script src="js/family-stories.js"></script><script src="js/side-stories.js"></script><script src="js/minimap.js"></script><script src="game.js"></script>
 </body>
 </html>

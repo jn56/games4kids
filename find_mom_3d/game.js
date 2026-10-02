@@ -26,6 +26,7 @@ Meadow.Game = class {
     this.song=new Meadow.SongPuzzle(this);this.stories={1:this.story,2:new Meadow.ForestStory(this),3:new Meadow.JourneyStory(this,3),4:new Meadow.JourneyStory(this,4)};
     this.prologue=new Meadow.Prologue(this);this.trials=new Meadow.ActionTrials(this);this.expedition=new Meadow.JourneyTrials(this);
     this.minimap=new Meadow.Minimap(this);
+    this.voices=new Meadow.VoiceStudio(this);
     this.time=0;this.lastTime=performance.now();this.lastHUD=0;this.toastDeadline=0;
     document.body.classList.add('cover');this.bindUI();this.refresh();
     if(this.saved){document.getElementById('start-btn').innerHTML=this.saved.chapter>=2?`繼續${['','黃昏花田','風鈴森林','月光河谷','星光山丘'][this.saved.chapter]} <span>→</span>`:this.saved.completed?'看看希望之光 <span>→</span>':'繼續小米的冒險 <span>→</span>';document.getElementById('new-game-btn').hidden=false;}
@@ -45,6 +46,7 @@ Meadow.Game = class {
     on('hint-btn',()=>{if(this.state.mode==='playing'){this.refreshTarget();this.toast(this.story.target().text,6000);this.audio.note(659,.5,.025);}});
     on('journal-btn',()=>{if(this.state.mode!=='playing')return;const s=this.state;if(s.chapter===1&&!s.metHedgehog||s.chapter===2&&!s.forest.metOwl)this.dialogue.show([{name:'小米',text:'路上朋友託付的小事，我都記在這裡。'}]);else if(s.chapter>=2)this.story.readJournal();else this.challenges.open('journal');Meadow.SideStories.appendJournal(this);});
     on('sound-btn',async()=>{
+      this.soundChosen=true;this.voices.stop();
       const enabled=await this.audio.toggle(),button=document.getElementById('sound-btn');
       button.setAttribute('aria-pressed',String(enabled));button.setAttribute('aria-label',enabled?'關閉聲音':'開啟聲音');button.title=enabled?'關閉聲音':'開啟聲音';
       if(!this.audio.context)this.toast('這個瀏覽器目前無法播放音效，仍然可以繼續冒險。');
@@ -52,8 +54,9 @@ Meadow.Game = class {
     window.addEventListener('resize',()=>{this.renderer.setSize(innerWidth,innerHeight);this.view.resize();});
     document.addEventListener('visibilitychange',()=>{if(document.hidden){this.input.reset();if(['playing','dialogue','puzzle','cutscene','action','journey'].includes(this.state.mode))this.togglePause();}});
     window.addEventListener('keydown',event=>{
+      if(this.voices.panel.open)return;
       if(event.key!=='Tab')return;
-      const selector=picker.open?'#chapter-picker':this.state.mode==='paused'?'#pause-screen':this.state.mode==='complete'?'#ending-screen':this.state.mode==='action'?'#action-ui':this.state.mode==='journey'?'#journey-ui':this.state.mode==='puzzle'?(this.song.active?'#song-screen':'#puzzle-screen'):null;
+      const selector=picker.open?'#chapter-picker':this.state.mode==='paused'?'#pause-screen':this.state.mode==='dialogue'?'#dialogue-ui':this.state.mode==='complete'?'#ending-screen':this.state.mode==='action'?'#action-ui':this.state.mode==='journey'?'#journey-ui':this.state.mode==='puzzle'?(this.song.active?'#song-screen':'#puzzle-screen'):null;
       if(!selector)return;
       const buttons=[...document.querySelectorAll(`${selector} button`)].filter(button=>!button.disabled&&!button.hidden&&button.getClientRects().length);
       const index=buttons.indexOf(document.activeElement),next=event.shiftKey?(index<=0?buttons.length-1:index-1):(index+1)%buttons.length;
@@ -73,6 +76,7 @@ Meadow.Game = class {
     if(chapter>1)this.dialogue.show([{name:'小米',text:'出發前，歌譜、月光船票和星光鏡片都收好了。'}],()=>this.story.intro());
   }
   start(continuing) {
+    this.stories[2].rescue.reset();this.voices.stop();this.voices.activate();
     this.prologue.reset();this.trials.reset();this.expedition.reset();
     this.dialogue.close();this.challenges.hide();this.song.hide();this.input.reset();this.audio.setPaused(false);
     Object.assign(this.state,continuing&&this.saved?this.saved:Meadow.Progress.fresh(),{mode:'playing'});
@@ -141,20 +145,25 @@ Meadow.Game = class {
     if(!saved&&!this.storageWarning){this.storageWarning=true;this.toast('這次無法記住進度，請先保持這個頁面開著。',6500);}
   }
   action() {
+    if(this.voices.panel.open)return;
     if(document.getElementById('chapter-picker').open)return;
     if(this.state.mode==='dialogue')this.dialogue.next();
     else if(this.state.mode==='playing')this.interactions.act();
     else if(this.state.mode==='journey')this.expedition.strike();
+    else if(this.state.mode==='cutscene'&&this.state.chapter===2)this.story.rescue.press();
   }
   togglePause() {
+    if(this.voices.panel.open){this.voices.panel.close();return;}
     const picker=document.getElementById('chapter-picker');if(picker.open){picker.close();return;}
     const s=this.state;
     if(s.mode==='paused'){
       s.mode=this.beforePause;document.getElementById('pause-screen').hidden=true;this.audio.setPaused(false);this.input.reset();
       if(s.mode==='dialogue')document.getElementById('dialogue-next').focus({preventScroll:true});
+      if(s.mode==='dialogue'){const line=this.dialogue.lines[this.dialogue.index];this.voices.playLine(line.name,line.text);if(this.dialogue.choices&&this.dialogue.index===this.dialogue.lines.length-1)document.querySelector('#dialogue-choices button').focus({preventScroll:true});}
       else if(s.mode==='puzzle')document.getElementById(this.song.active?'song-close':'puzzle-close').focus({preventScroll:true});
       else document.getElementById('resume-btn').blur();
     }else if(['playing','dialogue','puzzle','cutscene','action','journey'].includes(s.mode)){
+      this.voices.stop();this.stories[2].rescue.release();
       this.trials.release();this.expedition.release();
       this.beforePause=s.mode;s.mode='paused';this.input.reset();this.audio.setPaused(true);document.getElementById('pause-screen').hidden=false;document.getElementById('resume-btn').focus({preventScroll:true});
     }
@@ -194,7 +203,7 @@ Meadow.Game = class {
     if(late)document.getElementById('journey-count').textContent=this.state.chapter===3?this.state.valley.bridge<3?'修橋 '+this.state.valley.bridge+' / 3':'渡河 '+this.state.valley.raft+' / 4':'✦ '+this.state.hill.lights.length+' / 3';
     document.getElementById('forest-hud').hidden=!forest||!this.state.forest.metOwl;
     document.getElementById('journal-btn').hidden=late?false:forest?!this.state.forest.metOwl:!this.state.metHedgehog;
-    if(this.state.sideStories.some(stage=>stage>0))document.getElementById('journal-btn').hidden=false;
+    if(this.state.sideStories.some(stage=>stage>0)||this.state.familyStories.some(stage=>stage>0))document.getElementById('journal-btn').hidden=false;
     document.getElementById('journal-btn').textContent=late?'✦ 筆記':forest?'♪ 筆記':'✉ 手帳';
     if(forest){
       document.getElementById('melody-count').textContent=`${this.state.forest.round} / 3`;

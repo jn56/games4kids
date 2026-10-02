@@ -33,13 +33,17 @@ Meadow.SideStories={
       const cast=Meadow.Residents[i+1],next=[0,1,2,0][stage];
       notes.push({name:'旅途小事',text:stage===4?'已收藏：'+story.reward+(g.state.sideSecrets[i]?'（彩蛋也找到了）':'。再找'+cast[2].name+'聊聊。'):'「'+story.title+'」：下一站找'+cast[next].name+'（'+cast[next].place+'）。'});
     });
+    Meadow.FamilyStories.stories.forEach((story,i)=>{
+      const stage=g.state.familyStories[i];if(!stage)return;
+      notes.push({name:'旅途小事',text:stage>=3?'已收藏：'+story.title+'。回去找兩位朋友，還有小祕密。':'「'+story.title+'」：下一站找'+Meadow.Residents[i+1][4].name+'。'});
+    });
     if(!notes.length)return;
     if(g.state.mode==='dialogue')g.dialogue.show([...g.dialogue.lines,...notes]);
     else if(g.state.mode==='puzzle'){const section=document.createElement('section'),heading=document.createElement('h3');heading.textContent='旅途小事';section.append(heading);notes.forEach(note=>{const p=document.createElement('p');p.textContent=note.text;section.append(p);});document.getElementById('puzzle-stage').append(section);}
   },
   talk(g,npc){
     const c=g.state.chapter-1,index=g.world.residents.indexOf(npc),story=this.stories[c],stage=g.state.sideStories[c];
-    if(index>2){g.dialogue.show(npc.lines.map(([name,text])=>({name,text})));return;}
+    if(index>2){Meadow.FamilyStories.talk(g,npc,index);return;}
     const cast=g.world.residents,expected=[0,1,2,0][stage];let lines=npc.lines.map(([name,text])=>({name,text})),advance=false,egg=false;
     if(stage<4&&index===expected){
       const part=[story.begin,story.middle,story.end,story.finish][stage];

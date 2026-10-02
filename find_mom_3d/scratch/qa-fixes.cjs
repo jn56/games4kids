@@ -1,4 +1,5 @@
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),path=require('node:path');let browser;
+const {helpMother}=require('./rescue-controls.cjs');
 (async()=>{
  browser=await chromium.launch({channel:'msedge',headless:true});const p=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),errors=[];p.on('pageerror',e=>errors.push(e.message));
  await p.goto('http://127.0.0.1:4173/find_mom_3d/');await p.waitForFunction(()=>window.meadowGame);
@@ -35,7 +36,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),path
  await seed(2,{forest:{metOwl:true,round:3,gustStage:6}});await p.locator('#sound-btn').tap();await p.evaluate(()=>meadowGame.story.interact('mother'));await p.waitForFunction(()=>meadowGame.audio.mood==='calm');
  while(await p.locator('#dialogue-name').textContent()!=='灰爪')await p.locator('#dialogue-next').tap();await p.waitForFunction(()=>meadowGame.audio.mood==='tension');assert(await p.evaluate(()=>meadowGame.audio.musicVoices.size>0));
  await p.keyboard.press('Escape');await p.waitForTimeout(100);assert.equal(await p.evaluate(()=>meadowGame.audio.mood),'tension');assert(await p.evaluate(()=>meadowGame.audio.paused));await p.locator('#resume-btn').tap();
- while(await p.evaluate(()=>meadowGame.state.mode==='dialogue'))await p.locator('#dialogue-next').tap();await p.waitForFunction(()=>meadowGame.story.elapsed>3);assert.equal(await p.evaluate(()=>meadowGame.audio.mood),'tension');await p.waitForFunction(()=>meadowGame.state.forest.separated);await p.waitForFunction(()=>meadowGame.audio.mood==='calm');
+ while(await p.evaluate(()=>meadowGame.state.mode==='dialogue'))await p.locator('#dialogue-next').tap();await helpMother(p,'retreat');await p.waitForFunction(()=>meadowGame.story.elapsed>3);assert.equal(await p.evaluate(()=>meadowGame.audio.mood),'tension');await helpMother(p,'whistle');await p.waitForFunction(()=>meadowGame.state.forest.separated);await p.waitForFunction(()=>meadowGame.audio.mood==='calm');
  await seed(4,{hill:{metSquirrel:true,lights:['hope','memory','courage'],signal:true,escort:3}});await p.waitForFunction(()=>meadowGame.audio.mood==='tension');await p.waitForFunction(()=>meadowGame.story.elapsed>=1.5);await p.waitForFunction(()=>meadowGame.audio.mood==='calm');await p.locator('#sound-btn').tap();assert.equal(await p.evaluate(()=>meadowGame.audio.enabled),false);console.log('PASS audio: calm → villain dialogue/grapple tension → calm; pause; chapter 4 gate resolves tension; mute');
  assert.deepEqual(errors,[]);await browser.close();
 })().catch(async e=>{console.error(e);if(browser)await browser.close();process.exit(1);});

@@ -13,6 +13,7 @@ Meadow.Audio = class {
     if(this.enabled)this.chime();return this.enabled;
   }
   setPaused(value) { this.paused=value;if(this.context)this.master.gain.setTargetAtTime(this.enabled&&!value?.65:0,this.context.currentTime,.05); }
+  duck(value){if(this.context)this.master.gain.setTargetAtTime(this.enabled&&!this.paused?(value?.18:.65):0,this.context.currentTime,.08);}
   note(freq,duration=.5,volume=.05,delay=0,music=false) {
     if(!this.enabled||!this.context||this.paused)return;
     const time=this.context.currentTime+delay,osc=this.context.createOscillator(),gain=this.context.createGain();

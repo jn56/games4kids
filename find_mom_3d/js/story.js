@@ -9,7 +9,7 @@ Meadow.Progress = {
     return { version:6, prologueSeen:false, chapter:1, entryChapter:1, forest:this.forestFresh(),valley:this.valleyFresh(),hill:this.hillFresh(), ribbon:false, metRabbit:false, metHedgehog:false,
       windSolved:false, windTurns:[...CONFIG.WIND_START], windHints:0,
       flowers:[], arrangement:Array(6).fill(null), lampHints:0,sideStories:[0,0,0,0],sideSecrets:[false,false,false,false],
-      lit:false, completed:false, checkpoint:{...CONFIG.START} };
+      familyStories:[0,0,0,0],familySecrets:[0,0,0,0],lit:false, completed:false, checkpoint:{...CONFIG.START} };
   },
   read() {
     try{
@@ -25,6 +25,8 @@ Meadow.Progress = {
       const state=this.fresh();state.ribbon=raw.ribbon===true;state.metRabbit=state.ribbon&&raw.metRabbit===true;
       state.sideStories=Array.from({length:4},(_,i)=>Number.isInteger(raw.sideStories?.[i])?Math.max(0,Math.min(4,raw.sideStories[i])):0);
       state.sideSecrets=Array.from({length:4},(_,i)=>state.sideStories[i]===4&&raw.sideSecrets?.[i]===true);
+      state.familyStories=Array.from({length:4},(_,i)=>Number.isInteger(raw.familyStories?.[i])?Math.max(0,Math.min(4,raw.familyStories[i])):0);
+      state.familySecrets=Array.from({length:4},(_,i)=>state.familyStories[i]>=3&&Number.isInteger(raw.familySecrets?.[i])?Math.max(0,Math.min(3,raw.familySecrets[i])):0);
       state.entryChapter=raw.version>=5&&[1,2,3,4].includes(raw.entryChapter)?raw.entryChapter:1;
       state.prologueSeen=raw.version<4||raw.prologueSeen===true||state.ribbon;
       state.metHedgehog=state.metRabbit&&raw.metHedgehog===true;
@@ -85,7 +87,7 @@ Meadow.Progress = {
   write(state) {
     try{
       const {version,prologueSeen,chapter,entryChapter,forest,valley,hill,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint}=state;
-      localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify({version,prologueSeen,chapter,entryChapter,forest,valley,hill,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint,sideStories:state.sideStories,sideSecrets:state.sideSecrets}));return true;
+      localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify({version,prologueSeen,chapter,entryChapter,forest,valley,hill,ribbon,metRabbit,metHedgehog,windSolved,windTurns,windHints,flowers,arrangement,lampHints,lit,completed,checkpoint,sideStories:state.sideStories,sideSecrets:state.sideSecrets,familyStories:state.familyStories,familySecrets:state.familySecrets}));return true;
     }catch(_){return false;}
   }
 };
@@ -138,7 +140,7 @@ Meadow.Story = class {
     }
     if(id==='lamp'){
       if(s.windSolved&&s.flowers.length===3&&!s.lit){g.challenges.open('lamp');return;}
-      this.say([L(s.lit?'小米':'阿蹦',s.lit?'暖暖的光，好像媽媽牽著我的手。':!s.metRabbit?'這是花田的引路燈。先和我說說你在找誰吧！':!s.windSolved?'栗栗正等你幫忙修好送信風管，我們先去找他。':'這盞燈有四個位置。先找齊三朵光花的線索，再用髮帶和花朵解開祕密。')]);return;
+      this.say([L(s.lit?'小米':'阿蹦',s.lit?'暖暖的光，好像媽媽牽著我的手。':!s.metRabbit?'這是花田的引路燈。先和我說說你在找誰吧！':!s.windSolved?'栗栗正等你幫忙修好送信風管，我們先去找他。':'這盞燈有六個位置。找齊光花的線索，再排好花朵、髮帶、歌譜和船票。')]);return;
     }
     if(id==='exit'){
       if(!s.lit){this.say([L('小米','引路燈還沒亮。我先和朋友一起解開祕密，再往森林走。')]);return;}

@@ -4,6 +4,7 @@ Meadow.Input = class {
     this.keys = new Set(); this.axis = { x: 0, z: 0 }; this.pointerId = null;
     const movement = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
     window.addEventListener('keydown', event => {
+      if(document.getElementById('voice-studio')?.open)return;
       if (event.code === 'Escape' && !event.repeat) { event.preventDefault(); pause(); return; }
       if (movement.includes(event.code)) { event.preventDefault(); this.keys.add(event.code); }
       if (['KeyE', 'Space'].includes(event.code)) {
