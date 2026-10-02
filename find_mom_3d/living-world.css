@@ -1,4 +1,7 @@
 /* A quiet exploration HUD. Detailed clues remain in the journal and dialogue. */
+#sandbox-release{position:fixed;z-index:9;left:50%;bottom:28px;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 16px;border-radius:24px;border:1px solid #d3c09a;background:#fff7e4;color:#4e6454;font-size:15px;box-shadow:0 3px 14px #35452f1f}#sandbox-release:active{transform:translateX(-50%) translateY(2px)}body.sandbox-busy .interaction-prompt{bottom:86px}
+@media(max-width:700px) and (orientation:portrait){#sandbox-release{bottom:145px}body.sandbox-busy .interaction-prompt{bottom:203px;max-width:94vw}}
+@media(pointer:coarse){#sandbox-release kbd{display:none}}
 #play-hud .quest-card>.eyebrow,#objective-detail,#emotion-tag,#collection,#forest-hud,#journey-hud,.gentle-note{display:none!important}
 .quest-card{width:238px;padding:10px 12px;display:grid;grid-template-columns:1fr 38px 38px;gap:4px 6px;align-items:center;background:#fff9e8ed;border:1px solid #fffdf1;border-radius:15px;box-shadow:0 4px 20px #36504518}
 .quest-card h2{grid-column:1;margin:0!important;font-size:17px;line-height:1.5;white-space:nowrap;letter-spacing:0}

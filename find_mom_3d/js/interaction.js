@@ -3,6 +3,9 @@ Meadow.Interactions = class {
   constructor(game) { this.game=game;this.current=null;this.prompt=document.getElementById('interaction-prompt');this.touch=document.getElementById('touch-action'); }
   candidates() {
     const {world,state}=this.game, items=this.game.travel?.candidates()||[];
+    const sandbox=this.game.sandbox?.candidates()||[];
+    if(this.game.sandbox?.riding||this.game.sandbox?.seated)return sandbox;
+    items.push(...sandbox);
     const residents=(world.residents||[]).map(n=>({id:n.id,position:n.mesh.position,text:`和${n.name}聊聊`}));
     if(state.chapter>=3)return [...items,...this.game.story.candidates(),...residents];
     items.push(...residents);
@@ -30,11 +33,13 @@ Meadow.Interactions = class {
       this.candidates().forEach(item=>{const d=Math.hypot(item.position.x-p.x,item.position.z-p.z);if(d<distance){distance=d;this.current=item;}});
     }
     this.prompt.hidden=!this.current;this.touch.disabled=!this.current;
+    this.game.sandbox?.highlight(this.current);
     if(this.current){const text=this.current.text;this.prompt.querySelector('span').textContent=text.replace(/^和(.+?)(說話|聊聊)$/,'💬 $1');this.touch.setAttribute('aria-label',text);}
   }
   act() {
     this.update();if(!this.current)return;
     const g=this.game,npc=g.world.residents?.find(n=>n.id===this.current.id);
+    if(this.current.id.startsWith('toy-')||this.current.id.startsWith('local-')){g.sandbox.act(this.current);return;}
     if(this.current.id.startsWith('travel-')){g.travel.go(this.current.to);return;}
     if(g.chapterComplete()&&['exit','forest-exit'].includes(this.current.id)&&g.state.chapter<4){g.travel.point(1);return;}
     if(npc){Meadow.SideStories.talk(g,npc);return;}

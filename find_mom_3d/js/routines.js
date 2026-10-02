@@ -33,7 +33,8 @@ Meadow.Routines={
     const r=npc.routine,p=npc.mesh.position,target=player.mesh.position;
     if(Math.hypot(p.x-r.home.x,p.z-r.home.z)>5){r.home={x:p.x,z:p.z};r.point=0;r.wait=1;}
     r.walking=false;r.clock+=dt;
-    const nearby=Math.hypot(p.x-target.x,p.z-target.z)<2.55;
+    const reacting=(npc.reaction||0)>0;if(reacting)npc.reaction=Math.max(0,npc.reaction-dt);
+    const nearby=reacting||Math.hypot(p.x-target.x,p.z-target.z)<2.55;
     if(nearby){npc.mesh.rotation.y=Math.atan2(target.x-p.x,target.z-p.z);}
     else if(r.wait>0){r.wait-=dt;npc.mesh.rotation.y=Math.atan2(r.home.x+1.8-p.x,r.home.z-1.1-p.z);}
     else{
@@ -50,19 +51,22 @@ Meadow.Routines={
         if(!r.walking){r.blocked+=dt;if(r.blocked>1){r.point=(r.point+1)%points.length;r.wait=.8;r.blocked=0;}}
       }
     }
+    if(npc.dodge){const d=Math.hypot(npc.dodge.x-p.x,npc.dodge.z-p.z),t=Math.min(1,dt*2.8/Math.max(.01,d)),x=p.x+(npc.dodge.x-p.x)*t,z=p.z+(npc.dodge.z-p.z)*t;if(world.canWalk(x,z,npc.collider)){p.x=x;p.z=z;r.walking=true;r.phase+=dt*10;}else npc.dodge=null;if(d<.04)npc.dodge=null;}
     if(npc.collider){npc.collider.x=p.x;npc.collider.z=p.z;}
     const working=!nearby&&!r.walking&&r.wait>0,swing=reduced?0:r.walking?Math.sin(r.phase)*.4:0;
     npc.body.position.y=reduced?0:r.walking?Math.abs(Math.sin(r.phase))*.045:0;
     npc.body.rotation.x=working&&!reduced?.045+Math.sin(r.clock*2)*.035:0;
     npc.legs?.forEach((leg,i)=>leg.rotation.x=(i?1:-1)*swing);
+    if(npc.kick>0){npc.kick=Math.max(0,npc.kick-dt);if(npc.legs?.[0])npc.legs[0].rotation.x=-.9;}
     npc.arms?.forEach((arm,i)=>arm.rotation.x=r.walking?(i?-1:1)*swing:working&&!reduced?-.45+Math.sin(r.clock*3+i)*.18:0);
+    if(reacting&&npc.arms?.[0])npc.arms[0].rotation.x=-2.2+(reduced?0:Math.sin(r.clock*9)*.2);
     r.prop.rotation.x=reduced?0:working?Math.sin(r.clock*(r.job==='hammer'?5:2.3))*.3:swing*.3;
     r.prop.rotation.z=working&&['garden','tea'].includes(r.job)?-.5:0;
     r.activity=nearby?'chat':r.walking?'walk':working?'work':'rest';
   },
   update(world,dt,player,state,reduced){
     if(!['playing','dialogue'].includes(state.mode))return;
-    for(const npc of world.residents||[])this.step(world,npc,dt,player,reduced);
+    for(const npc of [...(world.residents||[]),...(world.locals||[])])this.step(world,npc,dt,player,reduced);
     for(const {actor,available} of world.workers||[]){
       actor.routine.prop.visible=!world.cutscene&&available(state);
       if(actor.routine.prop.visible)this.step(world,actor,dt,player,reduced);

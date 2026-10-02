@@ -30,6 +30,8 @@ Meadow.Minimap = class {
     this.lastDraw=g.time;const ctx=this.ctx,w=g.world;ctx.drawImage(this.terrain(w,s),0,0);
     // Small outlined dots are optional residents; larger dots are the main companions.
     for(const n of w.residents||[])this.dot(n.mesh.position,'#367e92',5,true);
+    for(const n of w.locals||[])this.dot(n.mesh.position,'#82664e',4,true);
+    for(const item of w.playground?.items||[]){if(!item.mesh.visible||item===g.sandbox.held||item.position.distanceTo(g.player.mesh.position)>12)continue;const q=this.point(item.position.x,item.position.z);ctx.fillStyle=item.kind==='scooter'?'#477e87':'#a6884d';ctx.fillRect(q.x-2,q.y-2,4,4);}
     const friends=s.chapter===1?[w.rabbit,w.hedgehog]:s.chapter===2?[w.owl]:s.chapter===3?[w.beaver]:[w.squirrel,...(s.hill.reunited?[w.mother]:[])];
     for(const n of friends)this.dot(n.mesh.position,'#367e92',6);
     for(const gate of w.portals||[]){const p=this.point(gate.x,gate.z);ctx.fillStyle=gate.open?'#fff6da':'#b9bba9';ctx.strokeStyle=gate.open?'#6a7152':'#828876';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,11,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#344e47';ctx.font='bold 17px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(gate.open?Meadow.Travel.icons[gate.to]:'×',p.x,p.y);}

@@ -88,6 +88,7 @@ Meadow.Travel=class {
     if(this.active||!['playing','complete'].includes(g.state.mode)||Math.abs(to-from)!==1||to<1||to>4)return;
     if(to>Meadow.Travel.unlocked(g.state)){this.selected=0;g.refresh();g.toast(['','先點亮引路燈','先走完河上跳石','先到河的對岸'][from]||'先完成這一段',2000);return;}
     this.active={to,from,time:0,loaded:false,first:!g.state.visited[to-1]};g.state.mode='travel';g.input.reset();g.voices.stop();
+    g.sandbox?.release(true);
     g.toastDeadline=0;document.getElementById('toast').hidden=true;
     this.overlay.hidden=false;this.overlay.style.opacity='0';document.getElementById('travel-place').textContent=Meadow.Travel.icons[to]+' '+Meadow.Travel.names[to];
     document.body.classList.add('travelling');document.getElementById('ending-screen').hidden=true;g.interactions.update();
@@ -127,7 +128,8 @@ Meadow.Travel=class {
 
 Meadow.JourneyUI={
   summary(g){
-    const s=g.state,c=s.chapter,route=g.travel?.target();if(route)return '↗ '+route.text;
+    const s=g.state,c=s.chapter,delivery=g.sandbox?.target();if(delivery)return delivery.text;
+    const route=g.travel?.target();if(route)return '↗ '+route.text;
     if(c===1)return !s.ribbon?'⋈ 找髮帶':!s.metRabbit?'💬 阿蹦':!s.metHedgehog?'💬 栗栗':!s.windSolved?'✣ 修風管':s.flowers.length<3?'✿ '+s.flowers.length+' / 3':!s.lit?'✦ 點燈':'✿ 自由探索';
     if(c===2){const f=s.forest;return !f.metOwl?'💬 咕咕':f.round<3?'♬ '+f.round+' / 3':f.gustStage<6?'≋ 疾風小徑':!f.reunited?'♡ 媽媽':!f.routeKnown?'💬 咕咕':f.dashStage<3?'◒ 河上跳石':'♬ 自由探索';}
     if(c===3){const v=s.valley;return !v.metBeaver?'💬 木木':v.bridge<3?'⚒ 修橋 '+v.bridge+' / 3':v.raft<4?'≋ 渡河 '+v.raft+' / 4':'≋ 自由探索';}

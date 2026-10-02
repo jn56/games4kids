@@ -3,7 +3,7 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..'),context=vm.createContext({console});context.window=context;
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
-for(const file of ['config.js','js/voice-script.js','js/challenges.js','js/story.js','js/exploration.js','js/family-stories.js','js/side-stories.js','js/forest-rescue.js','js/forest-story.js','js/journey-story.js'])vm.runInContext(read(file),context,{filename:file});
+for(const file of ['config.js','js/voice-script.js','js/challenges.js','js/story.js','js/exploration.js','js/sandbox.js','js/family-stories.js','js/side-stories.js','js/forest-rescue.js','js/forest-story.js','js/journey-story.js'])vm.runInContext(read(file),context,{filename:file});
 const M=context.Meadow,C=vm.runInContext('CONFIG',context),catalog=new Map();
 let chapter=1;
 function collect(lines){
@@ -55,6 +55,7 @@ for(const c of [3,4])for(let bridge=0;bridge<=3;bridge++)for(let raft=0;raft<=4;
   else for(const beacon of ['hope','memory','courage'])story.challengeComplete('star',beacon);
 }
 for(let c=1;c<=4;c++){
+  chapter=c;for(let i=0;i<4;i++)for(const text of [...M.Sandbox.lines[i],M.Sandbox.lines[1][1]])collect([{name:M.Sandbox.names[c][i],text}]);
   chapter=c;for(const npc of M.Residents[c])collect(npc.lines.map(([name,text])=>({name,text})));
   const family=M.FamilyStories.stories[c-1];
   for(const lines of [family.ask,...family.replies,...family.endings,...family.secrets])collect(lines.map(([name,text])=>({name,text})));

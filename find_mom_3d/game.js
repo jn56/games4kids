@@ -28,6 +28,7 @@ Meadow.Game = class {
     this.minimap=new Meadow.Minimap(this);
     this.voices=new Meadow.VoiceStudio(this);
     this.travel=new Meadow.Travel(this);
+    this.sandbox=new Meadow.Sandbox(this);
     this.time=0;this.lastTime=performance.now();this.lastHUD=0;this.toastDeadline=0;
     document.body.classList.add('cover');this.bindUI();this.refresh();
     if(this.saved){document.getElementById('start-btn').innerHTML=this.saved.chapter>=2?`繼續${['','黃昏花田','風鈴森林','月光河谷','星光山丘'][this.saved.chapter]} <span>→</span>`:this.saved.completed?'看看希望之光 <span>→</span>':'繼續小米的冒險 <span>→</span>';document.getElementById('new-game-btn').hidden=false;}
@@ -103,6 +104,7 @@ Meadow.Game = class {
     if(document.activeElement instanceof HTMLElement)document.activeElement.blur();
   }
   loadWorld(chapter) {
+    this.sandbox?.release(true);
     if(!this.worldCache[chapter]){
       const layer=new THREE.Group();this.scene.add(layer);
       this.worldCache[chapter]={layer,world:new ({2:Meadow.Forest,3:Meadow.Valley,4:Meadow.Hill}[chapter])(layer)};
@@ -113,6 +115,7 @@ Meadow.Game = class {
     }
     this.world=this.worldCache[chapter].world;this.story=this.stories[chapter];this.view.override=null;
     this.world.cutscene=false;this.world.hug=false;Meadow.Routines.sync(this.world,this.state);this.travel?.sync();
+    this.sandbox?.enter();
     this.world.labels.forEach(label=>{const bubble=label.el.querySelector('.label-bubble');bubble.textContent=bubble.textContent.split(' · ')[0];});
     const name=this.chapterName(),number=['','一','二','三','四'][chapter];
     this.scene.background.set([0,0xe5e8d2,0xaabeb4,0x839fa9,0x777c9b][chapter]);this.scene.fog.color.copy(this.scene.background);
@@ -203,6 +206,7 @@ Meadow.Game = class {
   toast(text,duration=4000) { const el=document.getElementById('toast');el.textContent=text;el.hidden=false;this.toastDeadline=this.time+duration/1000; }
   refresh() {
     Meadow.Routines.sync(this.world,this.state);this.travel?.sync();
+    this.sandbox?.sync();
     const objective=this.story.objective();
     document.getElementById('objective-title').textContent=Meadow.JourneyUI.summary(this);
     const progress=document.getElementById('quest-progress');progress.max=objective.total||7;progress.value=objective.step;progress.hidden=!!this.travel?.target();
@@ -226,7 +230,9 @@ Meadow.Game = class {
     this.refreshTarget();
   }
   refreshTarget() {
-    const target=this.travel?.target()||this.story.target();this.world.setTarget(target.position);
+    const target=this.sandbox?.target()||this.travel?.target()||this.story.target();this.world.setTarget(target.position);
+    document.getElementById('objective-title').textContent=Meadow.JourneyUI.summary(this);
+    document.getElementById('quest-progress').hidden=!!(this.sandbox?.target()||this.travel?.target());
     this.world.labels.forEach(label=>label.el.classList.toggle('active',label===target.label));
   }
   animate(now) {
@@ -235,11 +241,13 @@ Meadow.Game = class {
     if(this.state.mode==='error')return;
     const paused=this.state.mode==='paused';if(!paused)this.time+=dt;
     this.travel.update(paused?0:dt);const playing=this.state.mode==='playing';
+    this.sandbox.beforeMove(paused?0:dt);
     this.player.update(paused?0:dt,this.input,this.world,playing,this.reducedMotion);
     this.prologue.update(dt);this.trials.update(dt);this.expedition.update(dt);
     if(this.state.chapter>=2)this.story.update(dt);if(this.state.chapter===2)this.song.update(dt);
     if(!paused)this.world.update(this.time,dt,this.player,this.state,this.reducedMotion);
     Meadow.Exploration.update(this.world,this.time,this.player,this.state,this.reducedMotion,dt);
+    this.sandbox.update(paused?0:dt);
     this.view.update(dt,this.state.mode==='title',this.reducedMotion);
     this.minimap.update();
     if(this.trials.active&&this.state.mode==='action'&&!this.reducedMotion&&this.trials.shake>0)this.camera.position.x+=Math.sin(this.time*35)*.045;

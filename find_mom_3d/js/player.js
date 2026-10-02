@@ -39,7 +39,8 @@ Meadow.Player = class {
   update(dt, input, world, canMove, reducedMotion) {
     const move = canMove ? input.movement() : { x: 0, z: 0 };
     const oldX = this.mesh.position.x, oldZ = this.mesh.position.z;
-    const dx = move.x * CONFIG.PLAYER_SPEED * dt, dz = move.z * CONFIG.PLAYER_SPEED * dt;
+    const speed=CONFIG.PLAYER_SPEED*(this.speedMultiplier||1);
+    const dx = move.x * speed * dt, dz = move.z * speed * dt;
     if (world.canWalk(oldX + dx, oldZ)) this.mesh.position.x += dx;
     if (world.canWalk(this.mesh.position.x, oldZ + dz)) this.mesh.position.z += dz;
     const walking = Math.hypot(this.mesh.position.x - oldX, this.mesh.position.z - oldZ) > .001;

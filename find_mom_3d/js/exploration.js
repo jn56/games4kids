@@ -70,6 +70,7 @@ Meadow.Exploration = {
       for(let i=0;i<15;i++){const a=i/14*Math.PI,x=Math.cos(a)*29,z=-18-Math.sin(a)*16;if(world.nearPath(x,z,1.5))continue;if(chapter===1)world.tree(x,z,.9,i%3);else world.tree(x,z);}
     }
     Meadow.Routines.setup(world,chapter);
+    Meadow.Sandbox.build(world,chapter);
   },
   plantOuterMeadow(world,chapter){
     const A=Meadow.Art,random=A.rng(301+chapter),positions=[];
