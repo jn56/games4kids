@@ -2,19 +2,18 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>動態迷宮 🌀</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>魔法師的變變迷宮 · 遊戲小花園</title>
   <link rel="stylesheet" href="style.css">
+<meta name="description" content="60 秒內找到出口！部分牆壁每 5 秒變換位置，還要避開巡邏的蜘蛛。">
+<link rel="stylesheet" href="../shared/game.css">
 </head>
-<body>
+<body class="game-page game-square" data-game="shifting_maze">
   <div class="game-container">
     <header class="game-header">
       <div class="title-row">
         <a href="../index.html" class="home-btn">🏠 返回</a>
-        <h1>動態迷宮 🌀</h1>
+        <h1>魔法師的變變迷宮</h1>
       </div>
       <p class="subtitle">幫助魔法師逃離這個每 5 秒就會變換路線的動態迷宮！</p>
       <div class="info-bar">
@@ -54,7 +53,10 @@
     </footer>
   </div>
 
-  <script src="config.js"></script>
+  <script src="../shared/catalog.js"></script>
+<script src="../shared/audio.js"></script>
+<script src="../shared/shell.js"></script>
+<script src="config.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

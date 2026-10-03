@@ -4,16 +4,18 @@
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+// Keep gameplay coordinates independent of the screen drawing resolution.
+const boardWidth = canvas.width, boardHeight = canvas.height;
 
 // 遊戲參數設定
 const LANE_COUNT = CONFIG.game.laneCount;
-const LANE_HEIGHT = canvas.height / LANE_COUNT;
+const LANE_HEIGHT = boardHeight / LANE_COUNT;
 const PLAYER_X = CONFIG.game.playerX; // 主角固定在畫面左側
 const EMOJI_SIZE = CONFIG.game.emojiSize; // 尺寸大約 40px - 50px
 let currentSpeed = CONFIG.game.initialSpeed; // 物品向左移動速度 (動態調整)
 
 let score = 0;
-let highScore = localStorage.getItem('pkmadv_highScore') || 0;
+let highScore = GameStorage.number('pkmadv_highScore');
 let gameState = 'PLAYING'; // 狀態：'PLAYING', 'GAMEOVER'
 let items = [];
 let lastSpawnTime = 0;
@@ -94,14 +96,7 @@ let nextNoteTime = 0;
 let currentNote = 0;
 
 function initAudio() {
-  if (!audioCtx) {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    audioCtx = new AudioContext();
-    nextNoteTime = audioCtx.currentTime + 0.1;
-  }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
+    audioCtx = GameAudio.context(); GameAudio.unlock();
 }
 
 function playNote(time, freq, type = 'square', duration = 0.1, vol = 0.04) {
@@ -121,67 +116,35 @@ function playNote(time, freq, type = 'square', duration = 0.1, vol = 0.04) {
 }
 
 function playFlowerSound() {
-  if (!audioCtx) return;
-  playNote(audioCtx.currentTime, 880, 'sine', 0.1);
-  playNote(audioCtx.currentTime + 0.1, 1318.51, 'sine', 0.15); // 叮咚
+    GameAudio.effect('flower');
 }
 
 function playPoopSound() {
-  if (!audioCtx) return;
-  playNote(audioCtx.currentTime, 300, 'sawtooth', 0.1);
-  playNote(audioCtx.currentTime + 0.1, 200, 'sawtooth', 0.2); // 噗
+    GameAudio.effect('poop');
 }
 
 function playGameOverSound() {
-  if (!audioCtx) return;
-  playNote(audioCtx.currentTime, 400, 'square', 0.2);
-  playNote(audioCtx.currentTime + 0.2, 300, 'square', 0.2);
-  playNote(audioCtx.currentTime + 0.4, 200, 'square', 0.4); // 登登登
+    GameAudio.effect('over');
 }
 
 function playWinSound() {
-  if (!audioCtx) return;
-  const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
-  notes.forEach((freq, idx) => {
-    playNote(audioCtx.currentTime + idx * 0.15, freq, 'square', 0.15, 0.05);
-  });
+    GameAudio.effect('win');
 }
 
 function runAudio() {
-  if (!audioCtx || gameState !== 'PLAYING') return;
-  // 分數越高，BPM 越快
-  let bpm = 120 + Math.max(0, score) * 3;
-  let beatDuration = 60 / bpm / 2; // 八分音符
-
-  while (nextNoteTime < audioCtx.currentTime + 0.1) {
-    const melody = [523.25, 659.25, 783.99, 1046.50, 783.99, 659.25, 587.33, 659.25];
-    let freq = melody[currentNote % melody.length];
-
-    // 伴奏 (低音)
-    if (currentNote % 4 === 0) {
-      playNote(nextNoteTime, 261.63, 'sawtooth', 0.15, 0.02); // 稍微調大一點背景音樂
-    }
-
-    // 主旋律
-    if (currentNote % 8 !== 7) { // 稍微切分音
-      playNote(nextNoteTime, freq, 'square', 0.1, 0.02); // 稍微調大一點背景音樂
-    }
-
-    nextNoteTime += beatDuration;
-    currentNote++;
-  }
+    // Music is scheduled by shared/audio.js.
 }
 
 // 鍵盤監聽
 window.addEventListener('keydown', (e) => {
   initAudio();
-  if (gameState === 'PLAYING') {
+  if (gameState === 'PLAYING' && !GameShell.paused) {
     if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
       if (player.lane > 0) player.lane--;
     } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
       if (player.lane < LANE_COUNT - 1) player.lane++;
     }
-  } else if (gameState === 'GAMEOVER' || gameState === 'WIN') {
+  } else if (gameState === 'START' || gameState === 'GAMEOVER' || gameState === 'WIN') {
     if (e.key === ' ' || e.key === 'Spacebar') {
       resetGame();
     }
@@ -192,7 +155,7 @@ window.addEventListener('keydown', (e) => {
 canvas.addEventListener('touchstart', (e) => {
   e.preventDefault(); // 避免網頁捲動
   initAudio();
-  if (gameState === 'PLAYING') {
+  if (gameState === 'PLAYING' && !GameShell.paused) {
     let rect = canvas.getBoundingClientRect();
     let touchY = e.touches[0].clientY - rect.top;
     if (touchY < rect.height / 2) {
@@ -200,7 +163,7 @@ canvas.addEventListener('touchstart', (e) => {
     } else {
       if (player.lane < LANE_COUNT - 1) player.lane++;
     }
-  } else if (gameState === 'GAMEOVER' || gameState === 'WIN') {
+  } else if (gameState === 'START' || gameState === 'GAMEOVER' || gameState === 'WIN') {
     resetGame();
   }
 }, { passive: false });
@@ -214,8 +177,7 @@ function resetGame() {
   lastSpawnTime = performance.now();
   nextSpawnDelay = 300 + Math.random() * 200; // 初始延隔進一步縮小
 
-  // 啟動迴圈
-  requestAnimationFrame(gameLoop);
+  // The one render loop continues across restarts.
 }
 
 // 生成物品
@@ -228,7 +190,7 @@ function spawnItem(now) {
     // 新生成的物品 X 必須與前一個物品保持一定安全距離
     let canSpawn = true;
     for (let item of items) {
-      if (item.x > canvas.width - 55) { // 縮小安全距離，使生成頻率可以更高
+      if (item.x > boardWidth - 55) { // 縮小安全距離，使生成頻率可以更高
         canSpawn = false;
         break;
       }
@@ -240,7 +202,7 @@ function spawnItem(now) {
     // 確保同一垂直線上不會三條走道都有障礙物
     if (itemInfo.isObstacle) {
       let recentObstacleLanes = items
-        .filter(item => item.isObstacle && item.x > canvas.width - 200)
+        .filter(item => item.isObstacle && item.x > boardWidth - 200)
         .map(item => item.lane);
 
       let blockedLanes = new Set(recentObstacleLanes);
@@ -253,7 +215,7 @@ function spawnItem(now) {
     }
 
     items.push({
-      x: canvas.width + 50,
+      x: boardWidth + 50,
       lane: lane,
       ...itemInfo
     });
@@ -270,7 +232,8 @@ function spawnItem(now) {
 
 // 物理與邏輯更新
 function update(now) {
-  if (gameState !== 'PLAYING') return;
+    if (GameShell.paused) return;
+  if (gameState !== 'PLAYING' || GameShell.paused) return;
 
   runAudio(); // 播放音樂
 
@@ -355,7 +318,7 @@ function update(now) {
             // 更新最高紀錄
             if (score > highScore) {
               highScore = score;
-              localStorage.setItem('pkmadv_highScore', highScore);
+              GameStorage.set('pkmadv_highScore', highScore);
             }
 
             // 檢查是否破關
@@ -372,6 +335,7 @@ function update(now) {
             items.splice(i, 1);
           }
         }
+        if (gameState !== 'PLAYING') return;
         continue;
       }
     }
@@ -398,7 +362,7 @@ function update(now) {
 function draw() {
   // 1. 背景顏色 (修改為淺草綠色，讓草叢更融合)
   ctx.fillStyle = '#a8e6cf';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, boardWidth, boardHeight);
 
   // 2. 背景草叢
   ctx.save();
@@ -430,7 +394,7 @@ function draw() {
     let y = i * LANE_HEIGHT;
     ctx.beginPath();
     ctx.moveTo(0, y);
-    ctx.lineTo(canvas.width, y);
+    ctx.lineTo(boardWidth, y);
     ctx.stroke();
   }
   ctx.setLineDash([]); // 恢復實線
@@ -499,72 +463,87 @@ function draw() {
 
   // 6. 右上角顯示分數
   ctx.save();
-  ctx.translate(canvas.width - 20, 40);
+  ctx.translate(boardWidth - 20, 40);
   if (scoreFeedback.active) {
     ctx.scale(scoreFeedback.scale, scoreFeedback.scale);
     ctx.fillStyle = scoreFeedback.color;
   } else {
     ctx.fillStyle = '#333';
   }
-  ctx.font = 'bold 36px "Fredoka", sans-serif';
+  ctx.font = 'bold 27px sans-serif';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
   // 文字描邊
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 4;
-  ctx.strokeText(`Score: ${score}`, 0, 0);
-  ctx.fillText(`Score: ${score}`, 0, 0);
+  ctx.strokeText(`分數：${score}`, 0, 0);
+  ctx.fillText(`分數：${score}`, 0, 0);
   ctx.restore();
 
-  // 7. Game Over 畫面
-  if (gameState === 'GAMEOVER') {
+  // Cover and results keep the same controls and rules.
+  if (gameState === 'START') {
+    ctx.fillStyle = 'rgba(245,250,237,0.85)';
+    ctx.fillRect(0,0,boardWidth,boardHeight);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#21695c';
+    ctx.font = 'bold 40px sans-serif';
+    ctx.fillText('花花草原快跑',boardWidth/2,boardHeight/2-25);
+    ctx.font = '22px sans-serif';
+    ctx.fillText('收集花朵，閃開樹木與木箱',boardWidth/2,boardHeight/2+22);
+    ctx.font = '18px sans-serif';
+    ctx.fillText('點畫面或按空白鍵開始',boardWidth/2,boardHeight/2+65);
+  } else if (gameState === 'GAMEOVER') {
     // 半透明遮罩
     ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, boardWidth, boardHeight);
 
     // 主標題
     ctx.fillStyle = '#d32f2f'; // 紅色
     ctx.font = 'bold 48px "Fredoka", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('GAME OVER!', canvas.width / 2, canvas.height / 2 - 40);
+    ctx.fillText('GAME OVER!', boardWidth / 2, boardHeight / 2 - 40);
 
     // 分數顯示
     ctx.fillStyle = '#333';
     ctx.font = 'bold 28px "Fredoka", sans-serif';
-    ctx.fillText(`最終得分: ${score}  ,  最高紀錄: ${highScore}`, canvas.width / 2, canvas.height / 2 + 15);
+    ctx.fillText(`最終得分: ${score}  ,  最高紀錄: ${highScore}`, boardWidth / 2, boardHeight / 2 + 15);
 
     // 副標題
     ctx.fillStyle = '#555';
     ctx.font = '24px "Fredoka", sans-serif';
-    ctx.fillText('按下空白鍵或點擊螢幕再玩一次', canvas.width / 2, canvas.height / 2 + 65);
+    ctx.fillText('按下空白鍵或空白鍵再玩一次', boardWidth / 2, boardHeight / 2 + 65);
   } else if (gameState === 'WIN') {
     // 破關畫面
     ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, boardWidth, boardHeight);
 
     ctx.fillStyle = '#f57c00'; // 橘黃色
     ctx.font = 'bold 48px "Fredoka", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('🎉 恭喜破關！ 🎉', canvas.width / 2, canvas.height / 2 - 40);
+    ctx.fillText('🎉 恭喜破關！ 🎉', boardWidth / 2, boardHeight / 2 - 40);
 
     ctx.fillStyle = '#333';
     ctx.font = 'bold 28px "Fredoka", sans-serif';
-    ctx.fillText(`得分: ${score}  ,  最高紀錄: ${highScore}`, canvas.width / 2, canvas.height / 2 + 15);
+    ctx.fillText(`得分: ${score}  ,  最高紀錄: ${highScore}`, boardWidth / 2, boardHeight / 2 + 15);
 
     ctx.fillStyle = '#555';
     ctx.font = '24px "Fredoka", sans-serif';
-    ctx.fillText('按下空白鍵或點擊螢幕再玩一次', canvas.width / 2, canvas.height / 2 + 65);
+    ctx.fillText('按下空白鍵或空白鍵再玩一次', boardWidth / 2, boardHeight / 2 + 65);
   }
 }
 
 // 遊戲迴圈
 function gameLoop(timestamp) {
-  update(timestamp);
-  draw();
-  if (gameState === 'PLAYING') {
     requestAnimationFrame(gameLoop);
-  }
+  if (!gameLoop.last) gameLoop.last=timestamp;
+  if(timestamp-gameLoop.last>=1000/60){gameLoop.last=timestamp-((timestamp-gameLoop.last)%(1000/60));update(timestamp);draw();}
 }
 
-// 首次啟動
+// Wait for the player, then continue using the same render loop.
 resetGame();
+gameState = 'START';
+requestAnimationFrame(gameLoop);
+
+canvas.addEventListener("mousedown",()=>{if(gameState!=="PLAYING")resetGame();});
+
+GameShell.register({board:{width:boardWidth,height:boardHeight,draw:draw},status:()=>gameState,start:resetGame,resume:(elapsed)=>{lastSpawnTime+=elapsed;player.lastAnimTime=performance.now();}});

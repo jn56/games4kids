@@ -1,5 +1,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+// Keep gameplay coordinates independent of the screen drawing resolution.
+const boardWidth = canvas.width, boardHeight = canvas.height;
 const congratsMsg = document.getElementById('congratsMsg');
 const restartBtn = document.getElementById('restartBtn');
 const gameOverMsg = document.getElementById('gameOverMsg');
@@ -34,29 +36,15 @@ const bass = [
 ];
 
 function startMusic() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
-    if (musicIntervalId) return; // Already running
-    nextNoteTime = audioCtx.currentTime;
-    melodyStep = 0;
-    musicIntervalId = setInterval(scheduler, 100);
+    GameAudio.startMusic();
 }
 
 function stopMusic() {
-    if (musicIntervalId) {
-        clearInterval(musicIntervalId);
-        musicIntervalId = null;
-    }
+    GameAudio.stopMusic();
 }
 
 function scheduler() {
-    const scheduleAheadTime = 0.2; // schedule 200ms in advance
-    while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
-        scheduleNote(melodyStep, nextNoteTime);
-        advanceNote();
-    }
+    // Music is scheduled by shared/audio.js.
 }
 
 function advanceNote() {
@@ -66,78 +54,21 @@ function advanceNote() {
 }
 
 function scheduleNote(step, time) {
-    // Melody synth (Triangle oscillator for music-box tone)
-    const freq = melody[step];
-    if (freq > 0) {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.value = freq;
-        
-        gain.gain.setValueAtTime(0.04, time); // Soft background music volume
-        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.25);
-        
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(time);
-        osc.stop(time + 0.25);
-    }
-    
-    // Bass synth (Sine oscillator for warm bassline)
-    const bassFreq = bass[step];
-    if (bassFreq > 0) {
-        const oscBass = audioCtx.createOscillator();
-        const gainBass = audioCtx.createGain();
-        oscBass.type = 'sine';
-        oscBass.frequency.value = bassFreq;
-        
-        gainBass.gain.setValueAtTime(0.06, time);
-        gainBass.gain.exponentialRampToValueAtTime(0.001, time + 0.5);
-        
-        oscBass.connect(gainBass);
-        gainBass.connect(audioCtx.destination);
-        oscBass.start(time);
-        oscBass.stop(time + 0.5);
-    }
+    // Music is scheduled by shared/audio.js.
 }
 
 function ensureAudioStarted() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
-    if (!musicIntervalId && isPlaying) {
-        startMusic();
-    }
+    audioCtx = GameAudio.context(); GameAudio.unlock(); if (isPlaying) GameAudio.startMusic();
 }
 
 function playLoseSound() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    
-    const notes = [293.66, 261.63, 220.00, 196.00]; // D4, C4, A3, G3 (retro drop)
-    const now = audioCtx.currentTime;
-    
-    notes.forEach((freq, idx) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.value = freq;
-        
-        gain.gain.setValueAtTime(0.08, now + idx * 0.15);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.15 + 0.25);
-        
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now + idx * 0.15);
-        osc.stop(now + idx * 0.15 + 0.25);
-    });
+    GameAudio.effect('lose');
 }
 
 // Maze settings
 const cols = CONFIG.maze.cols;
 const rows = CONFIG.maze.rows;
-const w = canvas.width / cols;
+const w = boardWidth / cols;
 let grid = [];
 let current;
 let player;
@@ -261,8 +192,8 @@ const scaleFactor = CONFIG.game.scaleFactor;
 function drawPlayer() {
     const px = player.i * w + w / 2;
     const py = player.j * w + w / 2;
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
+    const cx = boardWidth / 2;
+    const cy = boardHeight / 2;
 
     const dx = px - cx;
     const dy = py - cy;
@@ -280,8 +211,8 @@ function drawPlayer() {
 function drawGoal() {
     const gx = goal.i * w + w / 2;
     const gy = goal.j * w + w / 2;
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
+    const cx = boardWidth / 2;
+    const cy = boardHeight / 2;
 
     const dx = gx - cx;
     const dy = gy - cy;
@@ -299,11 +230,11 @@ function drawGoal() {
 let angle = 0;
 
 function render() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, boardWidth, boardHeight);
 
     if (player) {
-        const cx = canvas.width / 2;
-        const cy = canvas.height / 2;
+        const cx = boardWidth / 2;
+        const cy = boardHeight / 2;
 
         ctx.save();
         // Translate to canvas center, rotate, scale, then translate back
@@ -343,7 +274,7 @@ function initGame() {
 
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
-        if (!isPlaying) return;
+        if (!isPlaying || GameShell.paused) return;
         timeLeft--;
         timerVal.textContent = timeLeft;
 
@@ -371,26 +302,7 @@ function initGame() {
 
 // Audio context for win sound
 function playWinSound() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-
-    const notes = [523.25, 659.25, 783.99, 1046.50]; // C E G C
-    const now = audioCtx.currentTime;
-
-    notes.forEach((freq, idx) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.value = freq;
-
-        gain.gain.setValueAtTime(0.1, now + idx * 0.15);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.15 + 0.1);
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now + idx * 0.15);
-        osc.stop(now + idx * 0.15 + 0.1);
-    });
+    GameAudio.effect('win');
 }
 
 // Convert screen movement direction to grid movement direction based on current rotation angle
@@ -420,8 +332,10 @@ function getGridDirection(sdx, sdy) {
 }
 
 function movePlayer(dx, dy) {
-    if (!isPlaying) return;
+    if (GameShell.paused) return;
+    if (!isPlaying || GameShell.paused) return;
 
+    const before = `${player.i},${player.j}`;
     let cell = grid[index(player.i, player.j)];
 
     // dx = 1 (Right), dx = -1 (Left)
@@ -432,6 +346,7 @@ function movePlayer(dx, dy) {
     if (dy === 1 && !cell.walls[2]) player.j++; // Down
     if (dx === -1 && !cell.walls[3]) player.i--; // Left
 
+    if (before !== `${player.i},${player.j}`) GameAudio.effect('step');
     // Check Win Condition
     if (player.i === goal.i && player.j === goal.j) {
         isPlaying = false;
@@ -456,8 +371,9 @@ window.addEventListener('keydown', (e) => {
 
         if (!keysPressed[e.code]) {
             keysPressed[e.code] = true;
-            // Force immediate move on new key press by resetting lastMoveTime
-            lastMoveTime = 0;
+            const delta={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0],KeyS:[0,1],KeyA:[-1,0],KeyD:[1,0]}[e.code];
+            if (delta) { const dir=getGridDirection(...delta); movePlayer(dir.dx,dir.dy); }
+            lastMoveTime = performance.now();
         }
     }
 });
@@ -499,7 +415,7 @@ canvas.addEventListener('touchmove', (e) => {
 
 canvas.addEventListener('touchend', (e) => {
     e.preventDefault();
-    if (!isPlaying) return;
+    if (!isPlaying || GameShell.paused) return;
 
     let touchEndX = e.changedTouches[0].clientX;
     let touchEndY = e.changedTouches[0].clientY;
@@ -531,7 +447,7 @@ function animate(timestamp) {
     const dt = timestamp - lastTimestamp;
     lastTimestamp = timestamp;
 
-    if (isPlaying) {
+    if (isPlaying && !GameShell.paused) {
         // Rotate slowly
         angle += CONFIG.game.rotationSpeed * (dt / 1000);
 
@@ -558,5 +474,6 @@ function animate(timestamp) {
 }
 
 // Start
-initGame();
-requestAnimationFrame(animate);
+initGame(); isPlaying=false; requestAnimationFrame(animate);
+
+GameShell.register({board:{width:boardWidth,height:boardHeight,draw:render},status:()=>isPlaying?'PLAYING':!congratsMsg.classList.contains('hidden')?'WIN':!gameOverMsg.classList.contains('hidden')?'GAMEOVER':'START',start:initGame,clear:()=>{Object.keys(keysPressed).forEach(k=>keysPressed[k]=false);},resume:()=>{lastTimestamp=performance.now();}});

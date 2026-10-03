@@ -1,10 +1,12 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+// Keep gameplay coordinates independent of the screen drawing resolution.
+const boardWidth = canvas.width, boardHeight = canvas.height;
 const muteBtn = document.getElementById('muteBtn');
 
 let state = 'START';
 let score = 0;
-let highScore = localStorage.getItem('hungry_snake_highScore') || 0;
+let highScore = GameStorage.number('hungry_snake_highScore');
 
 let audioCtx = null;
 let isMuted = false;
@@ -23,37 +25,11 @@ muteBtn.addEventListener('click', (e) => {
 });
 
 function initAudio() {
-    if (isMuted) return;
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    audioCtx = GameAudio.context(); GameAudio.unlock();
 }
 
 function playSound(type) {
-    if (isMuted || !audioCtx) return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    
-    if (type === 'eat') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.1);
-    } else if (type === 'over') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.4);
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.4);
-    }
+    GameAudio.effect(type);
 }
 
 const cols = CONFIG.game.cols;
@@ -68,18 +44,9 @@ let lastTime = 0;
 let currentSpeed = CONFIG.game.initialSpeed;
 
 function spawnFood() {
-    let valid = false;
-    while (!valid) {
-        food.x = Math.floor(Math.random() * cols);
-        food.y = Math.floor(Math.random() * rows);
-        valid = true;
-        for (let s of snake) {
-            if (s.x === food.x && s.y === food.y) {
-                valid = false;
-                break;
-            }
-        }
-    }
+    const available=[]; for(let y=0;y<rows;y++)for(let x=0;x<cols;x++)if(!snake.some(s=>s.x===x&&s.y===y))available.push({x,y});
+    if(!available.length){state='WIN';GameAudio.effect('win');return;}
+    food=available[Math.floor(Math.random()*available.length)];
 }
 
 function startGame() {
@@ -117,6 +84,8 @@ let touchStartY = 0;
 canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
     initAudio();
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
     if (state !== 'PLAYING') {
         startGame();
         return;
@@ -144,6 +113,7 @@ canvas.addEventListener('touchend', (e) => {
 }, { passive: false });
 
 function update(time) {
+    if (GameShell.paused) return;
     if (state !== 'PLAYING') return;
     
     if (time - lastTime > currentSpeed) {
@@ -159,7 +129,8 @@ function update(time) {
         if (head.y >= rows) head.y = 0;
         
         // Self collision
-        for (let i = 0; i < snake.length; i++) {
+        const eating = head.x === food.x && head.y === food.y;
+        for (let i = 0; i < snake.length - (eating ? 0 : 1); i++) {
             if (head.x === snake[i].x && head.y === snake[i].y) {
                 state = 'GAMEOVER';
                 playSound('over');
@@ -178,7 +149,7 @@ function update(time) {
             
             if (score > highScore) {
                 highScore = score;
-                localStorage.setItem('hungry_snake_highScore', highScore);
+                GameStorage.set('hungry_snake_highScore', highScore);
             }
         } else {
             snake.pop();
@@ -187,7 +158,7 @@ function update(time) {
 }
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, boardWidth, boardHeight);
 
     // Draw snake
     for (let i = 0; i < snake.length; i++) {
@@ -200,6 +171,13 @@ function draw() {
         ctx.beginPath();
         ctx.roundRect(s.x * tileSize + 1, s.y * tileSize + 1, tileSize - 2, tileSize - 2, 4);
         ctx.fill();
+        if (i === 0) {
+            const cx=s.x*tileSize+tileSize/2,cy=s.y*tileSize+tileSize/2;
+            ctx.fillStyle='#163f26';
+            ctx.beginPath();
+            for (const side of [-1,1]) ctx.arc(cx+dir.x*4-dir.y*side*4,cy+dir.y*4+dir.x*side*4,1.8,0,Math.PI*2);
+            ctx.fill();
+        }
     }
     
     // Draw food
@@ -214,28 +192,30 @@ function draw() {
     ctx.textAlign = 'left';
     ctx.fillText(`分數: ${score}`, 10, 25);
     ctx.textAlign = 'right';
-    ctx.fillText(`最高: ${highScore}`, canvas.width - 10, 25);
+    ctx.fillText(`最高: ${highScore}`, boardWidth - 10, 25);
 
     if (state !== 'PLAYING') {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, boardWidth, boardHeight);
         
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         if (state === 'START') {
             ctx.fillStyle = CONFIG.ui.primaryColor;
-            ctx.font = 'bold 36px "Fredoka", sans-serif';
-            ctx.fillText('貪吃蛇 🐍', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = 'bold 27px sans-serif';
+            ctx.fillText('🐍 小蛇的蘋果派對', boardWidth/2, boardHeight/2 - 30);
             ctx.fillStyle = '#fff';
             ctx.font = '18px "Fredoka", sans-serif';
-            ctx.fillText('點擊或滑動螢幕開始', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('點擊或滑動螢幕開始', boardWidth/2, boardHeight/2 + 30);
+        } else if (state === 'WIN') {
+            ctx.fillStyle='#34d399';ctx.font='bold 30px sans-serif';ctx.fillText('蘋果派對完成！',boardWidth/2,boardHeight/2-20);
         } else if (state === 'GAMEOVER') {
             ctx.fillStyle = '#ef4444';
-            ctx.font = 'bold 36px "Fredoka", sans-serif';
-            ctx.fillText('遊戲結束 💥', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = 'bold 27px sans-serif';
+            ctx.fillText('遊戲結束 💥', boardWidth/2, boardHeight/2 - 30);
             ctx.fillStyle = '#fff';
             ctx.font = '18px "Fredoka", sans-serif';
-            ctx.fillText('點擊或滑動螢幕重來', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('點擊或滑動螢幕重來', boardWidth/2, boardHeight/2 + 30);
         }
     }
 }
@@ -247,3 +227,7 @@ function loop(time) {
 }
 
 requestAnimationFrame(loop);
+
+canvas.addEventListener("mousedown",()=>{if(state!=="PLAYING")startGame();});
+
+GameShell.register({board:{width:boardWidth,height:boardHeight,draw:draw},status:()=>state,start:startGame,resume:()=>{lastTime=performance.now();}});

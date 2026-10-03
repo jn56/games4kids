@@ -27,7 +27,7 @@ let bgmStep = 0;
 // --- 輸入控制變數 ---
 const keys = {
     KeyW: false, ArrowUp: false,
-    KeyS: false, ArrowDown: false,
+    ArrowDown: false,
     KeyA: false, ArrowLeft: false,
     KeyD: false, ArrowRight: false,
     Space: false
@@ -185,135 +185,23 @@ muteBtn.addEventListener('click', (e) => {
 });
 
 function initAudio() {
-    if (isMuted) return;
-    if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
+    audioCtx = GameAudio.context(); GameAudio.unlock();
 }
 
 function playSound(type) {
-    if (isMuted || !audioCtx) return;
-    initAudio();
-    const now = audioCtx.currentTime;
-    
-    if (type === 'shoot') {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(400, now);
-        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.15);
-        gain.gain.setValueAtTime(0.25, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now);
-        osc.stop(now + 0.15);
-    } else if (type === 'hit') {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, now);
-        osc.frequency.setValueAtTime(1000, now + 0.05);
-        osc.frequency.setValueAtTime(1200, now + 0.1);
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now);
-        osc.stop(now + 0.25);
-    } else if (type === 'damage') {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(180, now);
-        osc.frequency.linearRampToValueAtTime(60, now + 0.3);
-        gain.gain.setValueAtTime(0.45, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now);
-        osc.stop(now + 0.3);
-    } else if (type === 'win') {
-        const notes = [523.25, 659.25, 783.99, 1046.50];
-        notes.forEach((freq, idx) => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.value = freq;
-            gain.gain.setValueAtTime(0.25, now + idx * 0.1);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.15);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(now + idx * 0.1);
-            osc.stop(now + idx * 0.1 + 0.15);
-        });
-    } else if (type === 'lose') {
-        const notes = [300, 260, 220, 180];
-        notes.forEach((freq, idx) => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.value = freq;
-            gain.gain.setValueAtTime(0.25, now + idx * 0.15);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.15 + 0.2);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(now + idx * 0.15);
-            osc.stop(now + idx * 0.15 + 0.2);
-        });
-    }
+    GameAudio.effect(type);
 }
 
 function startBGM() {
-    if (isMuted) return;
-    initAudio();
-    stopBGM();
-    bgmStep = 0;
-    playBGMStep();
+    GameAudio.startMusic();
 }
 
 function stopBGM() {
-    if (bgmInterval) {
-        clearTimeout(bgmInterval);
-        bgmInterval = null;
-    }
+    GameAudio.stopMusic();
 }
 
 function playBGMStep() {
-    if (gameState !== 'PLAYING' || !audioCtx || isMuted) return;
-    
-    // 改為輕快、活潑的背景音樂節奏 (每拍 300ms)
-    const noteDelay = 300; // ms
-    let melody = [261.63, 329.63, 392.00, 523.25, 440.00, 392.00, 440.00, 392.00]; // C Major
-    
-    if (currentLevelIndex === 1) {
-        melody = [349.23, 440.00, 523.25, 587.33, 523.25, 440.00, 392.00, 349.23]; // F Major
-    } else if (currentLevelIndex === 2) {
-        melody = [392.00, 493.88, 587.33, 783.99, 587.33, 493.88, 440.00, 392.00]; // G Major
-    }
-
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    
-    // 使用 sine 製作歡樂音樂盒音色
-    osc.type = 'sine';
-    osc.frequency.value = melody[bgmStep % melody.length];
-    
-    // 調大背景音樂音量 (0.06) 讓音樂清晰輕快
-    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.0, audioCtx.currentTime + (noteDelay / 1000) * 0.95);
-    
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    
-    osc.start();
-    osc.stop(audioCtx.currentTime + (noteDelay / 1000) * 0.95);
-    
-    bgmStep++;
-    bgmInterval = setTimeout(playBGMStep, noteDelay);
+    // Music is scheduled by shared/audio.js.
 }
 
 
@@ -534,7 +422,7 @@ function initGameEngine() {
     camera = new THREE.PerspectiveCamera(90, width / height, 0.1, 100);
     
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas3d'), antialias: true });
-    renderer.setSize(width, height);
+    GameShell.resizeRenderer(renderer, width, height);
     renderer.setClearColor(CONFIG.theme.skyColor);
     renderer.shadowMap.enabled = true;
 
@@ -553,7 +441,7 @@ function onWindowResize() {
     let height = container.clientHeight || window.innerHeight || 500;
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(width, height);
+    GameShell.resizeRenderer(renderer, width, height);
 }
 
 function setupInputListeners() {
@@ -571,12 +459,12 @@ function setupInputListeners() {
                 retryLevel(); // 按空白鍵重新挑戰同一關 (代替滑鼠點擊)
             } else if (gameState === 'VICTORY') {
                 startGame(); // 按空白鍵再玩一次 (代替滑鼠點擊)
-            } else if (gameState === 'PLAYING') {
+            } else if (gameState === 'PLAYING' && !GameShell.paused) {
                 fireProjectile(); // 遊戲中射擊光波
             }
         }
-        if (e.code === 'KeyH') {
-            togglePathHints(); // 按 H 切換路徑提示箭頭
+        if (e.code === 'KeyS' && !e.repeat && gameState === 'PLAYING') {
+            togglePathHints(); // 按 S 切換路徑提示箭頭
         }
     });
 
@@ -971,7 +859,8 @@ function showLevelAnnouncement(name) {
 
 // 發射眩光波
 function fireProjectile() {
-    if (gameState !== 'PLAYING') return;
+    if (GameShell.paused) return;
+    if (gameState !== 'PLAYING' || GameShell.paused) return;
 
     const now = performance.now();
     if (now - lastShootTime < CONFIG.projectile.cooldown) return;
@@ -1006,7 +895,8 @@ function fireProjectile() {
 // --- 核心更新邏輯 ---
 
 function update(delta) {
-    if (gameState !== 'PLAYING') return;
+    if (GameShell.paused) return;
+    if (gameState !== 'PLAYING' || GameShell.paused) return;
 
     // 1. 更新玩家無敵時間
     if (player.invulnerable) {
@@ -1064,7 +954,7 @@ function handlePlayerMovement(delta) {
 
     // 鍵盤操控
     if (keys.KeyW || keys.ArrowUp) moveF += 1;
-    if (keys.KeyS || keys.ArrowDown) moveF -= 1;
+    if (keys.ArrowDown) moveF -= 1;
     if (keys.KeyA || keys.ArrowLeft) rotate -= 1;
     if (keys.KeyD || keys.ArrowRight) rotate += 1;
 
@@ -1763,12 +1653,14 @@ function updateParticles(delta) {
 
 // --- 2D 小地圖繪製 ---
 function drawMinimap() {
-    minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+    const mapWidth = Number(minimapCanvas.dataset.logicalWidth) || minimapCanvas.width;
+    const mapHeight = Number(minimapCanvas.dataset.logicalHeight) || minimapCanvas.height;
+    minimapCtx.clearRect(0, 0, mapWidth, mapHeight);
     if (!mazeGrid.length) return;
 
     // 將迷宮等比縮小適配小地圖畫布
-    const cellW = minimapCanvas.width / cols;
-    const cellH = minimapCanvas.height / rows;
+    const cellW = mapWidth / cols;
+    const cellH = mapHeight / rows;
 
     // 1. 繪製迷宮格子
     for (let r = 0; r < rows; r++) {
@@ -1859,7 +1751,7 @@ function startTimer() {
     if (timerInterval) clearInterval(timerInterval);
     const level = CONFIG.levels[currentLevelIndex];
     timerInterval = setInterval(() => {
-        if (gameState !== 'PLAYING') return;
+        if (gameState !== 'PLAYING' || GameShell.paused) return;
 
         // timeLimit === 0 代表無限時間 (第四關)
         if (level.timeLimit === 0) {
@@ -1909,9 +1801,9 @@ function completeLevel() {
         document.getElementById('finalScoreVal').textContent = finalScore;
         
         // 更新大廳最高分
-        const highScore = localStorage.getItem('monster_maze_3d_highScore') || 0;
+        const highScore = GameStorage.number('monster_maze_3d_highScore');
         if (finalScore > highScore) {
-            localStorage.setItem('monster_maze_3d_highScore', finalScore);
+            GameStorage.set('monster_maze_3d_highScore', finalScore);
         }
         
         gameState = 'VICTORY';
@@ -2007,7 +1899,7 @@ function getArrowMaterial() {
 }
 
 function togglePathHints() {
-    if (gameState !== 'PLAYING') return;
+    if (gameState !== 'PLAYING' || GameShell.paused) return;
     
     showHints = !showHints;
     if (!showHints) {
@@ -2175,3 +2067,7 @@ document.addEventListener('DOMContentLoaded', () => {
     buildLevel(); // 預載第一關場景作為開場背景
     animate();
 });
+
+document.addEventListener("touchcancel",()=>{Object.keys(touchControls).forEach(k=>touchControls[k]=false);});
+
+GameShell.register({minimap:()=>{if(minimapCtx)drawMinimap();},status:()=>gameState,start:()=>{const button=[...document.querySelectorAll('.overlay:not(.hidden) button')][0];if(button)button.click();},clear:()=>{Object.keys(keys).forEach(k=>keys[k]=false);Object.keys(touchControls).forEach(k=>touchControls[k]=false);},resume:()=>{clock.getDelta();}});

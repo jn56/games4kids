@@ -2,12 +2,9 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D 迷宮大冒險 👾</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>光波勇士迷宮探險 · 遊戲小花園</title>
     <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #0ea5e9;
@@ -296,6 +293,8 @@
         }
 
         #minimapCanvas {
+            width: 120px;
+            height: 120px;
             display: block;
             width: 100%;
             height: 100%;
@@ -497,8 +496,10 @@
             font-size: 0.95rem;
         }
     </style>
+<meta name="description" content="探索立體迷宮，發射光波暫時擊暈怪物，避開蜘蛛，找到發光傳送門完成挑戰！">
+<link rel="stylesheet" href="../shared/game.css">
 </head>
-<body>
+<body class="game-page game-3d" data-game="monster_maze_3d">
     <div class="ambient-glow"></div>
 
     <div class="game-container" id="gameContainer">
@@ -506,7 +507,7 @@
         <header class="hud-header">
             <div class="hud-left">
                 <a href="../index.html" class="back-btn" title="返回大廳">🏠</a>
-                <h1>3D 迷宮大冒險</h1>
+                <h1>光波勇士迷宮探險</h1>
                 <span class="level-badge" id="levelNameBadge">載入中...</span>
             </div>
             
@@ -579,10 +580,8 @@
 
         <!-- Start Overlay -->
         <div class="overlay" id="startOverlay">
-            <h2>👾 3D 迷宮大冒險</h2>
-            <p class="overlay-desc">
-                歡迎來到神奇的 3D 立體迷宮！你的任務是找出發光的綠色傳送門逃出迷宮！途中會有可愛的 3D 小粉紅怪物靠近，快發射紅色眩光波將牠們擊暈，趁機通過！
-            </p>
+            <h2>👾 光波勇士迷宮探險</h2>
+            <p class="overlay-desc">探索立體迷宮，發射光波暫時擊暈怪物，避開蜘蛛，找到發光傳送門完成挑戰！</p>
             
             <div class="controls-list">
                 <div>前進 / 後退: <span class="ctrl-key">▲</span> / <span class="ctrl-key">▼</span> 或 <span class="ctrl-key">W</span> / <span class="ctrl-key">S</span></div>
@@ -626,7 +625,10 @@
     </div>
 
     <!-- Import Three.js -->
-    <script src="three.min.js"></script>
+    <script src="../shared/catalog.js"></script>
+<script src="../shared/audio.js"></script>
+<script src="../shared/shell.js"></script>
+<script src="three.min.js"></script>
     <script src="config.js"></script>
     <script src="game.js"></script>
 </body>

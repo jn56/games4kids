@@ -1,10 +1,12 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+// Keep gameplay coordinates independent of the screen drawing resolution.
+const boardWidth = canvas.width, boardHeight = canvas.height;
 const muteBtn = document.getElementById('muteBtn');
 
 let state = 'START';
 let score = 0;
-let highScore = localStorage.getItem('flappy_bird_highScore') || 0;
+let highScore = GameStorage.number('flappy_bird_highScore');
 
 let audioCtx = null;
 let isMuted = false;
@@ -23,47 +25,11 @@ muteBtn.addEventListener('click', (e) => {
 });
 
 function initAudio() {
-    if (isMuted) return;
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    audioCtx = GameAudio.context(); GameAudio.unlock();
 }
 
 function playSound(type) {
-    if (isMuted || !audioCtx) return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    
-    if (type === 'flap') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(500, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.1);
-    } else if (type === 'score') {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.1);
-    } else if (type === 'over') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.4);
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.4);
-    }
+    GameAudio.effect(type);
 }
 
 let bird = { x: 80, y: 300, velocity: 0 };
@@ -82,8 +48,11 @@ function startGame() {
 }
 
 function flap() {
+    if (GameShell.paused) return;
     if (state !== 'PLAYING') {
         startGame();
+        bird.velocity = CONFIG.game.jumpForce;
+        playSound('flap');
         return;
     }
     bird.velocity = CONFIG.game.jumpForce;
@@ -112,15 +81,17 @@ canvas.addEventListener('touchstart', (e) => {
 }, { passive: false });
 
 function update() {
+    if (GameShell.paused) return;
     if (state !== 'PLAYING') return;
 
     bird.velocity += CONFIG.game.gravity;
     bird.y += bird.velocity;
 
     // Floor / Ceiling collision
-    if (bird.y + CONFIG.game.birdSize/2 >= canvas.height || bird.y - CONFIG.game.birdSize/2 <= 0) {
+    if (bird.y + CONFIG.game.birdSize/2 >= boardHeight || bird.y - CONFIG.game.birdSize/2 <= 0) {
         state = 'GAMEOVER';
         playSound('over');
+        return;
     }
 
     let speedMult = 1 + Math.floor(frames / 600) * 0.1;
@@ -130,11 +101,11 @@ function update() {
     if (spawnTimer >= CONFIG.game.spawnInterval) {
         spawnTimer -= CONFIG.game.spawnInterval;
         let minHeight = 50;
-        let maxHeight = canvas.height - CONFIG.game.pipeGap - minHeight;
+        let maxHeight = boardHeight - CONFIG.game.pipeGap - minHeight;
         let topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1) + minHeight);
         
         pipes.push({
-            x: canvas.width,
+            x: boardWidth,
             topHeight: topHeight,
             passed: false
         });
@@ -153,6 +124,7 @@ function update() {
             if (by - br < p.topHeight || by + br > p.topHeight + CONFIG.game.pipeGap) {
                 state = 'GAMEOVER';
                 playSound('over');
+                return;
             }
         }
 
@@ -163,7 +135,7 @@ function update() {
             playSound('score');
             if (score > highScore) {
                 highScore = score;
-                localStorage.setItem('flappy_bird_highScore', highScore);
+                GameStorage.set('flappy_bird_highScore', highScore);
             }
             if (score >= 100) {
                 state = 'WIN';
@@ -180,7 +152,7 @@ function update() {
 }
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, boardWidth, boardHeight);
 
     // Draw pipes (Clouds)
     for (let p of pipes) {
@@ -195,7 +167,7 @@ function draw() {
         
         // Bottom pipe
         ctx.beginPath();
-        ctx.roundRect(p.x, p.topHeight + CONFIG.game.pipeGap, CONFIG.game.pipeWidth, canvas.height, [15, 15, 0, 0]);
+        ctx.roundRect(p.x, p.topHeight + CONFIG.game.pipeGap, CONFIG.game.pipeWidth, boardHeight, [15, 15, 0, 0]);
         ctx.fill();
         
         ctx.shadowBlur = 0;
@@ -220,35 +192,35 @@ function draw() {
     ctx.textAlign = 'left';
     ctx.fillText(`分數: ${score}`, 15, 30);
     ctx.textAlign = 'right';
-    ctx.fillText(`最高: ${highScore}`, canvas.width - 15, 30);
+    ctx.fillText(`最高: ${highScore}`, boardWidth - 15, 30);
 
     if (state !== 'PLAYING') {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, boardWidth, boardHeight);
         
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         if (state === 'START') {
             ctx.fillStyle = CONFIG.ui.primaryColor;
-            ctx.font = 'bold 40px "Fredoka", sans-serif';
-            ctx.fillText('飛天小鳥 🕊️', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = 'bold 27px sans-serif';
+            ctx.fillText('🐦 小鳥的雲朵旅行', boardWidth/2, boardHeight/2 - 30);
             ctx.fillStyle = '#fff';
             ctx.font = '20px "Fredoka", sans-serif';
-            ctx.fillText('點擊或空白鍵開始', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('點擊或空白鍵開始', boardWidth/2, boardHeight/2 + 30);
         } else if (state === 'GAMEOVER') {
             ctx.fillStyle = '#ef4444';
-            ctx.font = 'bold 40px "Fredoka", sans-serif';
-            ctx.fillText('遊戲結束 💥', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = 'bold 27px sans-serif';
+            ctx.fillText('遊戲結束 💥', boardWidth/2, boardHeight/2 - 30);
             ctx.fillStyle = '#fff';
             ctx.font = '20px "Fredoka", sans-serif';
-            ctx.fillText('點擊或空白鍵重來', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('點擊或空白鍵重來', boardWidth/2, boardHeight/2 + 30);
         } else if (state === 'WIN') {
             ctx.fillStyle = '#10b981';
-            ctx.font = 'bold 40px "Fredoka", sans-serif';
-            ctx.fillText('恭喜過關 🎉', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = 'bold 27px sans-serif';
+            ctx.fillText('恭喜過關 🎉', boardWidth/2, boardHeight/2 - 30);
             ctx.fillStyle = '#fff';
             ctx.font = '20px "Fredoka", sans-serif';
-            ctx.fillText('點擊或空白鍵再玩一次', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('點擊或空白鍵再玩一次', boardWidth/2, boardHeight/2 + 30);
         }
     }
 }
@@ -261,7 +233,7 @@ function loop(timestamp) {
     if (!lastTime) lastTime = timestamp;
     const elapsed = timestamp - lastTime;
     
-    if (elapsed > frameInterval) {
+    if (elapsed >= frameInterval) {
         lastTime = timestamp - (elapsed % frameInterval);
         update();
         draw();
@@ -269,3 +241,5 @@ function loop(timestamp) {
 }
 
 requestAnimationFrame(loop);
+
+GameShell.register({board:{width:boardWidth,height:boardHeight,draw:draw},status:()=>state,start:flap,resume:()=>{lastTime=0;}});

@@ -2,12 +2,9 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>接接樂 🍬</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>糖果接接樂 · 遊戲小花園</title>
     <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-gradient: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
@@ -142,13 +139,15 @@
             transition: all 0.3s;
         }
     </style>
+<meta name="description" content="移動籃子接住糖果，收集分數達成目標！避開炸彈，分數低於零就要重新挑戰。">
+<link rel="stylesheet" href="../shared/game.css">
 </head>
-<body>
+<body class="game-page game-portrait" data-game="catch_candies">
     <div class="ambient-glow"></div>
     <div class="game-container">
         <div class="header">
             <a href="../index.html" class="back-btn">🏠 返回</a>
-            <h1>接接樂 🍬</h1>
+            <h1>糖果接接樂</h1>
             <button id="muteBtn">🔊 音效: 開</button>
         </div>
         <div class="canvas-wrapper">
@@ -160,7 +159,10 @@
         </div>
     </div>
 
-    <script src="config.js"></script>
+    <script src="../shared/catalog.js"></script>
+<script src="../shared/audio.js"></script>
+<script src="../shared/shell.js"></script>
+<script src="config.js"></script>
     <script src="game.js"></script>
 </body>
 </html>

@@ -3,73 +3,11 @@ let audioCtx = null;
 let soundEnabled = true;
 
 function initAudio() {
-    if (audioCtx) return;
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx = GameAudio.context(); GameAudio.unlock();
 }
 
 function playSound(type) {
-    if (!soundEnabled) return;
-    initAudio();
-    if (!audioCtx) return;
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
-
-    try {
-        const time = audioCtx.currentTime;
-        if (type === 'bounce') {
-            // 骰子撞擊聲 (木頭/塑料撞擊)
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(120, time);
-            osc.frequency.exponentialRampToValueAtTime(40, time + 0.12);
-            
-            gain.gain.setValueAtTime(0.4, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.12);
-            
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(time);
-            osc.stop(time + 0.13);
-        } else if (type === 'roll') {
-            // 拋出時的發射聲
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(80, time);
-            osc.frequency.exponentialRampToValueAtTime(320, time + 0.2);
-            
-            gain.gain.setValueAtTime(0.2, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
-            
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(time);
-            osc.stop(time + 0.21);
-        } else if (type === 'success') {
-            // 落地定案時的和弦清脆鐘聲
-            const gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(0.25, time);
-            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.6);
-            gain.connect(audioCtx.destination);
-
-            const freqs = [523.25, 659.25, 783.99]; // C5, E5, G5 大和弦
-            freqs.forEach((f, index) => {
-                const osc = audioCtx.createOscillator();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(f, time + index * 0.04);
-                
-                osc.connect(gain);
-                osc.start(time + index * 0.04);
-                osc.stop(time + 0.6);
-            });
-        }
-    } catch (e) {
-        console.warn("音效播放失敗:", e);
-    }
+    GameAudio.effect(type);
 }
 
 // --- Three.js 骰子模擬器主邏輯 ---
@@ -131,7 +69,7 @@ function init3D() {
     camera.lookAt(0, 0, 0);
 
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas3d'), antialias: true });
-    renderer.setSize(width, height);
+    GameShell.resizeRenderer(renderer, width, height);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -160,6 +98,7 @@ function init3D() {
 
     // 建立 3D 骰子
     buildDice();
+    onWindowResize();
 }
 
 // 建立木質天鵝絨圓形托盤
@@ -321,6 +260,7 @@ function resetDicePosition() {
 // --- 物理更新與動畫迴圈 ---
 function animate() {
     requestAnimationFrame(animate);
+    if (GameShell.paused) { clock.getDelta(); renderer.render(scene, camera); return; }
 
     const delta = Math.min(clock.getDelta(), 0.03); // 限制單幀最大時間防止穿牆
 
@@ -450,6 +390,7 @@ function determineLandedFace() {
 
 // 拋擲骰子動作
 function rollDice() {
+    if (GameShell.paused) return;
     if (!isRollingAllowed || diceState !== 'IDLE') return;
 
     isRollingAllowed = false;
@@ -490,7 +431,7 @@ function showResultBanner() {
 // 記錄投擲歷史
 let rollsCount = 0;
 function loadRollsCount() {
-    rollsCount = parseInt(localStorage.getItem('rollsCount') || '0');
+    rollsCount = parseInt(GameStorage.number('rollsCount'));
     updateRollsCountBadge();
 }
 
@@ -500,7 +441,7 @@ function updateRollsCountBadge() {
 
 function recordHistory() {
     rollsCount++;
-    localStorage.setItem('rollsCount', rollsCount);
+    GameStorage.set('rollsCount', rollsCount);
     updateRollsCountBadge();
 
     const historyList = document.getElementById('historyList');
@@ -544,7 +485,12 @@ function setupEvents() {
 
     // 鍵盤空白鍵 (Space)
     window.addEventListener('keydown', (e) => {
-        if (e.code === 'Space') {
+        if (['ArrowLeft','ArrowRight','KeyA','KeyD'].includes(e.code) && !e.repeat) {
+            const buttons=[...document.querySelectorAll('.skin-btn')];
+            const index=buttons.findIndex(button=>button.dataset.skin===currentSkinName);
+            buttons[(index+buttons.length+(['ArrowLeft','KeyA'].includes(e.code)?-1:1))%buttons.length].click();
+        }
+        if (e.code === 'Space' && !e.repeat) {
             e.preventDefault(); // 防止網頁滾動
             rollDice();
         }
@@ -566,20 +512,27 @@ function setupEvents() {
             targetBtn.classList.add('active');
             
             currentSkinName = targetBtn.dataset.skin;
+            document.getElementById('diceSkinLabel').textContent='款式：'+targetBtn.querySelector('.skin-name').textContent;
             buildDice(); // 重新貼皮
             playSound('bounce');
         });
     });
+    const skinLabel=document.createElement('span');skinLabel.id='diceSkinLabel';skinLabel.className='theme-badge';skinLabel.textContent='款式：經典白';document.querySelector('.hud-left').append(skinLabel);
 }
 
 // 監聽視窗縮放
 function onWindowResize() {
+    if (!camera || !renderer) return;
     const container = document.getElementById('viewport');
     let width = container.clientWidth || window.innerWidth || 600;
     let height = container.clientHeight || window.innerHeight || 400;
 
     camera.aspect = width / height;
+    // Preserve the full tray when the statistics column leaves a narrow play area.
+    camera.zoom = Math.min(1, camera.aspect / 1.15);
     camera.updateProjectionMatrix();
-    renderer.setSize(width, height);
+    GameShell.resizeRenderer(renderer, width, height);
 }
 window.addEventListener('resize', onWindowResize);
+
+GameShell.register({status:()=> 'PLAYING',start:rollDice,resume:()=>{clock.getDelta();}});

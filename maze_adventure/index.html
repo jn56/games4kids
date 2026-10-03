@@ -2,20 +2,19 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>紫皮❤️迷宮</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>小狐狸的旋轉迷宮 · 遊戲小花園</title>
   <!-- 引入可愛的 Fredoka 與 Outfit 字型 -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+<meta name="description" content="在 60 秒內幫小狐狸找到家。迷宮會慢慢旋轉，仔細看好路線再出發！">
+<link rel="stylesheet" href="../shared/game.css">
 </head>
-<body>
+<body class="game-page game-square" data-game="maze_adventure">
   <div class="game-container">
     <header class="game-header">
       <div class="title-row">
         <a href="../index.html" class="home-btn">🏠 返回</a>
-        <h1>紫皮❤️迷宮</h1>
+        <h1>小狐狸的旋轉迷宮</h1>
       </div>
       <p class="subtitle">幫助小狐狸穿過複雜的森林迷宮，找到溫暖的家！</p>
       <div class="info-bar">
@@ -55,7 +54,10 @@
     </footer>
   </div>
 
-  <script src="config.js"></script>
+  <script src="../shared/catalog.js"></script>
+<script src="../shared/audio.js"></script>
+<script src="../shared/shell.js"></script>
+<script src="config.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

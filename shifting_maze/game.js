@@ -1,5 +1,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+// Keep gameplay coordinates independent of the screen drawing resolution.
+const boardWidth = canvas.width, boardHeight = canvas.height;
 const congratsMsg = document.getElementById('congratsMsg');
 const restartBtn = document.getElementById('restartBtn');
 const gameOverMsg = document.getElementById('gameOverMsg');
@@ -34,29 +36,15 @@ const bass = [
 ];
 
 function startMusic() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
-    if (musicIntervalId) return;
-    nextNoteTime = audioCtx.currentTime;
-    melodyStep = 0;
-    musicIntervalId = setInterval(scheduler, 100);
+    GameAudio.startMusic();
 }
 
 function stopMusic() {
-    if (musicIntervalId) {
-        clearInterval(musicIntervalId);
-        musicIntervalId = null;
-    }
+    GameAudio.stopMusic();
 }
 
 function scheduler() {
-    const scheduleAheadTime = 0.2;
-    while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
-        scheduleNote(melodyStep, nextNoteTime);
-        advanceNote();
-    }
+    // Music is scheduled by shared/audio.js.
 }
 
 function advanceNote() {
@@ -66,118 +54,29 @@ function advanceNote() {
 }
 
 function scheduleNote(step, time) {
-    const freq = melody[step];
-    if (freq > 0) {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.value = freq;
-        
-        gain.gain.setValueAtTime(0.04, time);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.25);
-        
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(time);
-        osc.stop(time + 0.25);
-    }
-    
-    const bassFreq = bass[step];
-    if (bassFreq > 0) {
-        const oscBass = audioCtx.createOscillator();
-        const gainBass = audioCtx.createGain();
-        oscBass.type = 'sine';
-        oscBass.frequency.value = bassFreq;
-        
-        gainBass.gain.setValueAtTime(0.06, time);
-        gainBass.gain.exponentialRampToValueAtTime(0.001, time + 0.5);
-        
-        oscBass.connect(gainBass);
-        gainBass.connect(audioCtx.destination);
-        oscBass.start(time);
-        oscBass.stop(time + 0.5);
-    }
+    // Music is scheduled by shared/audio.js.
 }
 
 function ensureAudioStarted() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
-    if (!musicIntervalId && isPlaying) {
-        startMusic();
-    }
+    audioCtx = GameAudio.context(); GameAudio.unlock(); if (isPlaying) GameAudio.startMusic();
 }
 
 function playLoseSound() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    
-    const notes = [293.66, 261.63, 220.00, 196.00];
-    const now = audioCtx.currentTime;
-    
-    notes.forEach((freq, idx) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.value = freq;
-        
-        gain.gain.setValueAtTime(0.08, now + idx * 0.15);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.15 + 0.25);
-        
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now + idx * 0.15);
-        osc.stop(now + idx * 0.15 + 0.25);
-    });
+    GameAudio.effect('lose');
 }
 
 function playWinSound() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-
-    const notes = [523.25, 659.25, 783.99, 1046.50];
-    const now = audioCtx.currentTime;
-
-    notes.forEach((freq, idx) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.value = freq;
-
-        gain.gain.setValueAtTime(0.1, now + idx * 0.15);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.15 + 0.1);
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now + idx * 0.15);
-        osc.stop(now + idx * 0.15 + 0.1);
-    });
+    GameAudio.effect('win');
 }
 
 function playShiftSound() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.2);
-    
-    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-    
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.2);
+    GameAudio.effect('shift');
 }
 
 // Maze settings
 const cols = CONFIG.maze.cols;
 const rows = CONFIG.maze.rows;
-const w = canvas.width / cols;
+const w = boardWidth / cols;
 let grid = [];
 let current;
 let player;
@@ -481,7 +380,7 @@ function drawSpider() {
 }
 
 function render() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, boardWidth, boardHeight);
     drawGrid();
     drawMovingWalls();
     drawGoal();
@@ -515,7 +414,7 @@ function initGame() {
 
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
-        if (!isPlaying) return;
+        if (!isPlaying || GameShell.paused) return;
         timeLeft--;
         timerVal.textContent = timeLeft;
 
@@ -542,8 +441,10 @@ function initGame() {
 }
 
 function movePlayer(dx, dy) {
-    if (!isPlaying) return;
+    if (GameShell.paused) return;
+    if (!isPlaying || GameShell.paused) return;
 
+    const before = `${player.i},${player.j}`;
     let cell = grid[index(player.i, player.j)];
 
     if (dy === -1 && !cell.walls[0]) player.j--; // Up
@@ -551,6 +452,7 @@ function movePlayer(dx, dy) {
     if (dy === 1 && !cell.walls[2]) player.j++; // Down
     if (dx === -1 && !cell.walls[3]) player.i--; // Left
 
+    if (before !== `${player.i},${player.j}`) GameAudio.effect('step');
     if (player.i === goal.i && player.j === goal.j) {
         isPlaying = false;
         if (timerInterval) clearInterval(timerInterval);
@@ -559,7 +461,7 @@ function movePlayer(dx, dy) {
         congratsMsg.classList.remove('hidden');
     }
     
-    checkCollision();
+    if (isPlaying) checkCollision();
 }
 
 function checkCollision() {
@@ -574,7 +476,8 @@ function checkCollision() {
 }
 
 function moveSpider() {
-    if (!isPlaying) return;
+    if (GameShell.paused) return;
+    if (!isPlaying || GameShell.paused) return;
     
     let currCell = grid[index(spider.i, spider.j)];
     let neighbors = getOpenNeighbors(currCell);
@@ -606,7 +509,9 @@ window.addEventListener('keydown', (e) => {
         ensureAudioStarted();
         if (!keysPressed[e.code]) {
             keysPressed[e.code] = true;
-            lastMoveTime = 0;
+            const delta={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0],KeyS:[0,1],KeyA:[-1,0],KeyD:[1,0]}[e.code];
+            if (delta) movePlayer(...delta);
+            lastMoveTime = performance.now();
         }
     }
 });
@@ -645,7 +550,7 @@ canvas.addEventListener('touchmove', (e) => {
 
 canvas.addEventListener('touchend', (e) => {
     e.preventDefault();
-    if (!isPlaying) return;
+    if (!isPlaying || GameShell.paused) return;
 
     let touchEndX = e.changedTouches[0].clientX;
     let touchEndY = e.changedTouches[0].clientY;
@@ -668,7 +573,7 @@ restartBtn.addEventListener('click', initGame);
 retryBtn.addEventListener('click', initGame);
 
 function animate(timestamp) {
-    if (isPlaying) {
+    if (isPlaying && !GameShell.paused) {
         if (timestamp - lastShiftTime > CONFIG.game.shiftInterval) {
             shiftWalls();
             lastShiftTime = timestamp;
@@ -697,5 +602,6 @@ function animate(timestamp) {
     requestAnimationFrame(animate);
 }
 
-initGame();
-requestAnimationFrame(animate);
+initGame(); isPlaying=false; requestAnimationFrame(animate);
+
+GameShell.register({board:{width:boardWidth,height:boardHeight,draw:render},status:()=>isPlaying?'PLAYING':!congratsMsg.classList.contains('hidden')?'WIN':!gameOverMsg.classList.contains('hidden')?'GAMEOVER':'START',start:initGame,clear:()=>{Object.keys(keysPressed).forEach(k=>keysPressed[k]=false);},resume:(elapsed)=>{lastShiftTime+=elapsed;lastSpiderMoveTime+=elapsed;}});

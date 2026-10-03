@@ -1,10 +1,12 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+// Keep gameplay coordinates independent of the screen drawing resolution.
+const boardWidth = canvas.width, boardHeight = canvas.height;
 const muteBtn = document.getElementById('muteBtn');
 
 let state = 'START';
 let score = 0;
-let highScore = localStorage.getItem('whack_a_mole_highScore') || 0;
+let highScore = GameStorage.number('whack_a_mole_highScore');
 let timeLeft = CONFIG.game.gameDuration;
 let timerInterval = null;
 
@@ -25,50 +27,11 @@ muteBtn.addEventListener('click', (e) => {
 });
 
 function initAudio() {
-    if (isMuted) return;
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    audioCtx = GameAudio.context(); GameAudio.unlock();
 }
 
 function playSound(type) {
-    if (isMuted || !audioCtx) return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    
-    if (type === 'hit') {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.1);
-    } else if (type === 'bomb') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(100, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.4);
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.4);
-    } else if (type === 'over') {
-        [400, 300, 200].forEach((freq, i) => {
-            const o = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            o.type = 'square';
-            o.frequency.value = freq;
-            g.gain.setValueAtTime(0.1, audioCtx.currentTime + i * 0.2);
-            g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.2 + 0.15);
-            o.connect(g);
-            g.connect(audioCtx.destination);
-            o.start(audioCtx.currentTime + i * 0.2);
-            o.stop(audioCtx.currentTime + i * 0.2 + 0.15);
-        });
-    }
+    GameAudio.effect(type);
 }
 
 // Holes setup
@@ -79,8 +42,8 @@ const holeSize = CONFIG.game.holeSize;
 const gap = CONFIG.game.gap;
 const gridWidth = cols * holeSize + (cols - 1) * gap;
 const gridHeight = rows * holeSize + (rows - 1) * gap;
-const startX = (canvas.width - gridWidth) / 2;
-const startY = (canvas.height - gridHeight) / 2 + 30;
+const startX = (boardWidth - gridWidth) / 2;
+const startY = (boardHeight - gridHeight) / 2 + 30;
 
 for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -96,6 +59,7 @@ for (let r = 0; r < rows; r++) {
 }
 
 let particles = [];
+let selectedHole = 4;
 let lastTime = performance.now();
 
 function startGame() {
@@ -104,10 +68,12 @@ function startGame() {
     score = 0;
     timeLeft = CONFIG.game.gameDuration;
     particles = [];
-    holes.forEach(h => { h.active = false; h.scale = 0; });
+    selectedHole = 4;
+    holes.forEach(h => { h.active = false; h.scale = 0; h.entity = null; });
     
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
+        if (GameShell.paused || state !== 'PLAYING') return;
         timeLeft--;
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
@@ -115,13 +81,14 @@ function startGame() {
             playSound('over');
             if (score > highScore) {
                 highScore = score;
-                localStorage.setItem('whack_a_mole_highScore', highScore);
+                GameStorage.set('whack_a_mole_highScore', highScore);
             }
         }
     }, 1000);
 }
 
 function handleInput(x, y) {
+    if (GameShell.paused) return;
     if (state !== 'PLAYING') {
         startGame();
         return;
@@ -153,7 +120,7 @@ function handleInput(x, y) {
 canvas.addEventListener('mousedown', (e) => {
     initAudio();
     const rect = canvas.getBoundingClientRect();
-    handleInput((e.clientX - rect.left) * (canvas.width / rect.width), (e.clientY - rect.top) * (canvas.height / rect.height));
+    handleInput((e.clientX - rect.left) * (boardWidth / rect.width), (e.clientY - rect.top) * (boardHeight / rect.height));
 });
 
 canvas.addEventListener('touchstart', (e) => {
@@ -161,7 +128,7 @@ canvas.addEventListener('touchstart', (e) => {
     initAudio();
     const rect = canvas.getBoundingClientRect();
     const touch = e.touches[0];
-    handleInput((touch.clientX - rect.left) * (canvas.width / rect.width), (touch.clientY - rect.top) * (canvas.height / rect.height));
+    handleInput((touch.clientX - rect.left) * (boardWidth / rect.width), (touch.clientY - rect.top) * (boardHeight / rect.height));
 }, { passive: false });
 
 function createParticles(x, y, color) {
@@ -177,10 +144,11 @@ function createParticles(x, y, color) {
 }
 
 function update(dt) {
+    if (GameShell.paused) return;
     if (state !== 'PLAYING') return;
 
     // Random mole popping
-    if (Math.random() < 0.03 + (CONFIG.game.gameDuration - timeLeft)*0.001) {
+    if (Math.random() < 1 - Math.pow(1 - (0.03 + (CONFIG.game.gameDuration - timeLeft)*0.001), dt / (1000/60))) {
         let inactiveHoles = holes.filter(h => !h.active);
         if (inactiveHoles.length > 0) {
             let h = inactiveHoles[Math.floor(Math.random() * inactiveHoles.length)];
@@ -221,7 +189,7 @@ function update(dt) {
 }
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, boardWidth, boardHeight);
 
     // Draw holes
     holes.forEach(h => {
@@ -229,6 +197,9 @@ function draw() {
         ctx.beginPath();
         ctx.ellipse(h.x, h.y, holeSize/2, holeSize/3, 0, 0, Math.PI * 2);
         ctx.fill();
+        if (state === 'PLAYING' && h === holes[selectedHole]) {
+            ctx.strokeStyle='#f8d66d';ctx.lineWidth=4;ctx.stroke();
+        }
         
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.beginPath();
@@ -262,36 +233,36 @@ function draw() {
     ctx.textAlign = 'left';
     ctx.fillText(`分數: ${score}`, 15, 30);
     ctx.textAlign = 'center';
-    ctx.fillText(`時間: ${timeLeft}`, canvas.width/2, 30);
+    ctx.fillText(`時間: ${timeLeft}`, boardWidth/2, 30);
     ctx.textAlign = 'right';
-    ctx.fillText(`最高: ${highScore}`, canvas.width - 15, 30);
+    ctx.fillText(`最高: ${highScore}`, boardWidth - 15, 30);
 
     if (state !== 'PLAYING') {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, boardWidth, boardHeight);
         
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         if (state === 'START') {
             ctx.fillStyle = CONFIG.ui.primaryColor;
-            ctx.font = 'bold 40px "Fredoka", sans-serif';
-            ctx.fillText('打地鼠 🐹', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = 'bold 27px sans-serif';
+            ctx.fillText('🐹 地鼠出來玩', boardWidth/2, boardHeight/2 - 30);
             ctx.fillStyle = '#fff';
             ctx.font = '20px "Fredoka", sans-serif';
-            ctx.fillText('點擊螢幕開始', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('按空白鍵或點畫面開始', boardWidth/2, boardHeight/2 + 30);
         } else if (state === 'GAMEOVER') {
             ctx.fillStyle = '#ef4444';
-            ctx.font = 'bold 40px "Fredoka", sans-serif';
-            ctx.fillText('時間到 ⏳', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = 'bold 27px sans-serif';
+            ctx.fillText('時間到 ⏳', boardWidth/2, boardHeight/2 - 30);
             ctx.fillStyle = '#fff';
             ctx.font = '20px "Fredoka", sans-serif';
-            ctx.fillText('點擊螢幕重來', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('按空白鍵或點畫面重玩', boardWidth/2, boardHeight/2 + 30);
         }
     }
 }
 
 function loop(timestamp) {
-    let dt = timestamp - lastTime;
+    let dt = Math.min(timestamp - lastTime, 50);
     lastTime = timestamp;
     update(dt);
     draw();
@@ -299,3 +270,17 @@ function loop(timestamp) {
 }
 
 requestAnimationFrame(loop);
+
+window.addEventListener('keydown',event=>{
+    if (state !== 'PLAYING') return;
+    const row=Math.floor(selectedHole/cols),col=selectedHole%cols;
+    if(event.code==='ArrowLeft')selectedHole=row*cols+(col+cols-1)%cols;
+    if(event.code==='ArrowRight')selectedHole=row*cols+(col+1)%cols;
+    if(event.code==='ArrowUp')selectedHole=((row+rows-1)%rows)*cols+col;
+    if(event.code==='ArrowDown')selectedHole=((row+1)%rows)*cols+col;
+    const direct=['KeyA','KeyS','KeyD'].indexOf(event.code);
+    if(direct>=0)selectedHole=row*cols+direct;
+    if((event.code==='Space'||direct>=0)&&!event.repeat){const h=holes[selectedHole];handleInput(h.x,h.y);}
+});
+
+GameShell.register({board:{width:boardWidth,height:boardHeight,draw:draw},status:()=>state,start:startGame,resume:()=>{lastTime=performance.now();}});

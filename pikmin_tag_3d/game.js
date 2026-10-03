@@ -3,122 +3,11 @@ let audioCtx = null;
 let soundEnabled = true;
 
 function initAudio() {
-    if (audioCtx) return;
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx = GameAudio.context(); GameAudio.unlock();
 }
 
 function playSound(type) {
-    if (!soundEnabled) return;
-    initAudio();
-    if (!audioCtx) return;
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
-
-    try {
-        const time = audioCtx.currentTime;
-        if (type === 'catch') {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(600, time);
-            osc.frequency.exponentialRampToValueAtTime(1200, time + 0.15);
-            gain.gain.setValueAtTime(0.3, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(time);
-            osc.stop(time + 0.16);
-        } else if (type === 'dash') {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(150, time);
-            osc.frequency.exponentialRampToValueAtTime(40, time + 0.3);
-            gain.gain.setValueAtTime(0.25, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(time);
-            osc.stop(time + 0.31);
-        } else if (type === 'rabbit') {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(220, time);
-            osc.frequency.exponentialRampToValueAtTime(440, time + 0.18);
-            gain.gain.setValueAtTime(0.2, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.18);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(time);
-            osc.stop(time + 0.19);
-        } else if (type === 'cat') {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(650, time);
-            osc.frequency.linearRampToValueAtTime(800, time + 0.08);
-            osc.frequency.exponentialRampToValueAtTime(550, time + 0.22);
-            gain.gain.setValueAtTime(0.18, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.22);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(time);
-            osc.stop(time + 0.23);
-        } else if (type === 'dog') {
-
-            const playYip = (delay, pitch) => {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'triangle';
-                
-
-                osc.frequency.setValueAtTime(pitch, time + delay);
-                osc.frequency.exponentialRampToValueAtTime(pitch * 1.6, time + delay + 0.07);
-                
-                gain.gain.setValueAtTime(0.18, time + delay);
-                gain.gain.exponentialRampToValueAtTime(0.01, time + delay + 0.07);
-                
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(time + delay);
-                osc.stop(time + delay + 0.08);
-            };
-
-            playYip(0, 480);
-            playYip(0.08, 560);
-        } else if (type === 'gameover') {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(220, time);
-            osc.frequency.linearRampToValueAtTime(110, time + 0.4);
-            gain.gain.setValueAtTime(0.25, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(time);
-            osc.stop(time + 0.41);
-        } else if (type === 'victory') {
-            const gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(0.3, time);
-            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.8);
-            gain.connect(audioCtx.destination);
-
-            const chord = [261.63, 329.63, 392.00, 523.25];
-            chord.forEach((f, i) => {
-                const osc = audioCtx.createOscillator();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(f, time + i * 0.05);
-                osc.connect(gain);
-                osc.start(time + i * 0.05);
-                osc.stop(time + 0.8);
-            });
-        }
-    } catch (e) {
-        console.warn("音效播不出來:", e);
-    }
+    GameAudio.effect(type);
 }
 
 
@@ -217,6 +106,7 @@ const keys = {
 let animTime = 0;
 let currentAnimState = 'IDLE';
 let isJumping = false;
+let jumpQueued = false;
 let jumpProgress = 0;
 
 let touchActive = false;
@@ -246,11 +136,11 @@ function initGameEngine() {
     scene.background = new THREE.Color('#bae6fd');
     scene.fog = new THREE.FogExp2('#bae6fd', 0.035);
 
-    camera = new THREE.PerspectiveCamera(90, width / height, 0.1, 100);
+    camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 100);
     camera.position.set(player.x, CONFIG.player.height, player.z);
 
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas3d'), antialias: true });
-    renderer.setSize(width, height);
+    GameShell.resizeRenderer(renderer, width, height);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -691,7 +581,7 @@ function buildLevel() {
     if (typeof syncMobileHUD === 'function') syncMobileHUD();
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
-        if (gameState === 'PLAYING') {
+        if (gameState === 'PLAYING' && !GameShell.paused) {
             levelTimeLeft--;
             document.getElementById('timeVal').textContent = `${levelTimeLeft} 秒`;
             if (typeof syncMobileHUD === 'function') syncMobileHUD();
@@ -702,7 +592,7 @@ function buildLevel() {
     }, 1000);
 
 
-    if (gameState === 'PLAYING') {
+    if (gameState === 'PLAYING' && !GameShell.paused) {
         startBGM();
     }
 }
@@ -1099,6 +989,7 @@ function setAnimationState(state) {
 }
 
 function updateAnimations(delta) {
+    if (GameShell.paused) return;
     animTime += delta;
 
     if (isJumping) {
@@ -1195,12 +1086,12 @@ function updateAnimations(delta) {
 function animate() {
     requestAnimationFrame(animate);
 
-    if (gameState !== 'PLAYING') {
+    if (gameState !== 'PLAYING' || GameShell.paused) {
         renderer.render(scene, camera);
         return;
     }
 
-    const delta = clock.getDelta();
+    const delta = Math.min(clock.getDelta(), 0.05);
     const totalTime = clock.getElapsedTime();
 
     handlePlayerInput(delta);
@@ -1212,6 +1103,7 @@ function animate() {
 }
 
 function handlePlayerInput(delta) {
+    if (GameShell.paused) return;
     const isRunningInput = keys.dash;
     const isMovingInput = joystickActive ? (Math.abs(joystickX) > 0.15 || Math.abs(joystickY) > 0.15) : (keys.forward || keys.backward || keys.left || keys.right);
     
@@ -1270,12 +1162,13 @@ function handlePlayerInput(delta) {
     // Jump and Gravity Logic
     const floorY = getFloorY(player.x, player.z, player.y);
 
-    if (keys.jump && player.y <= floorY + 0.02 && !isJumping) {
+    if ((keys.jump || jumpQueued) && player.y <= floorY + 0.02 && !isJumping) {
         player.vy = 5.0; // Jump strength
         isJumping = true;
         jumpProgress = 0;
         setAnimationState('JUMP');
     }
+    jumpQueued = false;
 
     player.vy -= 14.0 * delta; // Gravity
     player.y += player.vy * delta;
@@ -1321,8 +1214,9 @@ function handlePlayerInput(delta) {
 
 function updateCamera() {
 
-    const distBehind = 0.7; // 拉遠
-    const camHeight = 1.4; // 拉高
+    // See more of the forest by moving the camera, keeping the 70-degree lens.
+    const distBehind = 1.4;
+    const camHeight = player.y + 1.9;
     
     const rawCamX = player.x - Math.cos(player.angle) * distBehind;
     const rawCamZ = player.z - Math.sin(player.angle) * distBehind;
@@ -1333,7 +1227,7 @@ function updateCamera() {
 
     const lookX = player.x + Math.cos(player.angle) * 1.25;
     const lookZ = player.z + Math.sin(player.angle) * 1.25;
-    camera.lookAt(lookX, 0.18, lookZ);
+    camera.lookAt(lookX, player.y + 0.18, lookZ);
 }
 
 
@@ -1453,6 +1347,7 @@ function findSmartFleeDirection(a, fleeX, fleeZ, radius) {
 }
 
 function updateAnimalsAI(delta, totalTime) {
+    if (GameShell.paused) return;
     animals.forEach((a, index) => {
         if (!a.active) return;
 
@@ -1692,8 +1587,8 @@ function completeLevel() {
     stopBGM();
     startConfetti();
 
-    let totalCatches = parseInt(localStorage.getItem('animalTagCatches') || '0');
-    localStorage.setItem('animalTagCatches', totalCatches + caughtCount);
+    let totalCatches = parseInt(GameStorage.number('animalTagCatches'));
+    GameStorage.set('animalTagCatches', totalCatches + caughtCount);
     
     const timeSpent = 300 - levelTimeLeft;
 
@@ -1704,6 +1599,7 @@ function completeLevel() {
         nextLevelOverlay.classList.remove('hidden');
     } else {
         const victoryOverlay = document.getElementById('victoryOverlay');
+        gameState = 'VICTORY';
         victoryOverlay.classList.remove('hidden');
     }
 }
@@ -1797,11 +1693,13 @@ function updateParticles(delta) {
 
 
 function drawMinimap() {
-    minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+    const mapWidth = Number(minimapCanvas.dataset.logicalWidth) || minimapCanvas.width;
+    const mapHeight = Number(minimapCanvas.dataset.logicalHeight) || minimapCanvas.height;
+    minimapCtx.clearRect(0, 0, mapWidth, mapHeight);
     if (!mazeGrid.length) return;
 
-    const cellW = minimapCanvas.width / cols;
-    const cellH = minimapCanvas.height / rows;
+    const cellW = mapWidth / cols;
+    const cellH = mapHeight / rows;
 
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
@@ -1925,24 +1823,23 @@ function setupInputListeners() {
                 keys.forward = true;
                 break;
             case 'ArrowDown':
-            case 'KeyS':
                 keys.backward = true;
                 break;
             case 'ArrowLeft':
+            case 'KeyA':
                 keys.left = true;
                 break;
             case 'ArrowRight':
             case 'KeyD':
                 keys.right = true;
                 break;
-            case 'ShiftLeft':
-            case 'ShiftRight':
-            case 'Space':
+            case 'KeyS':
                 keys.dash = true;
                 e.preventDefault();
                 break;
-            case 'KeyA':
+            case 'Space':
                 keys.jump = true;
+                if (!e.repeat) jumpQueued = true;
                 break;
         }
     });
@@ -1954,22 +1851,20 @@ function setupInputListeners() {
                 keys.forward = false;
                 break;
             case 'ArrowDown':
-            case 'KeyS':
                 keys.backward = false;
                 break;
             case 'ArrowLeft':
+            case 'KeyA':
                 keys.left = false;
                 break;
             case 'ArrowRight':
             case 'KeyD':
                 keys.right = false;
                 break;
-            case 'ShiftLeft':
-            case 'ShiftRight':
-            case 'Space':
+            case 'KeyS':
                 keys.dash = false;
                 break;
-            case 'KeyA':
+            case 'Space':
                 keys.jump = false;
                 break;
         }
@@ -2219,7 +2114,7 @@ window.addEventListener('resize', () => {
 
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(width, height);
+    GameShell.resizeRenderer(renderer, width, height);
 });
 window.addEventListener('orientationchange', () => {
     if (typeof setAppHeight === 'function') setAppHeight();
@@ -2325,60 +2220,12 @@ const levelBGMSpeeds = [
 ];
 
 function startBGM() {
-    if (!soundEnabled) return;
-    initAudio();
-    if (!audioCtx) return;
-    if (bgmInterval) clearInterval(bgmInterval);
-
-    bgmIndex = 0;
-    
-
-    const notes = levelBGMNotes[currentLevelIndex] || levelBGMNotes[0];
-    const speed = levelBGMSpeeds[currentLevelIndex] || levelBGMSpeeds[0];
-    const noteDuration = (speed / 1000) * 0.95;
-
-    const playNextNote = () => {
-
-        if (gameState !== 'PLAYING' || !soundEnabled) {
-            stopBGM();
-            return;
-        }
-
-        const note = notes[bgmIndex];
-        if (note > 0) {
-            try {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                
-
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(note, audioCtx.currentTime);
-                
-
-                gain.gain.setValueAtTime(0.0, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.045, audioCtx.currentTime + 0.02);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + noteDuration);
-                
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                
-                osc.start();
-                osc.stop(audioCtx.currentTime + noteDuration);
-            } catch (e) {
-                console.warn("背景音樂播放異常:", e);
-            }
-        }
-        
-        bgmIndex = (bgmIndex + 1) % notes.length;
-    };
-
-
-    bgmInterval = setInterval(playNextNote, speed);
+    GameAudio.startMusic();
 }
 
 function stopBGM() {
-    if (bgmInterval) {
-        clearInterval(bgmInterval);
-        bgmInterval = null;
-    }
+    GameAudio.stopMusic();
 }
+document.addEventListener("touchcancel",()=>{Object.keys(keys).forEach(k=>keys[k]=false);joystickActive=false;joystickX=0;joystickY=0;});
+
+GameShell.register({minimap:()=>{if(minimapCtx)drawMinimap();},status:()=>gameState,start:()=>{const button=[...document.querySelectorAll('.overlay:not(.hidden) button')][0];if(button)button.click();},clear:()=>{jumpQueued=false;Object.keys(keys).forEach(k=>keys[k]=false);joystickActive=false;joystickX=0;joystickY=0;joystickTouchId=null;const knob=document.getElementById('joystickKnob');if(knob){knob.style.left='50%';knob.style.top='50%';}},resume:()=>{clock.getDelta();}});

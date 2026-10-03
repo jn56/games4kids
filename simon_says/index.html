@@ -2,11 +2,8 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>音樂記憶 🎵</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>跟著彩色節拍走 · 遊戲小花園</title>
     <style>
         :root {
             --bg-gradient: linear-gradient(135deg, #451a03 0%, #78350f 100%);
@@ -129,13 +126,15 @@
             font-weight: 600;
         }
     </style>
+<meta name="description" content="看亮燈、聽節拍，依照相同順序按回去。每一輪都會多一個音，看看能記住多少！">
+<link rel="stylesheet" href="../shared/game.css">
 </head>
-<body>
+<body class="game-page game-square" data-game="simon_says">
     <div class="ambient-glow"></div>
     <div class="game-container">
         <div class="header">
             <a href="../index.html" class="back-btn">🏠 返回</a>
-            <h1>音樂記憶 🎵</h1>
+            <h1>跟著彩色節拍走</h1>
             <button id="muteBtn">🔊 音效: 開</button>
         </div>
         <div class="canvas-wrapper">
@@ -146,7 +145,10 @@
         </div>
     </div>
 
-    <script src="config.js"></script>
+    <script src="../shared/catalog.js"></script>
+<script src="../shared/audio.js"></script>
+<script src="../shared/shell.js"></script>
+<script src="config.js"></script>
     <script src="game.js"></script>
 </body>
 </html>

@@ -1,0 +1,144 @@
+:root { --garden-ink:#213c40; --garden-paper:#faf8f1; --garden-line:#dce4dc; --garden-accent:#218276; }
+html:has(.game-page) { height:100%; min-height:0; overflow:hidden; }
+body.game-page { margin:0; padding:0; width:100%; height:100vh; height:100dvh; min-height:0; overflow:hidden; display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start; gap:0; background:#eef2e9; color:var(--garden-ink); font-family:'Segoe UI','Microsoft JhengHei',sans-serif; touch-action:none; }
+.game-page * { box-sizing:border-box; }
+.game-page button,.game-page a { -webkit-tap-highlight-color:transparent; }
+.game-page :is(button,a,[tabindex]):focus-visible { outline:3px solid #f2bc58; outline-offset:-3px; }
+.garden-nav { flex:0 0 auto; z-index:110; display:flex; align-items:center; gap:10px; padding:4px max(8px,env(safe-area-inset-right)) 4px max(8px,env(safe-area-inset-left)); padding-top:max(4px,env(safe-area-inset-top)); height:calc(48px + env(safe-area-inset-top)); background:var(--garden-paper); border-bottom:1px solid var(--garden-line); }
+.garden-brand { display:grid; place-items:center; width:36px; height:36px; flex-shrink:0; color:#21695c; background:#dcebe0; border-radius:10px; text-decoration:none; font-size:24px; }
+.garden-nav h1 { margin:0; color:var(--garden-ink); background:none; -webkit-text-fill-color:var(--garden-ink); font-size:17px; font-weight:800; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; flex:1; }
+.garden-toolbar { display:flex; gap:6px; flex-shrink:0; }
+.garden-toolbar button,.garden-pad button { border:1px solid #d5e0d4; border-radius:10px; background:#fff; color:var(--garden-ink); font:600 13px 'Segoe UI','Microsoft JhengHei',sans-serif; min-height:36px; padding:6px 12px; cursor:pointer; }
+.garden-toolbar .garden-action { background:var(--garden-accent); color:white; border-color:transparent; min-width:74px; }
+.garden-menu-button { min-width:60px; }
+.game-page .game-container { position:relative; display:flex; flex:1 1 0; flex-direction:column; align-items:stretch; justify-content:flex-start; width:100%; max-width:none !important; min-width:0; height:0; min-height:0; margin:0; padding:0; gap:0; border:0; border-radius:0; background:transparent; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; overflow:hidden; }
+.game-page :is(.ambient-glow,.header,.header-row,.game-header,.mobile-hud-header,.game-footer,.controls,.instructions,.main-layout,.hud-left h1,.hud-left>a,.hud-right,.drag-hint,.roll-tip) { display:none !important; }
+.garden-stage { position:relative; display:grid; place-items:center; flex:1 1 0; width:100%; min-width:0; min-height:0; overflow:hidden; background:radial-gradient(ellipse at center,#f8faf3,#e6eee3); }
+.game-page :is(.canvas-wrapper,.game-canvas-wrapper) { position:relative; max-width:none; max-height:none; flex:none; margin:0; padding:0; border:0; border-radius:0; overflow:hidden; background:#132c34; box-shadow:0 0 40px #16372d18; }
+.game-page canvas#gameCanvas { display:block; width:100%; height:100%; max-height:none; aspect-ratio:auto; touch-action:none; }
+.game-page :is(#gameCanvas,#canvas3d):focus { outline:none; }
+.game-page .game-container { animation:none; transform:none; max-height:none; }
+.game-page .viewport-wrapper { position:absolute; inset:0; width:100%; height:100%; min-height:0; border:0; border-radius:0; margin:0; padding:0; background:#172f35; overflow:hidden; }
+.game-page #canvas3d { display:block; width:100%; height:100%; touch-action:none; }
+.garden-controls { flex:0 0 auto; min-height:28px; display:flex; align-items:center; justify-content:center; background:var(--garden-paper); padding:4px max(8px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left)); gap:8px; }
+.garden-guide { margin:0; padding:0; color:#4c6861; font-size:12px; line-height:1.5; text-align:center; }
+.garden-pad { display:none; align-items:center; justify-content:center; gap:8px; touch-action:none; }
+.garden-pad button { min-width:54px; min-height:44px; font-size:18px; padding:6px 15px; color:var(--garden-accent); }
+.garden-pad button:active,.garden-pad button.held { background:#daeadd; transform:translateY(1px); }
+.game-page .hud-header { position:absolute; z-index:5; top:8px; left:8px; right:8px; width:auto; margin:0; padding:6px 10px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:6px; border:0; border-radius:12px; background:#153237c9; box-shadow:none; pointer-events:none; color:#fff; }
+.game-page .hud-left { min-width:0; }
+.game-page .hud-center { display:flex; flex-wrap:wrap; gap:6px; }
+.game-page .hud-item { font-size:12px; padding:4px 7px; }
+.game-page .level-badge,.game-page .theme-badge { font-size:12px; padding:4px 8px; }
+.game-page .hud-header { display:flex !important; }
+.game-page[data-game="model_viewer_3d"] .hud-header { display:none !important; }
+.game-page .stamina-label { display:none; }
+.game-page .stamina-container { height:10px; bottom:16px; }
+.game-page .info-bar { position:absolute; z-index:4; top:8px; left:8px; margin:0; pointer-events:none; }
+.game-page .timer-badge { padding:5px 10px; border:0; font-size:12px; background:#193b38dc; color:#fff; box-shadow:none; }
+.game-page .overlay { position:absolute; inset:0; width:100%; height:100%; max-height:none; padding:20px; margin:0; border-radius:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:12px; background:#132d34d9; color:#effaf4; overflow:hidden; backdrop-filter:blur(5px); }
+.game-page .overlay.hidden { display:none; }
+.game-page .overlay h2 { margin:0; font-size:clamp(22px,4vw,36px); line-height:1.35; animation:none; }
+.game-page .overlay-desc { max-width:620px; margin:0; font-size:15px; line-height:1.65; }
+.game-page .controls-list { width:auto; max-width:620px; margin:0; padding:10px 16px; font-size:14px; line-height:1.7; border-radius:12px; background:#ffffff0c; }
+.game-page .overlay button { min-height:44px; margin:0; padding:10px 24px; font-size:17px; animation:none; }
+.game-page .emoji-parade { margin:0; height:50px; }
+.game-page :is(#congratsMsg,#gameOverMsg) { position:absolute; z-index:20; left:50%; top:50%; transform:translate(-50%,-50%); width:max-content; max-width:calc(100% - 24px); padding:24px; font-size:22px; border-radius:20px; }
+.game-page :is(#congratsMsg,#gameOverMsg) button { min-height:44px; margin-top:12px; }
+.game-page .control-bar { margin:0; padding:0; width:100%; display:flex; flex-direction:row; justify-content:center; gap:8px; }
+.game-page .action-buttons-row { display:flex; flex-wrap:nowrap; gap:6px; }
+.game-page .action-btn,.game-page .rot-btn { flex:none; min-height:38px; padding:6px 14px; border:1px solid #d5e0d4; border-radius:10px; box-shadow:none; font-size:13px; color:#345d52; background:#fff; }
+.game-page .action-btn.active { background:var(--garden-accent); color:#fff; }
+.game-page .rotation-controls-row { display:flex; gap:6px; margin:0; padding:0; }
+.game-page .control-bar :is(.action-buttons-row,.rotation-controls-row) { width:auto; min-width:0; }
+.game-page .rot-btn { width:auto; }
+.game-page[data-game="model_viewer_3d"] .garden-guide { display:none; }
+.game-page .action-status-badge { top:12px; padding:8px 14px; min-width:0; max-width:calc(100% - 24px); font-size:14px; }
+.garden-dice-stage { grid-template-columns:minmax(0,1fr) clamp(180px,24vw,320px); grid-template-rows:minmax(0,1fr); align-items:stretch; }
+.game-page .garden-dice-stage .viewport-wrapper { position:relative; inset:auto; grid-column:1; grid-row:1; min-width:0; }
+.garden-dice-stats { grid-column:2; grid-row:1; min-width:0; min-height:0; display:flex; flex-direction:column; gap:8px; padding:18px; border-left:1px solid var(--garden-line); background:var(--garden-paper); }
+.garden-dice-stats h2 { margin:0; font-size:18px; color:var(--garden-ink); }
+.garden-dice-stats>p { margin:0; font-size:12px; color:#5a7068; }
+.game-page .garden-dice-stats .history-list { display:flex; flex-direction:column; flex:1; gap:5px; width:100%; min-height:0; max-height:none; overflow:hidden; padding:0; }
+.game-page .garden-dice-stats .history-item { flex:0 1 42px; min-height:0; width:100%; height:auto; padding:0 8px; gap:6px; border:1px solid #dce4dc; background:#fff; color:var(--garden-ink); font-size:12px; }
+.game-page .garden-dice-stats .history-time { color:#5d736a; font-size:12px; }
+.game-page .garden-dice-stats .history-badge { width:26px; height:26px; flex-shrink:0; background:#f0d998; color:#534219; box-shadow:none; }
+.game-page .garden-dice-stats .no-history { margin:0; padding:16px 0; color:#5d736a; font-size:12px; }
+.game-page[data-game="simon_says"] canvas#gameCanvas { border-radius:0; }
+.game-page .result-banner { max-width:calc(100% - 24px); }
+.game-page .level-announcement { width:min(420px,calc(100% - 32px)); padding:14px 20px; top:32%; }
+.game-page .level-announcement h3 { font-size:21px; }
+.game-page[data-game="flappy_bird"] .canvas-wrapper { background:linear-gradient(#326b86,#173b4a); }
+.game-page[data-game="catch_candies"] .canvas-wrapper { background:radial-gradient(ellipse at 50% 30%,#382b48,#142d38); }
+.game-page[data-game="memory_match"] .canvas-wrapper { background:linear-gradient(135deg,#1e4146,#16323c); }
+.garden-pause { position:fixed; inset:0; z-index:200; display:grid; place-items:center; padding:12px; background:#10292ae8; }
+.garden-pause[hidden] { display:none; }
+.garden-pause>section { width:min(540px,100%); max-height:100%; padding:24px; background:var(--garden-paper); color:var(--garden-ink); border-radius:22px; }
+.garden-menu-info h2 { margin:0 0 10px; font-size:23px; }
+.garden-menu-info p { margin:8px 0; line-height:1.65; font-size:14px; }
+.garden-menu-guide { color:var(--garden-accent); font-weight:700; }
+.garden-menu-info small { display:block; margin:10px 0; color:#5a746b; }
+.garden-menu-items { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.garden-menu-items button { min-height:48px; padding:10px; background:white; color:var(--garden-ink); border:2px solid var(--garden-line); border-radius:12px; font:600 14px 'Segoe UI','Microsoft JhengHei',sans-serif; cursor:pointer; }
+.garden-menu-items button.selected { border-color:var(--garden-accent); background:#e1efe4; }
+@media (max-width:600px) {
+  .garden-nav { gap:6px; }
+  .garden-nav h1 { font-size:14px; }
+  .garden-brand { width:30px; height:32px; font-size:22px; }
+  .garden-toolbar button { padding:6px 9px; min-width:40px; }
+  .garden-menu-button span { display:none; }
+  .garden-controls { min-height:28px; }
+  .garden-guide { font-size:11px; }
+  .garden-controls:has(.garden-pad) .garden-guide { display:none; }
+  .garden-pad { display:flex; }
+  .game-page .hud-header { top:6px; left:6px; right:6px; padding:5px 7px; gap:4px; }
+  .game-page .hud-center { gap:4px; }
+  .game-page .hud-item { font-size:11px; padding:3px 5px; }
+  .game-page .hud-item>span:first-child { display:none; }
+  .game-page .overlay { padding:16px; gap:10px; }
+  .game-page .overlay-desc,.game-page .controls-list { font-size:13px; }
+  .game-page .control-bar { flex-wrap:wrap; gap:4px; }
+  .game-page .action-buttons-row { flex:1; gap:4px; }
+  .game-page .action-btn { flex:1; min-width:0; font-size:12px; padding:6px 4px; }
+  .game-page .rotation-controls-row { display:none; }
+  .game-page .joystick-touch-area { display:block; width:155px; height:170px; bottom:12px; left:12px; }
+  .game-page .dash-btn-wrapper { display:block; bottom:18px; right:16px; }
+  .game-page .jump-btn-wrapper { display:block; bottom:108px; right:16px; }
+  .game-page .mobile-controls { display:flex; }
+  .garden-dice-stage { grid-template-columns:minmax(0,1fr) clamp(96px,28vw,120px); }
+  .garden-dice-stats { padding:10px 6px; gap:6px; }
+  .garden-dice-stats h2 { font-size:14px; }
+  .game-page .garden-dice-stats .history-item { padding:0 4px; gap:3px; }
+  .game-page .garden-dice-stats .history-item>span:nth-child(2) { display:none; }
+  .game-page .garden-dice-stats .history-time { font-size:10px; font-variant-numeric:tabular-nums; }
+  .game-page .garden-dice-stats .history-badge { width:20px; height:20px; }
+}
+@media (pointer:coarse) {
+  .garden-controls:has(.garden-pad) .garden-guide { display:none; }
+  .garden-pad { display:flex; }
+  .game-page .joystick-touch-area,.game-page .dash-btn-wrapper,.game-page .jump-btn-wrapper { display:block; }
+  .game-page .mobile-controls { display:flex; }
+}
+@media (max-height:500px) {
+  .garden-nav { height:40px; padding-top:2px; padding-bottom:2px; }
+  .garden-toolbar button,.garden-brand { min-height:30px; height:30px; }
+  .garden-controls { min-height:24px; padding-top:2px; padding-bottom:2px; }
+  .garden-pad button { min-height:36px; font-size:15px; }
+  .game-page .overlay { gap:6px; padding:10px; }
+  .game-page .overlay h2 { font-size:22px; }
+  .game-page .overlay .emoji-parade { display:none; }
+  .game-page .controls-list { padding:5px 10px; }
+  .garden-pause>section { width:min(800px,100%); display:grid; grid-template-columns:1fr 1fr; gap:20px; padding:18px; }
+  .garden-menu-info h2 { font-size:19px; }
+  .garden-menu-items { grid-template-columns:1fr; gap:5px; }
+  .garden-menu-items button { min-height:40px; padding:5px; }
+  .game-page .joystick-touch-area { width:130px; height:140px; bottom:4px; left:8px; }
+  .game-page .minimap-container { width:80px; height:80px; padding:3px; }
+  .game-page #minimapCanvas { width:100%; height:100%; }
+  .garden-dice-stats { padding:8px; gap:3px; }
+  .garden-dice-stats>p { display:none; }
+  .game-page .garden-dice-stats .history-list { gap:2px; }
+  .game-page .garden-dice-stats .history-item { padding:0 5px; font-size:11px; }
+  .game-page .garden-dice-stats .history-badge { width:16px; height:14px; font-size:11px; border-radius:4px; }
+}
+@media (prefers-reduced-motion:reduce) { .game-page *, .game-page *::before,.game-page *::after { animation:none !important; transition:none !important; } }

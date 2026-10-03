@@ -2,13 +2,10 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D 骰子模擬器 🎲</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>幸運骰子實驗室 · 遊戲小花園</title>
     
     <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <style>
         :root {
@@ -427,8 +424,10 @@
             50% { transform: translate(-50%, -6px); }
         }
     </style>
+<meta name="description" content="挑一款喜歡的骰子，拋出今日的幸運點數！看看立體骰子滾動，回顧最近 15 次結果。">
+<link rel="stylesheet" href="../shared/game.css">
 </head>
-<body>
+<body class="game-page game-3d" data-game="dice_3d">
     <div class="ambient-glow"></div>
 
     <div class="game-container">
@@ -436,7 +435,7 @@
         <header class="hud-header">
             <div class="hud-left">
                 <a href="../index.html" class="back-btn" title="返回大廳">🏠</a>
-                <h1>3D 骰子模擬器</h1>
+                <h1>幸運骰子實驗室</h1>
                 <span class="theme-badge" id="rollsCountBadge">累積投擲: 0 次</span>
             </div>
             
@@ -515,7 +514,10 @@
     </div>
 
     <!-- Import Three.js -->
-    <script src="three.min.js"></script>
+    <script src="../shared/catalog.js"></script>
+<script src="../shared/audio.js"></script>
+<script src="../shared/shell.js"></script>
+<script src="three.min.js"></script>
     <script src="game.js"></script>
 </body>
 </html>

@@ -19,68 +19,11 @@ let soundEnabled = true;
 let audioCtx = null;
 
 function initAudio() {
-    if (!audioCtx) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (AudioContext) {
-            audioCtx = new AudioContext();
-        }
-    }
-    if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
+    audioCtx = GameAudio.context(); GameAudio.unlock();
 }
 
 function playSound(type) {
-    if (!soundEnabled || !audioCtx) return;
-    try {
-        const now = audioCtx.currentTime;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        if (type === 'jump') {
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(200, now);
-            osc.frequency.exponentialRampToValueAtTime(650, now + 0.28);
-            gain.gain.setValueAtTime(0.22, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
-            osc.start(now);
-            osc.stop(now + 0.28);
-        } else if (type === 'land') {
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(140, now);
-            osc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
-            gain.gain.setValueAtTime(0.28, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-            osc.start(now);
-            osc.stop(now + 0.15);
-        } else if (type === 'crouch') {
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(360, now);
-            osc.frequency.exponentialRampToValueAtTime(200, now + 0.2);
-            gain.gain.setValueAtTime(0.18, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-            osc.start(now);
-            osc.stop(now + 0.2);
-        } else if (type === 'runStep') {
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(220, now);
-            osc.frequency.exponentialRampToValueAtTime(90, now + 0.07);
-            gain.gain.setValueAtTime(0.12, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.07);
-            osc.start(now);
-            osc.stop(now + 0.07);
-        } else if (type === 'rotate') {
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(240, now);
-            osc.frequency.exponentialRampToValueAtTime(320, now + 0.06);
-            gain.gain.setValueAtTime(0.05, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
-            osc.start(now);
-            osc.stop(now + 0.06);
-        }
-    } catch(e) {}
+    GameAudio.effect(type);
 }
 
 function initScene() {
@@ -93,12 +36,12 @@ function initScene() {
     scene.fog = new THREE.FogExp2(0x080f1e, 0.035);
 
     camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.set(0, 1.6, 4.8);
-    camera.lookAt(0, 1.0, 0);
+    // Leave room above the flower for the full jump animation on tall screens.
+    camera.position.set(0, 1.8, 5.6);
+    camera.lookAt(0, 1.55, 0);
 
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas3d'), antialias: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    GameShell.resizeRenderer(renderer, width, height);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -459,6 +402,7 @@ function updateUIBadge() {
 }
 
 function updateAnimations(delta) {
+    if (GameShell.paused) return;
     animTime += delta;
 
     currentRotationY = THREE.MathUtils.lerp(currentRotationY, targetRotationY, 0.12);
@@ -686,13 +630,21 @@ function setupInputEvents() {
 
     window.addEventListener('keydown', (e) => {
         initAudio();
-        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        if (e.code === 'ArrowLeft') {
             targetRotationY += 0.25;
             playSound('rotate');
-        } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        } else if (e.code === 'ArrowRight') {
             targetRotationY -= 0.25;
             playSound('rotate');
-        } else if (e.key === ' ') {
+        } else if (e.code === 'ArrowUp') {
+            setAnimationState('IDLE');
+        } else if (e.code === 'ArrowDown') {
+            setAnimationState('CROUCH');
+        } else if (e.code === 'KeyA' && !e.repeat) {
+            setAnimationState('FOLD_ARMS');
+        } else if (e.code === 'KeyS' && !e.repeat) {
+            setAnimationState('RUN');
+        } else if (e.code === 'Space' && !e.repeat) {
             setAnimationState('JUMP');
             e.preventDefault();
         }
@@ -836,6 +788,7 @@ const clock = new THREE.Clock();
 
 function animate() {
     requestAnimationFrame(animate);
+    if (GameShell.paused) { clock.getDelta(); renderer.render(scene, camera); return; }
     const delta = clock.getDelta();
 
     updateAnimations(delta);
@@ -852,7 +805,7 @@ window.addEventListener('resize', () => {
 
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(width, height);
+    GameShell.resizeRenderer(renderer, width, height);
 });
 
 window.addEventListener('orientationchange', () => {
@@ -862,3 +815,4 @@ window.addEventListener('orientationchange', () => {
 window.addEventListener('DOMContentLoaded', () => {
     initScene();
 });
+GameShell.register({status:()=> 'PLAYING',start:()=>{},clear:()=>{isDragging=false;},resume:()=>{clock.getDelta();}});

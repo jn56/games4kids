@@ -1,10 +1,12 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+// Keep gameplay coordinates independent of the screen drawing resolution.
+const boardWidth = canvas.width, boardHeight = canvas.height;
 const muteBtn = document.getElementById('muteBtn');
 
 let state = 'START';
 let score = 0;
-let highScore = localStorage.getItem('bubble_pop_highScore') || 0;
+let highScore = GameStorage.number('bubble_pop_highScore');
 
 let audioCtx = null;
 let isMuted = false;
@@ -23,63 +25,11 @@ muteBtn.addEventListener('click', (e) => {
 });
 
 function initAudio() {
-    if (isMuted) return;
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    audioCtx = GameAudio.context(); GameAudio.unlock();
 }
 
 function playSound(type) {
-    if (isMuted || !audioCtx) return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    
-    if (type === 'shoot') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.1);
-    } else if (type === 'pop') {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.1);
-    } else if (type === 'win') {
-        [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
-            const o = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            o.type = 'square';
-            o.frequency.value = freq;
-            g.gain.setValueAtTime(0.1, audioCtx.currentTime + i * 0.15);
-            g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.15 + 0.1);
-            o.connect(g);
-            g.connect(audioCtx.destination);
-            o.start(audioCtx.currentTime + i * 0.15);
-            o.stop(audioCtx.currentTime + i * 0.15 + 0.1);
-        });
-    } else if (type === 'over') {
-        [300, 250, 200, 150].forEach((freq, i) => {
-            const o = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            o.type = 'sawtooth';
-            o.frequency.value = freq;
-            g.gain.setValueAtTime(0.1, audioCtx.currentTime + i * 0.15);
-            g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.15 + 0.15);
-            o.connect(g);
-            g.connect(audioCtx.destination);
-            o.start(audioCtx.currentTime + i * 0.15);
-            o.stop(audioCtx.currentTime + i * 0.15 + 0.15);
-        });
-    }
+    GameAudio.effect(type);
 }
 
 // Grid setup
@@ -89,6 +39,17 @@ const bSize = CONFIG.game.bubbleSize;
 let grid = [];
 let currentBubble = null;
 let particles = [];
+let aimAngle = -Math.PI / 2;
+const aimKeys = {left:false,right:false};
+window.addEventListener('keydown',event=>{
+    if (event.code === 'ArrowLeft' || event.code === 'KeyA') aimKeys.left=true;
+    if (event.code === 'ArrowRight' || event.code === 'KeyD') aimKeys.right=true;
+    if (event.code === 'Space' && !event.repeat && currentBubble) shoot(currentBubble.x+Math.cos(aimAngle)*300,currentBubble.y+Math.sin(aimAngle)*300);
+});
+window.addEventListener('keyup',event=>{
+    if (event.code === 'ArrowLeft' || event.code === 'KeyA') aimKeys.left=false;
+    if (event.code === 'ArrowRight' || event.code === 'KeyD') aimKeys.right=false;
+});
 
 function getGridPos(c, r) {
     let x = c * bSize + bSize/2;
@@ -107,6 +68,7 @@ function startGame() {
     score = 0;
     grid = [];
     particles = [];
+    aimAngle = -Math.PI / 2;
     
     // Initialize top rows
     for (let r = 0; r < rows; r++) {
@@ -123,20 +85,23 @@ function startGame() {
 
 function spawnBubble() {
     currentBubble = {
-        x: canvas.width / 2,
-        y: canvas.height - bSize/2,
+        x: boardWidth / 2,
+        y: boardHeight - bSize/2,
         vx: 0,
         vy: 0,
-        color: getRandomColor(),
+        color: (() => { const colors=[...new Set(grid.flat().filter(Boolean))]; return colors.length ? colors[Math.floor(Math.random()*colors.length)] : getRandomColor(); })(),
         isShooting: false
     };
 }
 
 function shoot(tx, ty) {
+    if (GameShell.paused) return;
     if (state !== 'PLAYING' || !currentBubble || currentBubble.isShooting) return;
     
     let dx = tx - currentBubble.x;
     let dy = ty - currentBubble.y;
+    if (dy >= -8) return;
+    dy = Math.min(dy, -Math.abs(dx) * 0.15 - 8);
     let dist = Math.sqrt(dx*dx + dy*dy);
     
     if (dist > 0) {
@@ -154,7 +119,7 @@ canvas.addEventListener('mousedown', (e) => {
         return;
     }
     const rect = canvas.getBoundingClientRect();
-    shoot((e.clientX - rect.left) * (canvas.width / rect.width), (e.clientY - rect.top) * (canvas.height / rect.height));
+    shoot((e.clientX - rect.left) * (boardWidth / rect.width), (e.clientY - rect.top) * (boardHeight / rect.height));
 });
 
 canvas.addEventListener('touchstart', (e) => {
@@ -166,7 +131,7 @@ canvas.addEventListener('touchstart', (e) => {
     }
     const rect = canvas.getBoundingClientRect();
     const touch = e.touches[0];
-    shoot((touch.clientX - rect.left) * (canvas.width / rect.width), (touch.clientY - rect.top) * (canvas.height / rect.height));
+    shoot((touch.clientX - rect.left) * (boardWidth / rect.width), (touch.clientY - rect.top) * (boardHeight / rect.height));
 }, { passive: false });
 
 function createParticles(x, y, color) {
@@ -250,7 +215,7 @@ function snapToGrid(bubble) {
         
         if (score > highScore) {
             highScore = score;
-            localStorage.setItem('bubble_pop_highScore', highScore);
+            GameStorage.set('bubble_pop_highScore', highScore);
         }
         
         if (score >= CONFIG.game.winScore) {
@@ -260,16 +225,22 @@ function snapToGrid(bubble) {
     }
     
     // Check game over
-    if (bestR >= 10 && state === 'PLAYING') {
+    if (grid.some((row,r)=>r>=10 && row.some(Boolean)) && state === 'PLAYING') {
         state = 'GAMEOVER';
         playSound('over');
     }
     
+    if (state === 'PLAYING' && !grid.some(row => row.some(Boolean))) {
+        state = 'WIN';
+        playSound('win');
+    }
     spawnBubble();
 }
 
 function update() {
+    if (GameShell.paused) return;
     if (state !== 'PLAYING') return;
+    aimAngle = Math.max(-Math.PI+0.18,Math.min(-0.18,aimAngle+(Number(aimKeys.right)-Number(aimKeys.left))*0.025));
     
     if (currentBubble && currentBubble.isShooting) {
         currentBubble.x += currentBubble.vx;
@@ -279,8 +250,8 @@ function update() {
         if (currentBubble.x < bSize/2) {
             currentBubble.x = bSize/2;
             currentBubble.vx *= -1;
-        } else if (currentBubble.x > canvas.width - bSize/2) {
-            currentBubble.x = canvas.width - bSize/2;
+        } else if (currentBubble.x > boardWidth - bSize/2) {
+            currentBubble.x = boardWidth - bSize/2;
             currentBubble.vx *= -1;
         }
         
@@ -320,7 +291,7 @@ function update() {
 }
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, boardWidth, boardHeight);
 
     // Draw grid bubbles
     ctx.font = `${bSize * 0.8}px Arial`;
@@ -338,6 +309,11 @@ function draw() {
     
     // Draw current bubble
     if (currentBubble) {
+        if (state === 'PLAYING' && !currentBubble.isShooting) {
+            ctx.save();ctx.strokeStyle='#eaf8ff';ctx.lineWidth=3;ctx.setLineDash([5,7]);
+            ctx.beginPath();ctx.moveTo(currentBubble.x,currentBubble.y);
+            ctx.lineTo(currentBubble.x+Math.cos(aimAngle)*120,currentBubble.y+Math.sin(aimAngle)*120);ctx.stroke();ctx.restore();
+        }
         ctx.fillText(currentBubble.color, currentBubble.x, currentBubble.y);
     }
 
@@ -357,45 +333,47 @@ function draw() {
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 20px "Fredoka", sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`分數: ${score}`, 10, canvas.height - 15);
+    ctx.fillText(`分數: ${score}`, 10, boardHeight - 15);
     ctx.textAlign = 'right';
-    ctx.fillText(`最高: ${highScore}`, canvas.width - 10, canvas.height - 15);
+    ctx.fillText(`最高: ${highScore}`, boardWidth - 10, boardHeight - 15);
 
     if (state !== 'PLAYING') {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, boardWidth, boardHeight);
         
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         if (state === 'START') {
             ctx.fillStyle = CONFIG.ui.primaryColor;
-            ctx.font = 'bold 36px "Fredoka", sans-serif';
-            ctx.fillText('泡泡龍 🎈', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = 'bold 27px sans-serif';
+            ctx.fillText('🫧 彩虹泡泡發射站', boardWidth/2, boardHeight/2 - 30);
             ctx.fillStyle = '#fff';
             ctx.font = '18px "Fredoka", sans-serif';
-            ctx.fillText('點擊螢幕開始', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('按空白鍵或點畫面開始', boardWidth/2, boardHeight/2 + 30);
         } else if (state === 'GAMEOVER') {
             ctx.fillStyle = '#ef4444';
-            ctx.font = 'bold 36px "Fredoka", sans-serif';
-            ctx.fillText('遊戲結束 💥', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = 'bold 27px sans-serif';
+            ctx.fillText('遊戲結束 💥', boardWidth/2, boardHeight/2 - 30);
             ctx.fillStyle = '#fff';
             ctx.font = '18px "Fredoka", sans-serif';
-            ctx.fillText('點擊螢幕重來', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('按空白鍵或點畫面重玩', boardWidth/2, boardHeight/2 + 30);
         } else if (state === 'WIN') {
             ctx.fillStyle = '#10b981';
-            ctx.font = 'bold 36px "Fredoka", sans-serif';
-            ctx.fillText('🎉 恭喜破關！', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = 'bold 27px sans-serif';
+            ctx.fillText('🎉 恭喜破關！', boardWidth/2, boardHeight/2 - 30);
             ctx.fillStyle = '#fff';
             ctx.font = '18px "Fredoka", sans-serif';
-            ctx.fillText('點擊螢幕再玩一次', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('空白鍵再玩一次', boardWidth/2, boardHeight/2 + 30);
         }
     }
 }
 
 function loop() {
-    update();
-    draw();
     requestAnimationFrame(loop);
+    const now=performance.now();if(!loop.last)loop.last=now;
+    if(now-loop.last>=1000/60){loop.last=now-((now-loop.last)%(1000/60));update(now);draw();}
 }
 
 requestAnimationFrame(loop);
+
+GameShell.register({board:{width:boardWidth,height:boardHeight,draw:draw},status:()=>state,start:startGame,clear:()=>{aimKeys.left=false;aimKeys.right=false;}});

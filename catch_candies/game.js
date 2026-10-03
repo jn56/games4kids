@@ -1,11 +1,13 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+// Keep gameplay coordinates independent of the screen drawing resolution.
+const boardWidth = canvas.width, boardHeight = canvas.height;
 const muteBtn = document.getElementById('muteBtn');
 
 // Game state
 let state = 'START'; // START, PLAYING, GAMEOVER, WIN
 let score = 0;
-let highScore = localStorage.getItem('catch_candies_highScore') || 0;
+let highScore = GameStorage.number('catch_candies_highScore');
 let items = [];
 let lastSpawn = 0;
 let particles = [];
@@ -32,98 +34,23 @@ muteBtn.addEventListener('click', (e) => {
 });
 
 function initAudio() {
-    if (isMuted) return;
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    audioCtx = GameAudio.context(); GameAudio.unlock();
 }
 
 function playSound(type) {
-    if (isMuted || !audioCtx) return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    
-    if (type === 'catch') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.1);
-    } else if (type === 'bomb') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
-        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.3);
-    } else if (type === 'over') {
-        [300, 250, 200, 150].forEach((freq, i) => {
-            const o = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            o.type = 'triangle';
-            o.frequency.value = freq;
-            g.gain.setValueAtTime(0.1, audioCtx.currentTime + i * 0.15);
-            g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.15 + 0.1);
-            o.connect(g);
-            g.connect(audioCtx.destination);
-            o.start(audioCtx.currentTime + i * 0.15);
-            o.stop(audioCtx.currentTime + i * 0.15 + 0.1);
-        });
-    } else if (type === 'win') {
-        [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
-            const o = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            o.type = 'square';
-            o.frequency.value = freq;
-            g.gain.setValueAtTime(0.1, audioCtx.currentTime + i * 0.15);
-            g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.15 + 0.1);
-            o.connect(g);
-            g.connect(audioCtx.destination);
-            o.start(audioCtx.currentTime + i * 0.15);
-            o.stop(audioCtx.currentTime + i * 0.15 + 0.1);
-        });
-    }
+    GameAudio.effect(type);
 }
 
 function startBGM() {
-    if (isMuted) return;
-    initAudio();
-    stopBGM();
-    bgmStep = 0;
-    playBGMStep();
+    GameAudio.startMusic();
 }
 
 function stopBGM() {
-    if (bgmInterval) {
-        clearTimeout(bgmInterval);
-        bgmInterval = null;
-    }
+    GameAudio.stopMusic();
 }
 
 function playBGMStep() {
-    if (state !== 'PLAYING' || !audioCtx || isMuted) return;
-    const melody = [392, 440, 493, 523, 493, 440]; // Simple happy scale
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.value = melody[bgmStep % melody.length];
-    
-    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-    
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.2);
-    
-    bgmStep++;
-    bgmInterval = setTimeout(playBGMStep, 300);
+    // Music is scheduled by shared/audio.js.
 }
 
 // Entities
@@ -168,8 +95,8 @@ function handleTouch(e) {
         return;
     }
     const rect = canvas.getBoundingClientRect();
-    const touchX = (e.touches[0].clientX - rect.left) * (canvas.width / rect.width);
-    if (touchX < canvas.width / 2) {
+    const touchX = (e.touches[0].clientX - rect.left) * (boardWidth / rect.width);
+    if (touchX < boardWidth / 2) {
         keys.ArrowLeft = true;
         keys.ArrowRight = false;
     } else {
@@ -189,7 +116,7 @@ function startGame() {
     score = 0;
     items = [];
     particles = [];
-    basket.x = canvas.width / 2 - basket.w / 2;
+    basket.x = boardWidth / 2 - basket.w / 2;
     lastSpawn = performance.now();
     startBGM();
 }
@@ -216,7 +143,7 @@ function spawnItem(now) {
         }
         
         items.push({
-            x: Math.random() * (canvas.width - CONFIG.game.itemSize),
+            x: Math.random() * (boardWidth - CONFIG.game.itemSize),
             y: -CONFIG.game.itemSize,
             ...selectedItem
         });
@@ -237,6 +164,7 @@ function createParticles(x, y, color) {
 }
 
 function update(now) {
+    if (GameShell.paused) return;
     if (state !== 'PLAYING') return;
 
     // Movement
@@ -245,7 +173,7 @@ function update(now) {
 
     // Bounds
     if (basket.x < 0) basket.x = 0;
-    if (basket.x + basket.w > canvas.width) basket.x = canvas.width - basket.w;
+    if (basket.x + basket.w > boardWidth) basket.x = boardWidth - basket.w;
 
     spawnItem(now);
 
@@ -275,7 +203,7 @@ function update(now) {
                 createParticles(item.x + 20, item.y + 20, '#10b981');
                 if (score > highScore) {
                     highScore = score;
-                    localStorage.setItem('catch_candies_highScore', highScore);
+                    GameStorage.set('catch_candies_highScore', highScore);
                 }
                 if (score >= CONFIG.game.winScore) {
                     state = 'WIN';
@@ -284,11 +212,12 @@ function update(now) {
                 }
             }
             items.splice(i, 1);
+            if (state !== 'PLAYING') return;
             continue;
         }
 
         // Missed item
-        if (item.y > canvas.height) {
+        if (item.y > boardHeight) {
             items.splice(i, 1);
         }
     }
@@ -303,7 +232,7 @@ function update(now) {
 }
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, boardWidth, boardHeight);
 
     // Draw basket
     ctx.fillStyle = CONFIG.ui.primaryColor;
@@ -343,44 +272,48 @@ function draw() {
     ctx.textAlign = 'left';
     ctx.fillText(`分數: ${score}`, 15, 15);
     ctx.textAlign = 'right';
-    ctx.fillText(`最高: ${highScore}`, canvas.width - 15, 15);
+    ctx.fillText(`最高: ${highScore}`, boardWidth - 15, 15);
 
     // Overlays
     if (state !== 'PLAYING') {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, boardWidth, boardHeight);
         
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         if (state === 'START') {
             ctx.fillStyle = '#f472b6';
-            ctx.font = 'bold 40px "Fredoka", sans-serif';
-            ctx.fillText('接接樂 🍬', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = 'bold 27px sans-serif';
+            ctx.fillText('🍬 糖果接接樂', boardWidth/2, boardHeight/2 - 30);
             ctx.fillStyle = '#fff';
             ctx.font = '20px "Fredoka", sans-serif';
-            ctx.fillText('點擊或按空白鍵開始', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('點擊或按空白鍵開始', boardWidth/2, boardHeight/2 + 30);
         } else if (state === 'GAMEOVER') {
             ctx.fillStyle = '#ef4444';
-            ctx.font = 'bold 40px "Fredoka", sans-serif';
-            ctx.fillText('遊戲結束 💥', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = 'bold 27px sans-serif';
+            ctx.fillText('遊戲結束 💥', boardWidth/2, boardHeight/2 - 30);
             ctx.fillStyle = '#fff';
             ctx.font = '20px "Fredoka", sans-serif';
-            ctx.fillText('點擊或按空白鍵重來', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('點擊或按空白鍵重來', boardWidth/2, boardHeight/2 + 30);
         } else if (state === 'WIN') {
             ctx.fillStyle = '#10b981';
-            ctx.font = 'bold 40px "Fredoka", sans-serif';
-            ctx.fillText('🎉 恭喜破關！', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = 'bold 27px sans-serif';
+            ctx.fillText('🎉 恭喜破關！', boardWidth/2, boardHeight/2 - 30);
             ctx.fillStyle = '#fff';
             ctx.font = '20px "Fredoka", sans-serif';
-            ctx.fillText('點擊或按空白鍵再玩一次', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('點擊或按空白鍵再玩一次', boardWidth/2, boardHeight/2 + 30);
         }
     }
 }
 
 function loop(timestamp) {
-    update(timestamp);
-    draw();
     requestAnimationFrame(loop);
+    const now=performance.now();if(!loop.last)loop.last=now;
+    if(now-loop.last>=1000/60){loop.last=now-((now-loop.last)%(1000/60));update(now);draw();}
 }
 
 requestAnimationFrame(loop);
+
+canvas.addEventListener("touchcancel",()=>{keys.ArrowLeft=false;keys.ArrowRight=false;});
+
+GameShell.register({board:{width:boardWidth,height:boardHeight,draw:draw},status:()=>state,start:startGame,clear:()=>{keys.ArrowLeft=false;keys.ArrowRight=false;},resume:(elapsed)=>{lastSpawn+=elapsed;}});

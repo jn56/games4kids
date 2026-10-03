@@ -2,12 +2,8 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>3D 皮克敏模型展演 🌸</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>皮克敏動作小劇場 · 遊戲小花園</title>
 
     <script>
         function setAppHeight() {
@@ -387,8 +383,10 @@
             }
         }
     </style>
+<meta name="description" content="讓藍色皮克敏站立、抱胸、跳躍、蹲下或奔跑。旋轉舞台，從不同角度看可愛的小動作！">
+<link rel="stylesheet" href="../shared/game.css">
 </head>
-<body>
+<body class="game-page game-3d" data-game="model_viewer_3d">
     <div class="ambient-glow"></div>
 
     <div class="game-container">
@@ -407,7 +405,7 @@
         <header class="hud-header">
             <div class="hud-left">
                 <a href="../index.html" class="back-btn" title="返回大廳">🏠</a>
-                <h1>3D 藍色皮克敏展演 🌸</h1>
+                <h1>皮克敏動作小劇場</h1>
             </div>
             <div class="hud-right">
                 <button id="fullscreenBtn" title="切換全螢幕">⛶ 全螢幕</button>
@@ -433,34 +431,37 @@
         <div class="control-bar">
             <div class="action-buttons-row">
                 <button class="action-btn active" id="btnIdle">
-                    <span>🧍</span> 站立
+                    ↑ 站立
                 </button>
                 <button class="action-btn btn-fold-arms" id="btnFoldArms">
-                    <span>🙅</span> 抱胸
+                    A 抱胸
                 </button>
                 <button class="action-btn btn-jump" id="btnJump">
-                    <span>🦘</span> 跳躍
+                    空白 跳躍
                 </button>
                 <button class="action-btn btn-crouch" id="btnCrouch">
-                    <span>🧘</span> 蹲下
+                    ↓ 蹲下
                 </button>
                 <button class="action-btn btn-run" id="btnRun">
-                    <span>🏃</span> 奔跑
+                    S 奔跑
                 </button>
             </div>
 
             <div class="rotation-controls-row">
                 <button class="rot-btn" id="btnRotateLeft">
-                    <span>◄</span> 向左旋轉 (A / ←)
+                    ← 向左旋轉
                 </button>
                 <button class="rot-btn" id="btnRotateRight">
-                    向右旋轉 (D / →) <span>►</span>
+                    向右旋轉 →
                 </button>
             </div>
         </div>
     </div>
 
-    <script src="three.min.js"></script>
+    <script src="../shared/catalog.js"></script>
+<script src="../shared/audio.js"></script>
+<script src="../shared/shell.js"></script>
+<script src="three.min.js"></script>
     <script src="game.js"></script>
 </body>
 </html>

@@ -2,13 +2,8 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>3D 森林抓迷藏 🐈</title>
-    
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>森林動物追追樂 · 遊戲小花園</title>
 
     <script>
         function setAppHeight() {
@@ -255,6 +250,8 @@
         }
 
         #minimapCanvas {
+            width: 130px;
+            height: 130px;
             display: block;
             border-radius: 12px;
             background: #020704;
@@ -673,8 +670,10 @@
             }
         }
     </style>
+<meta name="description" content="在立體森林裡追上兔子、貓咪和小狗，完成每關的捕捉目標。用耐力加速，探索不同森林！">
+<link rel="stylesheet" href="../shared/game.css">
 </head>
-<body>
+<body class="game-page game-3d" data-game="animal_tag_3d">
     <div class="ambient-glow"></div>
     <canvas id="confettiCanvas"></canvas>
 
@@ -691,7 +690,7 @@
         <header class="hud-header">
             <div class="hud-left">
                 <a href="../index.html" class="back-btn" title="返回大廳">🏠</a>
-                <h1>3D 森林抓迷藏</h1>
+                <h1>森林動物追追樂</h1>
                 <span class="level-badge" id="levelNameBadge">載入中...</span>
             </div>
             
@@ -754,10 +753,8 @@
 
         
         <div class="overlay" id="startOverlay">
-            <h2>🐈 3D 森林抓迷藏 🐕</h2>
-            <p class="overlay-desc">
-                歡迎來到神奇的 3D 森林！這裡有許多可愛的小動物正在四處捉迷藏。你的任務是找出並抓住牠們！當你靠近時，動物們會因為害羞而逃跑，快點加速追上牠們吧！
-            </p>
+            <h2>🐕 森林動物追追樂</h2>
+            <p class="overlay-desc">在立體森林裡追上兔子、貓咪和小狗，完成每關的捕捉目標。用耐力加速，探索不同森林！</p>
             
             <div class="controls-list">
                 <div>移動 / 轉向: <span class="ctrl-key">▲</span><span class="ctrl-key">▼</span><span class="ctrl-key">◀</span><span class="ctrl-key">▶</span> 或 <span class="ctrl-key">W</span><span class="ctrl-key">S</span><span class="ctrl-key">A</span><span class="ctrl-key">D</span></div>
@@ -819,7 +816,10 @@
     </div>
 
     
-    <script src="three.min.js"></script>
+    <script src="../shared/catalog.js"></script>
+<script src="../shared/audio.js"></script>
+<script src="../shared/shell.js"></script>
+<script src="three.min.js"></script>
     <script src="game.js"></script>
 </body>
 </html>

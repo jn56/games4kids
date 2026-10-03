@@ -1,10 +1,12 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+// Game coordinates stay fixed while the drawing buffer follows screen density.
+const boardWidth = canvas.width, boardHeight = canvas.height;
 const muteBtn = document.getElementById('muteBtn');
 
 let state = 'START';
 let score = 0; // Moves
-let highScore = localStorage.getItem('memory_match_highScore') || 0;
+let highScore = GameStorage.number('memory_match_highScore');
 let timeElapsed = 0;
 let timerInterval = null;
 
@@ -25,74 +27,11 @@ muteBtn.addEventListener('click', (e) => {
 });
 
 function initAudio() {
-    if (isMuted) return;
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    audioCtx = GameAudio.context(); GameAudio.unlock();
 }
 
 function playSound(type) {
-    if (isMuted || !audioCtx) return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    
-    if (type === 'flip') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.1);
-    } else if (type === 'match') {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        
-        const osc2 = audioCtx.createOscillator();
-        osc2.type = 'triangle';
-        osc2.frequency.setValueAtTime(800, audioCtx.currentTime + 0.1);
-        osc2.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.2);
-        const gain2 = audioCtx.createGain();
-        gain2.gain.setValueAtTime(0.1, audioCtx.currentTime + 0.1);
-        gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-        
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc2.connect(gain2);
-        gain2.connect(audioCtx.destination);
-        
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.1);
-        osc2.start(audioCtx.currentTime + 0.1);
-        osc2.stop(audioCtx.currentTime + 0.2);
-    } else if (type === 'mismatch') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.2);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.2);
-    } else if (type === 'win') {
-        [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
-            const o = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            o.type = 'square';
-            o.frequency.value = freq;
-            g.gain.setValueAtTime(0.1, audioCtx.currentTime + i * 0.15);
-            g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.15 + 0.1);
-            o.connect(g);
-            g.connect(audioCtx.destination);
-            o.start(audioCtx.currentTime + i * 0.15);
-            o.stop(audioCtx.currentTime + i * 0.15 + 0.1);
-        });
-    }
+    GameAudio.effect(type);
 }
 
 // Cards setup
@@ -103,14 +42,16 @@ const cardSize = CONFIG.game.cardSize;
 const gap = CONFIG.game.gap;
 const gridWidth = cols * cardSize + (cols - 1) * gap;
 const gridHeight = rows * cardSize + (rows - 1) * gap;
-const startX = (canvas.width - gridWidth) / 2;
-const startY = (canvas.height - gridHeight) / 2 + 30;
+const startX = (boardWidth - gridWidth) / 2;
+const startY = (boardHeight - gridHeight) / 2 + 30;
 
 let flippedCards = [];
 let matchedPairs = 0;
 let isAnimating = false;
+let matchTimeout = null;
 
 function startGame() {
+    clearTimeout(matchTimeout);
     initAudio();
     state = 'PLAYING';
     score = 0;
@@ -123,7 +64,7 @@ function startGame() {
     let neededPairs = (cols * rows) / 2;
     let selectedEmojis = CONFIG.emojis.slice(0, neededPairs);
     let deck = [...selectedEmojis, ...selectedEmojis];
-    deck.sort(() => Math.random() - 0.5); // shuffle
+    for (let i=deck.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]]; }
     
     cards = [];
     for (let r = 0; r < rows; r++) {
@@ -143,11 +84,12 @@ function startGame() {
     
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
-        timeElapsed++;
+        if (!GameShell.paused && state === 'PLAYING') timeElapsed++;
     }, 1000);
 }
 
 function handleInput(x, y) {
+    if (GameShell.paused) return;
     if (state !== 'PLAYING') {
         startGame();
         return;
@@ -167,7 +109,7 @@ function handleInput(x, y) {
             if (flippedCards.length === 2) {
                 score++;
                 isAnimating = true;
-                setTimeout(checkMatch, CONFIG.game.flipDelay);
+                matchTimeout = setTimeout(checkMatch, CONFIG.game.flipDelay);
             }
             break;
         }
@@ -175,6 +117,8 @@ function handleInput(x, y) {
 }
 
 function checkMatch() {
+    if (GameShell.paused) { matchTimeout=setTimeout(checkMatch,100); return; }
+    if (state !== 'PLAYING' || flippedCards.length !== 2) return;
     let c1 = flippedCards[0];
     let c2 = flippedCards[1];
     
@@ -190,7 +134,7 @@ function checkMatch() {
             playSound('win');
             if (highScore === 0 || score < highScore) {
                 highScore = score;
-                localStorage.setItem('memory_match_highScore', highScore);
+                GameStorage.set('memory_match_highScore', highScore);
             }
         }
     } else {
@@ -206,7 +150,7 @@ function checkMatch() {
 canvas.addEventListener('mousedown', (e) => {
     initAudio();
     const rect = canvas.getBoundingClientRect();
-    handleInput((e.clientX - rect.left) * (canvas.width / rect.width), (e.clientY - rect.top) * (canvas.height / rect.height));
+    handleInput((e.clientX - rect.left) * (boardWidth / rect.width), (e.clientY - rect.top) * (boardHeight / rect.height));
 });
 
 canvas.addEventListener('touchstart', (e) => {
@@ -214,12 +158,13 @@ canvas.addEventListener('touchstart', (e) => {
     initAudio();
     const rect = canvas.getBoundingClientRect();
     const touch = e.touches[0];
-    handleInput((touch.clientX - rect.left) * (canvas.width / rect.width), (touch.clientY - rect.top) * (canvas.height / rect.height));
+    handleInput((touch.clientX - rect.left) * (boardWidth / rect.width), (touch.clientY - rect.top) * (boardHeight / rect.height));
 }, { passive: false });
 
 let lastTime = performance.now();
 
 function update(dt) {
+    if (GameShell.paused) return;
     if (state !== 'PLAYING') return;
     
     for (let card of cards) {
@@ -232,7 +177,7 @@ function update(dt) {
 }
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, boardWidth, boardHeight);
 
     for (let card of cards) {
         ctx.save();
@@ -272,41 +217,47 @@ function draw() {
         ctx.restore();
     }
 
+    if (state === 'PLAYING' && cards[selectedCard]) {
+        const selected = cards[selectedCard];
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(selected.x - 3, selected.y - 3, selected.w + 6, selected.h + 6);
+    }
     // UI
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 24px "Fredoka", sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText(`步數: ${score}`, 15, 30);
     ctx.textAlign = 'center';
-    ctx.fillText(`時間: ${timeElapsed}s`, canvas.width/2, 30);
+    ctx.fillText(`時間: ${timeElapsed}s`, boardWidth/2, 30);
     ctx.textAlign = 'right';
     if(highScore > 0) {
-        ctx.fillText(`最佳: ${highScore}步`, canvas.width - 15, 30);
+        ctx.fillText(`最佳: ${highScore}步`, boardWidth - 15, 30);
     } else {
-        ctx.fillText(`最佳: --`, canvas.width - 15, 30);
+        ctx.fillText(`最佳: --`, boardWidth - 15, 30);
     }
 
     if (state !== 'PLAYING') {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, boardWidth, boardHeight);
         
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         if (state === 'START') {
             ctx.fillStyle = CONFIG.ui.primaryColor;
-            ctx.font = 'bold 40px "Fredoka", sans-serif';
-            ctx.fillText('翻牌記憶 🃏', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = 'bold 27px sans-serif';
+            ctx.fillText('🦁 動物翻翻好朋友', boardWidth/2, boardHeight/2 - 30);
             ctx.fillStyle = '#fff';
             ctx.font = '20px "Fredoka", sans-serif';
-            ctx.fillText('點擊螢幕開始', canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('按空白鍵或點畫面開始', boardWidth/2, boardHeight/2 + 30);
         } else if (state === 'WIN') {
             ctx.fillStyle = '#10b981';
-            ctx.font = 'bold 40px "Fredoka", sans-serif';
-            ctx.fillText('🎉 恭喜破關！', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = 'bold 27px sans-serif';
+            ctx.fillText('🎉 恭喜破關！', boardWidth/2, boardHeight/2 - 30);
             ctx.fillStyle = '#fff';
             ctx.font = '20px "Fredoka", sans-serif';
-            ctx.fillText(`共花費 ${score} 步，${timeElapsed} 秒`, canvas.width/2, canvas.height/2 + 10);
-            ctx.fillText('點擊螢幕再玩一次', canvas.width/2, canvas.height/2 + 45);
+            ctx.fillText(`共花費 ${score} 步，${timeElapsed} 秒`, boardWidth/2, boardHeight/2 + 10);
+            ctx.fillText('空白鍵再玩一次', boardWidth/2, boardHeight/2 + 45);
         }
     }
 }
@@ -320,3 +271,16 @@ function loop(timestamp) {
 }
 
 requestAnimationFrame(loop);
+
+let selectedCard=0;
+window.addEventListener('keydown',event=>{
+    if(state!=='PLAYING')return;
+    const row=Math.floor(selectedCard/cols),col=selectedCard%cols;
+    if(event.code==='ArrowLeft')selectedCard=row*cols+(col+cols-1)%cols;
+    if(event.code==='ArrowRight')selectedCard=row*cols+(col+1)%cols;
+    if(event.code==='ArrowUp')selectedCard=((row+rows-1)%rows)*cols+col;
+    if(event.code==='ArrowDown')selectedCard=((row+1)%rows)*cols+col;
+    if(event.code==='Space'&&!event.repeat){const c=cards[selectedCard];handleInput(c.x+c.w/2,c.y+c.h/2);}
+});
+
+GameShell.register({status:()=>state,start:startGame,board:{width:boardWidth,height:boardHeight,draw}});

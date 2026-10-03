@@ -1,0 +1,11 @@
+{
+  "name": "games4kids",
+  "private": true,
+  "scripts": {
+    "start": "node tools/serve.cjs",
+    "test": "node tools/verify.cjs && node tools/input-audio.cjs && node tools/audit.cjs && node tools/display.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

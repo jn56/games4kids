@@ -2,11 +2,8 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>飛天小鳥 🕊️</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>小鳥的雲朵旅行 · 遊戲小花園</title>
     <style>
         :root {
             --bg-gradient: linear-gradient(135deg, #164e63 0%, #083344 100%);
@@ -128,13 +125,15 @@
             font-weight: 600;
         }
     </style>
+<meta name="description" content="輕輕拍翅膀，飛過雲朵之間的空隙。每通過一組雲朵加 1 分，挑戰 100 分！">
+<link rel="stylesheet" href="../shared/game.css">
 </head>
-<body>
+<body class="game-page game-portrait" data-game="flappy_bird">
     <div class="ambient-glow"></div>
     <div class="game-container">
         <div class="header">
             <a href="../index.html" class="back-btn">🏠 返回</a>
-            <h1>飛天小鳥 🕊️</h1>
+            <h1>小鳥的雲朵旅行</h1>
             <button id="muteBtn">🔊 音效: 開</button>
         </div>
         <div class="canvas-wrapper">
@@ -145,7 +144,10 @@
         </div>
     </div>
 
-    <script src="config.js"></script>
+    <script src="../shared/catalog.js"></script>
+<script src="../shared/audio.js"></script>
+<script src="../shared/shell.js"></script>
+<script src="config.js"></script>
     <script src="game.js"></script>
 </body>
 </html>
