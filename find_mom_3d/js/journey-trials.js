@@ -23,7 +23,7 @@ Meadow.JourneyTrials = class {
     if(kind==='bridge'&&(s.chapter!==3||!v.metBeaver||v.bridge===3))return;
     if(kind==='raft'&&(s.chapter!==3||v.bridge!==3||v.raft===4))return;
     if(kind==='star'&&(s.chapter!==4||!h.metSquirrel||!Meadow.BEACONS.some(b=>b.id===beacon)||h.lights.includes(beacon)))return;
-    this.kind=kind;this.ui.dataset.kind=kind;this.beacon=beacon;this.active=true;this.running=false;this.elapsed=0;this.needle=.5;this.cooldown=0;this.focus=0;this.aim=0;this.roundTime=0;this.failTimer=0;this.braking=false;this.brakeCharge=1.8;this.statusUntil=0;this.release();g.input.reset();
+    this.kind=kind;this.ui.dataset.kind=kind;this.beacon=beacon;this.active=true;this.running=false;this.elapsed=0;this.needle=.5;this.cooldown=0;this.focus=0;this.aim=0;this.aligned=false;this.exposure=false;this.roundTime=0;this.failTimer=0;this.braking=false;this.brakeCharge=1.8;this.statusUntil=0;this.release();g.input.reset();
     this.returnPoint=kind==='bridge'?{x:-1.5,z:4.5}:kind==='raft'?{x:0,z:-5.3}:{x:g.player.mesh.position.x,z:g.player.mesh.position.z};
     g.player.mesh.rotation.y=Math.PI;
     g.checkpoint(this.returnPoint.x,this.returnPoint.z);s.mode='journey';
@@ -105,6 +105,12 @@ Meadow.JourneyTrials = class {
     document.getElementById('journey-progress').textContent=`${progress} / ${total}`;
     const meter=document.getElementById('journey-meter');meter.max=this.kind==='star'?2.8:total;meter.value=this.kind==='star'?this.focus:progress;
     meter.setAttribute('aria-label',this.kind==='star'?'星光對準進度':'挑戰完成進度');
+    const charged=this.active&&this.running&&this.kind==='star'&&this.focus>=2.8,ready=charged&&this.aligned&&this.exposure&&this.cooldown<=0;
+    this.ui.classList.toggle('charge-full',charged);this.ui.classList.toggle('shot-ready',ready);
+    if(this.kind==='star'){
+      document.getElementById('journey-hit').querySelector('span').textContent=ready?'拍攝！':'拍攝';
+      meter.setAttribute('aria-valuetext',charged?(ready?'能量已滿，可以拍攝':'能量已滿，等待金光'):`充能 ${Math.floor(this.focus/2.8*100)}%`);
+    }else meter.removeAttribute('aria-valuetext');
     const question=document.getElementById('bridge-question');question.hidden=this.kind!=='bridge'||!this.running;
     if(this.kind==='bridge'){const text=this.bridgeSettings().question;document.getElementById('bridge-question-text').textContent=text.includes('？')?text:text+' = ?';document.getElementById('bridge-question-count').textContent='第 '+(progress+1)+' / 9 枚鉚釘';}
     if(this.kind==='bridge'){const {options,width}=this.bridgeSettings(),zone=document.getElementById('bridge-zone');zone.innerHTML=options.map((n,i)=>`<span class="bridge-answer" style="left:${([.22,.5,.78][i]-width/2)*100}%;width:${width*100}%">${n}</span>`).join('');}
@@ -142,7 +148,7 @@ Meadow.JourneyTrials = class {
       const aligned=Math.abs(this.aim-this.target)<[.095,.08,.065][index]+help*.02;
       this.focus=THREE.MathUtils.clamp(this.focus+dt*(aligned?1:-.8),0,2.8);
       this.aligned=aligned;this.exposure=this.elapsed%3>1.6;this.star.traverse(o=>{if(o.isMesh)o.material=Meadow.Art.material(this.exposure?0xffde8f:0x929bbd);});
-      this.setStatus(this.focus>=2.8?(this.exposure?'按 E 拍照':'等金光'):'對準充能',0);
+      this.setStatus(this.focus>=2.8?(this.exposure?'已滿 · 拍攝！':'已滿 · 等金光'):'對準充能',0);
       this.star.position.x=this.target*8;this.ring.position.x=this.aim*8;this.ring.material.color.set(aligned?0xffdc86:0xd7eee7);
       if(!g.reducedMotion)this.star.rotation.z=Math.sin(this.elapsed)*.1;
       this.helper.update(g.time,g.player,g.reducedMotion);this.roundTime+=dt;
@@ -178,8 +184,9 @@ Meadow.JourneyTrials = class {
     this.layoutEscort();
   }
   layoutEscort(){
-    const h=this.game.state.hill,index=h.escort*3+h.escortWave,base=[-2.5,1.8,-.8,2.4,-2.2,.3,-1.9,2.1,-.5][index];
-    this.feint=index>=3&&this.roundTime<.55;this.gateCenter=(this.feint?-base:base)+(index>=3?Math.sin(this.elapsed*1.5)*.3:0);this.gap=h.escortFails>=6?1.4:1.05;
+    const h=this.game.state.hill,index=h.escort*3+h.escortWave;
+    // Keep the preview, lamps and collision opening in the same lane for the entire wave.
+    this.gateCenter=[-2.5,1.8,-.8,2.4,-2.2,.3,-1.9,2.1,-.5][index];this.gap=h.escortFails>=6?1.4:1.05;
     this.buoys.forEach(b=>b.mesh.position.x=this.gateCenter+b.side*this.gap);
     this.branches.forEach(b=>b.visible=Math.abs(b.position.x-this.gateCenter)>this.gap+.2);
     this.safePatch.position.x=this.gateCenter;this.safePatch.scale.x=this.gap*2;
@@ -201,7 +208,7 @@ Meadow.JourneyTrials = class {
     g.player.arms[0].rotation.x=-.9;
     this.roundTime+=dt;const warning=h.escortFails>=6?1.25:.8,speed=[6.2,7,7.8][h.escort]*(h.escortFails>=6?.8:1);
     this.gate.position.z=-11+Math.max(0,this.roundTime-warning)*speed;
-    this.setStatus(this.feint?'佯攻！等一下':this.roundTime<warning?'準備躲避':'跟著金燈');
+    this.setStatus(this.roundTime<warning?'準備躲避':'跟著金燈');
     // His charge and pushed branches must miss both daughter and mother.
     if(this.gate.position.z>=3.4&&this.gate.position.z<=6.4&&Math.max(Math.abs(this.escortX-this.gateCenter),Math.abs(this.escortX+.5-this.gateCenter))>this.gap-.25){
       h.escortFails=Math.min(99,h.escortFails+1);this.failTimer=1.1;this.roundTime=0;this.gate.position.z=-11;g.saveProgress();this.layoutEscort();
@@ -216,6 +223,7 @@ Meadow.JourneyTrials = class {
   reset(){
     const g=this.game;this.active=false;this.running=false;this.release();g.input.reset();this.ui.hidden=true;document.body.classList.remove('in-journey');g.view.override=null;
     document.getElementById('journey-hit').disabled=false;document.getElementById('bridge-question').hidden=true;delete this.ui.dataset.kind;
+    this.ui.classList.remove('charge-full','shot-ready');document.getElementById('journey-meter').removeAttribute('aria-valuetext');
     if(this.root){g.scene.remove(this.root);this.root.traverse(o=>{if(o.geometry&&!Object.values(Meadow.Art.geometries).includes(o.geometry))o.geometry.dispose();if(o.material?.isMeshBasicMaterial)o.material.dispose();});this.root=null;}
     if(g.worldCache[g.state.chapter])g.worldCache[g.state.chapter].layer.visible=true;
   }

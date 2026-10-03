@@ -269,6 +269,18 @@ body.in-journey #play-hud,body.in-journey #world-labels,body.in-journey #mobile-
 #bridge-zone{position:absolute;height:100%;background:#f4cc76}
 #bridge-needle{position:absolute;top:0;bottom:0;width:5px;transform:translateX(-50%);background:#fff;box-shadow:0 0 0 1px #463c2d}
 #journey-hud{font-size:16px;color:#40534e}
+/* A charged camera remains readable throughout its gentle gold pulse. */
+#journey-ui[data-kind=star] #journey-meter{appearance:none;height:12px;border-radius:8px;background:#d5ddd4;overflow:hidden}
+#journey-ui[data-kind=star] #journey-meter::-webkit-progress-bar{background:#d5ddd4;border-radius:8px}
+#journey-ui[data-kind=star] #journey-meter::-webkit-progress-value{background:#728c5b;border-radius:8px}
+#journey-ui[data-kind=star] #journey-meter::-moz-progress-bar{background:#728c5b;border-radius:8px}
+#journey-ui.charge-full #journey-meter{outline:2px solid #936017;outline-offset:2px;box-shadow:0 0 0 5px #efb83a55;animation:camera-charge-pulse 1s ease-in-out infinite}
+#journey-ui.charge-full #journey-meter::-webkit-progress-value{background:#efb83a}
+#journey-ui.charge-full #journey-meter::-moz-progress-bar{background:#efb83a}
+#journey-ui.charge-full #journey-status{color:#7a4b0d;font-weight:800}
+#journey-ui.shot-ready #journey-hit{background:#ffdb77;color:#543a13;border-color:#fff7d8;box-shadow:0 0 0 4px #eeb43d66,0 0 25px #f5c458cc}
+body:has(#pause-screen:not([hidden])) #journey-meter{animation-play-state:paused}
+@keyframes camera-charge-pulse{0%,100%{filter:brightness(1);box-shadow:0 0 0 3px #efb83a55}50%{filter:brightness(1.2);box-shadow:0 0 0 6px #efb83aaa,0 0 20px #efb83acc}}
 @media(min-width:901px){#journey-ui .action-summary{left:3%;transform:none}}
 @media(max-height:500px) and (orientation:landscape){#bridge-timing{bottom:35px;width:34vw}}
 .prologue-skip{position:fixed;right:4%;top:100px;z-index:24;border:1px solid #ffffffaa;border-radius:22px;padding:11px 17px;background:#fff9ebed;font-size:14px}
