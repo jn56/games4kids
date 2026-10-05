@@ -1,7 +1,7 @@
 'use strict';
 // Pure simulation: seconds and metres, independent of frame rate and rendering.
 const NC = {
-  roadHalfWidth:11.5, moveLimit:9.8, strafeSpeed:12,
+  roadHalfWidth:11.5, moveLimit:9.8, strafeSpeed:12, forkSpread:18,
   roles: {
     velocity: {name:'疾風', color:0xdcff78, speed:65.625, drain:18, regen:10, jumps:1, magnet:1.8, description:'基礎速度較快，衝刺耗能較低。'},
     aerial: {name:'躍動', color:0xb89aff, speed:61.875, drain:22, regen:12, jumps:2, magnet:1.8, description:'可在空中再跳一次，越過連續維修平台。'},
@@ -20,8 +20,10 @@ const NC = {
     charge:{name:'磁力花園',hint:'收集 6 顆光環',short:'遠距吸取 · 回充',need:6,color:'#75efff'}
   },
   // The same continuous fork geometry positions roads, riders and interactables.
-  forkOffset(fork,distance,side){const t=this.clamp((distance-fork.start)/(fork.end-fork.start),0,1);return (side===0?-1:1)*26*Math.sin(Math.PI*t)**2;},
-  forkSlope(fork,distance,side){const t=this.clamp((distance-fork.start)/(fork.end-fork.start),0,1);return (side===0?-1:1)*26*Math.PI*Math.sin(2*Math.PI*t)/(fork.end-fork.start);},
+  curve(distance){return Math.sin(distance*.0032)*13+Math.sin(distance*.0011)*16;},
+  tangent(distance){return Math.cos(distance*.0032)*.0416+Math.cos(distance*.0011)*.0176;},
+  forkOffset(fork,distance,side){const t=this.clamp((distance-fork.start)/(fork.end-fork.start),0,1),u=t<.22?t/.22:t>.8?(1-t)/.2:1;return (side===0?-1:1)*this.forkSpread*u*u*(3-2*u);},
+  forkSlope(fork,distance,side){const length=fork.end-fork.start,t=this.clamp((distance-fork.start)/length,0,1);if(t>=.22&&t<=.8)return 0;const u=t<.22?t/.22:(1-t)/.2,du=t<.22?1/(.22*length):-1/(.2*length);return (side===0?-1:1)*this.forkSpread*6*u*(1-u)*du;},
   separated(fork,distance){return Math.abs(this.forkOffset(fork,distance,0))>=this.roadHalfWidth;},
   skills: {battery:{name:'超導電容',detail:'每級增加 12 點能量上限。'},magnet:{name:'光流引力',detail:'每級增加 0.65 公尺收集範圍。'},clock:{name:'城市默契',detail:'每級為委託增加 3 秒時間。'}},
   clamp: (x,a,b)=>Math.max(a,Math.min(b,x)),
@@ -44,7 +46,7 @@ NC.Run=class {
   constructor(profile,seed=Date.now(),{traffic=true}={}) {
     this.profile=NC.profile(profile);this.role=NC.roles[this.profile.role];this.contract=NC.contracts[this.profile.contract];this.random=NC.random(seed);
     this.phase='countdown';this.countdown=2.4;this.distance=0;this.elapsed=0;this.remaining=this.contract.time+this.profile.skills.clock*3;
-    this.x=0;this.vx=0;this.routeSlope=0;this.steering=0;this.y=0;this.vy=0;this.jumps=0;this.jumpBuffer=0;this.speed=0;this.boosting=false;this.boostLocked=false;
+    this.x=0;this.vx=0;this.steering=0;this.y=0;this.vy=0;this.jumps=0;this.jumpBuffer=0;this.speed=0;this.boosting=false;this.boostLocked=false;
     this.impact=0;this.impactSide=0;this.impactCooldown=0;this.contacts=0;
     this.capacity=100+12*this.profile.skills.battery;this.energy=this.capacity;this.stumble=0;this.invincible=0;this.autoBoost=false;
     this.score=0;this.chain=0;this.maxChain=0;this.chainLife=0;this.delivered=0;this.hits=0;this.signals=0;this.completed=0;this.notices=[];
@@ -52,7 +54,7 @@ NC.Run=class {
     this.stops=[1,2,3].map((n)=>({type:'delivery',distance:this.contract.length*n/3-30,x:this.contract.deliveryX[n-1],index:n-1,status:'pending',done:false}));
     const section=this.contract.length/3,order=Object.keys(NC.routes);
     for(let i=order.length-1;i>0;i--){const j=Math.floor(this.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
-    this.forks=[0,1,2].map((index)=>{const pair=index===0?[order[0],order[1]]:index===1?[order[2],order[3]]:[order[1],order[2]];if(this.random()<.5)pair.reverse();return {index,start:section*index+section*.30,end:section*index+section*.76,options:pair,choice:null,progress:0,won:false,exited:false};});
+    this.forks=[0,1,2].map((index)=>{const pair=index===0?[order[0],order[1]]:index===1?[order[2],order[3]]:[order[1],order[2]];if(this.random()<.5)pair.reverse();return {index,start:section*index+section*.14,end:section*index+section*.76,options:pair,choice:null,progress:0,won:false,exited:false};});
     this.challenges=0;this.items=[];this.buildRoute();this.result=null;this.couriers=traffic?NC.createCouriers(this,seed):[];
   }
   emit(type,data={}){this.notices.push({type,...data});}
@@ -91,13 +93,16 @@ NC.Run=class {
   forkAt(distance=this.distance){return this.forks.find(f=>distance>=f.start&&distance<f.end)||null;}
   pathOffset(distance=this.distance){const f=this.forkAt(distance);return f&&f.choice!==null?NC.forkOffset(f,distance,f.choice):0;}
   lateralPosition(){return this.pathOffset()+this.x;}
+  worldX(){return NC.curve(this.distance)+this.lateralPosition();}
+  itemWorldX(item){return NC.curve(item.distance)+item.x+(item.fork===undefined?0:NC.forkOffset(this.forks[item.fork],item.distance,item.branch));}
+  aimX(item){return this.itemWorldX(item)-NC.curve(this.distance)-this.pathOffset();}
   lateralLimit(){const f=this.forkAt();return NC.moveLimit+(f&&!NC.separated(f,this.distance)?Math.abs(NC.forkOffset(f,this.distance,0)):0);}
   lateralBounds(){
     const f=this.forkAt();
     if(f&&NC.separated(f,this.distance)){
       // Taper the rider clearance at the divider tip, rather than pushing a
       // centered rider sideways by the full clearance in a single frame.
-      const t=NC.clamp((Math.abs(NC.forkOffset(f,this.distance,0))-NC.roadHalfWidth)/8,0,1),inner=NC.roadHalfWidth-(NC.roadHalfWidth-NC.moveLimit)*t*t*(3-2*t);
+      const t=NC.clamp((Math.abs(NC.forkOffset(f,this.distance,0))-NC.roadHalfWidth)/Math.min(8,NC.forkSpread-NC.roadHalfWidth),0,1),inner=NC.roadHalfWidth-(NC.roadHalfWidth-NC.moveLimit)*t*t*(3-2*t);
       return f.choice===0?{min:-NC.moveLimit,max:inner}:{min:-inner,max:NC.moveLimit};
     }
     const limit=this.lateralLimit(),offset=this.pathOffset();return {min:-limit-offset,max:limit-offset};
@@ -136,25 +141,23 @@ NC.Run=class {
     const kind=this.routeKind();
     const targetSpeed=(this.role.speed+(this.boosting?22:0)+(this.event==='tailwind'?6:0)+(kind==='sprint'?6:0))*(input.brake?.52:1)*(this.stumble>0?.52:1);
     this.speed+=(targetSpeed-this.speed)*(1-Math.exp(-7*dt));
-    const oldDistance=this.distance,oldOffset=this.pathOffset();
-    const oldX=this.x;this.distance=Math.min(this.contract.length,this.distance+this.speed*dt);
+    const oldDistance=this.distance,oldWorldX=this.worldX();
+    this.distance=Math.min(this.contract.length,this.distance+this.speed*dt);
     this.steering=Number.isFinite(input.steer)?NC.clamp(input.steer,-1,1):0;
     const targetVX=this.steering*NC.strafeSpeed;
     // Ease into a turn; release or reverse brakes quickly, avoiding long sideways drift.
     const response=!this.steering||Math.sign(this.vx)!==Math.sign(targetVX)?36:13;
     this.vx+=(targetVX-this.vx)*(1-Math.exp(-response*dt));if(Math.abs(this.vx)<.025)this.vx=0;
-    this.x+=this.vx*dt;
+    const worldX=oldWorldX+this.vx*dt,center=NC.curve(this.distance);
     for(const f of this.forks){
-      if(f.choice===null&&NC.separated(f,this.distance)&&this.distance>=f.start&&this.distance<f.end){f.choice=this.x>0?1:0;this.emit('fork',{index:f.index,kind:f.options[f.choice],side:f.choice});}
+      if(f.choice===null&&NC.separated(f,this.distance)&&this.distance>=f.start&&this.distance<f.end){f.choice=worldX>center?1:0;this.emit('fork',{index:f.index,kind:f.options[f.choice],side:f.choice});}
       if(!f.exited&&this.distance>=f.end){f.exited=true;this.emit('merge',{index:f.index,won:f.won});}
     }
-    const newFork=this.forkAt(),slope=newFork&&newFork.choice!==null?NC.forkSlope(newFork,this.distance,newFork.choice):0;
-    // Integrate in world coordinates. Selecting a branch changes only the local
-    // coordinate frame; its automatic turn eases in instead of snapping sideways.
-    this.routeSlope+=(slope-this.routeSlope)*(1-Math.exp(-12*dt));
-    this.x+=oldOffset+this.routeSlope*(this.distance-oldDistance)-this.pathOffset();
+    // The player's world position follows input only. Curved roads change the
+    // coordinate frame and collision boundary, never steer the rider for them.
+    this.x=worldX-center-this.pathOffset();
     const bounds=this.lateralBounds(),bounded=NC.clamp(this.x,bounds.min,bounds.max);
-    if(bounded!==this.x){this.bump('wall',Math.sign(this.x));this.x=bounded;this.vx=0;}
+    if(bounded!==this.x){const side=Math.sign(this.x-bounded);this.bump('wall',side);this.x=bounded;if(this.vx*side>0)this.vx=0;}
     if(this.jumpBuffer>0&&this.jumps<this.role.jumps&&this.jumpCooldown===0){this.vy=11.5;this.jumps++;this.jumpBuffer=0;this.jumpCooldown=.15;this.emit('jump',{double:this.jumps>1});}
     this.jumpBuffer=Math.max(0,this.jumpBuffer-dt);this.vy-=28*dt;this.y+=this.vy*dt;
     if(this.y<=0){if(this.jumps&&this.vy<0)this.emit('land');this.y=0;this.vy=0;this.jumps=0;}
@@ -162,9 +165,8 @@ NC.Run=class {
     for(const item of this.items){
       if(item.done||!this.itemActive(item)||item.distance<oldDistance-4||item.distance>this.distance+5)continue;
       const crossed=oldDistance<=item.distance&&this.distance>=item.distance;
-      const atCrossing=crossed&&this.distance>oldDistance?oldX+oldOffset+(this.lateralPosition()-oldX-oldOffset)*(item.distance-oldDistance)/(this.distance-oldDistance):this.lateralPosition();
-      const itemOffset=item.fork===undefined?0:NC.forkOffset(this.forks[item.fork],item.distance,item.branch);
-      const dx=Math.abs(item.x+itemOffset-atCrossing);
+      const atCrossing=crossed&&this.distance>oldDistance?oldWorldX+(this.worldX()-oldWorldX)*(item.distance-oldDistance)/(this.distance-oldDistance):this.worldX();
+      const dx=Math.abs(this.itemWorldX(item)-atCrossing);
       if(item.type==='signal'||item.type==='skyStar'){
         if(Math.abs(item.distance-this.distance)<4.5&&dx<magnet&&Math.abs(this.y+1.1-item.height)<1.8){item.done=true;this.signals++;this.energy=Math.min(this.capacity,this.energy+3);this.addChain(item.type==='skyStar'?160:35);this.routePoint(item);this.emit(item.type==='skyStar'?'star':'signal',{item});}
       }else if(item.type==='delivery'&&crossed){
@@ -181,7 +183,7 @@ NC.Run=class {
     for(const courier of this.couriers){
       const other=courier.run,oldGap=other.distance-oldDistance;courier.step(dt);
       const gap=other.distance-this.distance;
-      if((Math.abs(gap)<2.7||oldGap*gap<0)&&Math.abs(other.y-this.y)<1.8&&Math.abs(other.lateralPosition()-this.lateralPosition())<1.45){const side=Math.sign(other.lateralPosition()-this.lateralPosition())||1;this.bump('courier',side);other.bump('courier',-side);}
+      if((Math.abs(gap)<2.7||oldGap*gap<0)&&Math.abs(other.y-this.y)<1.8&&Math.abs(other.worldX()-this.worldX())<1.45){const side=Math.sign(other.worldX()-this.worldX())||1;this.bump('courier',side);other.bump('courier',-side);}
     }
     if(this.distance>=this.contract.length||this.remaining<=0)this.finish();
   }
@@ -205,15 +207,15 @@ NC.Courier=class {
   }
   target(){
     const r=this.run,pending=r.forks.find(f=>f.choice===null&&r.distance<f.end&&f.start-r.distance<140);
-    if(pending)return (this.choices>>pending.index)&1?4:-4;
-    const fork=r.forkAt();if(fork){const goal=r.items.find(o=>o.fork===fork.index&&r.itemActive(o)&&!o.done&&o.distance>r.distance&&['ramp','skyStar','speedGate','styleGate','signal'].includes(o.type));if(goal)return goal.x;}
-    const stop=r.stops.find(s=>!s.done);if(stop&&stop.distance-r.distance<110)return stop.x;
-    const hazard=r.items.find(o=>r.itemActive(o)&&['tower','barrier','vent'].includes(o.type)&&o.distance>r.distance&&o.distance-r.distance<100);
+    if(pending){const branch=(this.choices>>pending.index)&1,goal=r.items.find(o=>o.fork===pending.index&&o.branch===branch&&(o.goal||o.type==='ramp'));return goal?r.aimX(goal):(branch?4:-4);}
+    const fork=r.forkAt();if(fork){const goal=r.items.find(o=>o.fork===fork.index&&r.itemActive(o)&&!o.done&&o.distance>r.distance&&['ramp','skyStar','speedGate','styleGate','signal'].includes(o.type));if(goal)return r.aimX(goal);return r.aimX({distance:fork.end,x:0});}
+    const stop=r.stops.find(s=>!s.done);if(stop&&stop.distance-r.distance<110)return r.aimX(stop);
+    const hazard=r.items.find(o=>r.itemActive(o)&&['tower','barrier','vent'].includes(o.type)&&o.distance>r.distance&&o.distance-r.distance<200);
     if(hazard){
       const group=r.items.filter(o=>r.itemActive(o)&&o.distance===hazard.distance&&['tower','barrier','vent'].includes(o.type));
-      const clear=r.items.find(o=>o.type==='signal'&&o.height===1.2&&o.distance===hazard.distance-14);if(clear)return clear.x;
+      const clear=r.items.find(o=>o.type==='signal'&&o.height===1.2&&o.distance===hazard.distance-14);if(clear)return r.aimX(clear);
       const candidates=Array.from({length:37},(_,i)=>-9+i*.5).filter(x=>group.every(o=>Math.abs(x-o.x)>3.4));
-      if(candidates.length)return candidates.sort((a,b)=>Math.abs(a-r.x)-Math.abs(b-r.x))[0];
+      if(candidates.length)return candidates.map(x=>r.aimX({...hazard,x})).sort((a,b)=>Math.abs(a-r.x)-Math.abs(b-r.x))[0];
     }
     return Math.sin(r.distance*.012+this.index)*5.5;
   }

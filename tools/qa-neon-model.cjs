@@ -10,13 +10,13 @@ console.log('PASS profile validation, safe role IDs and skill-point accounting')
 }
 console.log('PASS countdown and pause freeze simulation timers, events and inputs');
 {
- const r=run();tick(r,.1,{steer:.4});assert(r.x>.2&&r.x<.48,'Short input eases into movement');const released=r.x;tick(r,.2);assert(r.x-released<.14,'Release stops within a small fraction of rider width');const held=r.x;tick(r,.5);assert.equal(r.x,held,"Release stays at arbitrary position without snapping");tick(r,2,{steer:-1});assert.equal(r.x,-N.moveLimit);tick(r,3,{steer:1});assert.equal(r.x,N.moveLimit);tick(r,.1,{steer:NaN});assert(Number.isFinite(r.x));
+ const r=run();tick(r,.1,{steer:.4});assert(r.worldX()>.2&&r.worldX()<.48,'Short input eases into movement');const released=r.worldX();tick(r,.2);assert(r.worldX()-released<.14,'Release stops within a small fraction of rider width');const held=r.worldX();tick(r,.5);assert(Math.abs(r.worldX()-held)<1e-8,"Release stays at the same world position without road-following");tick(r,2,{steer:-1});assert.equal(r.x,-N.moveLimit);tick(r,3,{steer:1});assert.equal(r.x,N.moveLimit);tick(r,.1,{steer:NaN});assert(Number.isFinite(r.x));
  r.jump();tick(r,.12);const first=r.vy;r.jump();tick(r,.06);assert(r.vy<first,'Single jump cannot jump again in mid-air');tick(r,1);assert.equal(r.y,0);
  const a=run('aerial');a.jump();tick(a,.25);a.jump();tick(a,.04);assert.equal(a.jumps,2);assert(a.vy>9);a.jump();tick(a,.2);assert.equal(a.jumps,2);
 }
 console.log('PASS analog movement, arbitrary stop positions, deck limits, grounded jump, second jump specialization and landing reset');
 {
- const r=run();tick(r,2);assert(Math.abs(r.speed-65.625)<.001,'Base speed increased another 25%');tick(r,2,{boost:true});assert(r.speed>87.5,'Boost adds 22 m/s to the faster base');assert(r.energy<70);tick(r,6,{boost:true});assert(r.boostLocked||r.energy<25);const before=r.energy;tick(r,2);assert(r.energy>before);assert.equal(r.boosting,false);
+ const r=run();tick(r,2);assert(Math.abs(r.speed-65.625)<.001,'Base speed increased another 25%');tick(r,2,{boost:true});assert(r.speed>84.5,'Boost adds 22 m/s, with at most 3% loss on wall contact');assert(r.energy<70);tick(r,6,{boost:true});assert(r.boostLocked||r.energy<25);const before=r.energy;tick(r,2);assert(r.energy>before);assert.equal(r.boosting,false);
  tick(r,1,{brake:true});assert(r.speed<35);const e=r.energy;r.items=[{type:'boost',distance:r.distance+1,x:r.x,done:false}];tick(r,.15);assert(r.energy>=e);
 }
 console.log('PASS boost drain, automatic cooldown, recharge, braking and boost pads');
@@ -42,7 +42,7 @@ console.log('PASS swept high-speed collision, harmless slowdown, recovery and ju
 console.log('PASS precise diagonal crossing collisions and delivery at a fractional position');
 {
  const r=run();r.items=[{type:'signal',distance:1,x:0,height:1.2,done:false}];tick(r,.3);assert.equal(r.signals,1);tick(r,.3);assert.equal(r.signals,1);
- r.event='flow';r.eventTimer=2;const before=r.score;r.items=[{type:'signal',distance:r.distance+1,x:0,height:1.2,done:false}];tick(r,.1);assert.equal(r.score-before,70);tick(r,6);assert.equal(r.chain,0);
+ r.event='flow';r.eventTimer=2;const before=r.score;r.items=[{type:'signal',distance:r.distance+1,x:r.x,height:1.2,done:false}];tick(r,.1);assert.equal(r.score-before,70);tick(r,6);assert.equal(r.chain,0);
  for(const kind of ['tailwind','magnet','flow']){r.elapsed=r.nextEvent;r.step(1/90);assert(r.event);assert(r.eventTimer>7);}
 }
 console.log('PASS pickups score once, double-score event, combo expiry and scheduled city events');
@@ -52,10 +52,10 @@ console.log('PASS pickups score once, double-score event, combo expiry and sched
 }
 console.log('PASS delivery and missed gates, deadline result, XP retained and idempotent settlement');
 {
- const r=new N.Run(N.freshProfile(),11,{traffic:false}),f=r.forks[0];r.phase='running';r.items=[];r.distance=f.start-.1;r.speed=r.role.speed;r.x=-2;r.step(1/90);assert.equal(f.choice,null,'Joined entrance must not lock a route');tick(r,.5,{steer:1});assert(r.x>2);assert.equal(f.choice,null,'Can still cross from left to right inside the visible junction');tick(r,.2);while(f.choice===null)r.step(1/90);assert.equal(f.choice,1);const entryX=r.x;tick(r,.15,{steer:-1});assert(r.x<entryX);assert.equal(f.choice,1,'Choice commits only when the divider actually separates the roads');
+ const r=new N.Run(N.freshProfile(),11,{traffic:false}),f=r.forks[0];r.phase='running';r.items=[];r.distance=f.start-.1;r.speed=r.role.speed;r.x=-2;r.step(1/90);assert.equal(f.choice,null,'Joined entrance must not lock a route');tick(r,.5,{steer:1});assert(r.x>0);assert.equal(f.choice,null,'Can still cross from left to right inside the visible junction');while(f.choice===null)r.step(1/90,{steer:1});assert.equal(f.choice,1);const entryX=r.x;tick(r,.15,{steer:-1});assert(r.x<entryX);assert.equal(f.choice,1,'Choice commits only when the divider actually separates the roads');
  r.x=0;r.items=[{type:'tower',x:0,distance:r.distance+.1,fork:0,branch:0,done:false},{type:'signal',x:0,distance:r.distance+1,height:1.2,fork:0,branch:0,done:false},{type:'signal',x:0,distance:r.distance+1,height:1.2,fork:0,branch:1,done:false}];tick(r,.1);assert.equal(r.hits,0);assert.equal(r.signals,1,'Only chosen-road objects interact');
  r.phase='paused';const before=JSON.stringify(r);tick(r,6,{boost:true});assert.equal(JSON.stringify(r),before);
- for(const side of [0,1]){assert(Math.abs(N.forkOffset(f,f.start,side))<1e-8);assert(Math.abs(N.forkOffset(f,f.end,side))<1e-8);assert(Math.abs(N.forkSlope(f,f.start,side))<1e-8);assert(Math.abs(N.forkSlope(f,f.end,side))<1e-8);assert(Math.abs(N.forkOffset(f,(f.start+f.end)/2,side))>25);}
+ for(const side of [0,1]){assert(Math.abs(N.forkOffset(f,f.start,side))<1e-8);assert(Math.abs(N.forkOffset(f,f.end,side))<1e-8);assert(Math.abs(N.forkSlope(f,f.start,side))<1e-8);assert(Math.abs(N.forkSlope(f,f.end,side))<1e-8);assert(Math.abs(N.forkOffset(f,(f.start+f.end)/2,side))>=N.forkSpread);}
 }
 console.log('PASS fork selection/locking, unchosen-road collision isolation, paused challenges and continuous split/rejoin geometry');
 {
@@ -63,17 +63,35 @@ console.log('PASS fork selection/locking, unchosen-road collision isolation, pau
   const r=new N.Run(N.freshProfile(),17,{traffic:false}),f=r.forks[0];r.phase='running';r.items=[];r.speed=r.role.speed;r.distance=f.start+5;r.x=-side*3;
   tick(r,.65,{steer:side});assert.equal(f.choice,null);assert.equal(Math.sign(r.x),side,'Can switch sides after entering the joined junction');tick(r,.2);
   while(r.distance<f.end+1){const before=r.lateralPosition();r.step(1/90);assert(Math.abs(r.lateralPosition()-before)<.4,'No sideways teleport at selection or rejoining');}
-  assert.equal(f.choice,side>0?1:0);assert.equal(r.contacts,0);
-  r.distance=f.start+(f.end-f.start)*.88;r.x=0;r.vx=0;tick(r,.35,{steer:side===1?-1:1});assert.equal(r.contacts,0,'No invisible central wall on the merged deck');
+  assert.equal(f.choice,side>0?1:0);assert(r.contacts>0,'Straight travel eventually scrapes the curved fork wall');
+  r.distance=f.start+(f.end-f.start)*.88;r.x=0;r.vx=0;r.contacts=0;r.impactCooldown=0;tick(r,.35,{steer:side===1?-1:1});assert.equal(r.contacts,0,'No invisible central wall on the merged deck');
   r.distance=(f.start+f.end)/2;r.x=side>0?-N.moveLimit:N.moveLimit;r.vx=0;tick(r,.15,{steer:-side});assert.equal(r.contacts,1,'Inner fork wall gives one gentle contact');assert.equal(r.hits,0);assert.equal(r.energy,r.capacity);const contacts=r.contacts;tick(r,.2,{steer:-side});assert.equal(r.contacts,contacts,'Sustained contact is throttled');
   r.phase='paused';const frozen=JSON.stringify(r);tick(r,1);assert.equal(JSON.stringify(r),frozen,'Contact animation timers also pause');
  }
- const smooth=run();tick(smooth,.4,{steer:1});const x=smooth.x;tick(smooth,.1,{steer:-1});assert(smooth.x<x,'Reversal responds promptly');tick(smooth,.3,{steer:-1});const released=smooth.x;tick(smooth,.2);assert(Math.abs(smooth.x-released)<.3);assert.equal(smooth.vx,0);
+ const smooth=run();tick(smooth,.4,{steer:1});const x=smooth.worldX();tick(smooth,.1,{steer:-1});assert(smooth.worldX()<x,'Reversal responds promptly');tick(smooth,.3,{steer:-1});const released=smooth.worldX();tick(smooth,.2);assert(Math.abs(smooth.worldX()-released)<.3);assert.equal(smooth.vx,0);
  const r=run(),other=run();other.x=.6;r.chain=7;r.energy=70;r.couriers=[{run:other,step(){}}];r.step(1/90);assert.equal(r.contacts,1);assert.equal(other.contacts,1);assert(r.impact>0&&other.impact>0);assert.equal(r.chain,7);assert.equal(r.hits,0);assert(r.energy>=70);assert(r.notices.some(n=>n.type==='bump'&&n.kind==='courier'));
  const air=run(),above=run();above.y=3;air.couriers=[{run:above,step(){}}];air.step(1/90);assert.equal(air.contacts,0,'Jumping clear does not collide');
  const apart=new N.Run(N.freshProfile(),17,{traffic:false}),opposite=new N.Run(N.freshProfile(),17,{traffic:false});apart.phase=opposite.phase='running';apart.distance=opposite.distance=(apart.forks[0].start+apart.forks[0].end)/2;apart.forks[0].choice=0;opposite.forks[0].choice=1;apart.couriers=[{run:opposite,step(){}}];apart.step(1/90);assert.equal(apart.contacts,0,'Couriers on opposite fork branches cannot touch');
 }
 console.log('PASS late junction side changes, continuous selection/merge, smooth reversal/stopping, gentle wall/courier contacts, cooldown and height/branch isolation');
+{
+ for(const role of Object.keys(N.roles)){
+  const r=run(role);r.speed=r.role.speed;const x=r.worldX();tick(r,1);assert(Math.abs(r.worldX()-x)<1e-8,'An untouched rider does not follow the main road curve');assert.equal(r.contacts,0);assert.equal(r.vx,0);
+  for(const index of [0,1,2])for(const side of [0,1]){
+   const rider=new N.Run({...N.freshProfile(),role},17,{traffic:false}),f=rider.forks[index];rider.phase='running';rider.items=[];rider.distance=f.start+(f.end-f.start)*.15;f.choice=side;const b=rider.lateralBounds();rider.x=side?b.min+1:b.max-1;rider.speed=rider.role.speed;
+   let clearSteps=0,wallSteps=0,first=true;
+   while(rider.distance<f.start+(f.end-f.start)*.4){
+    const before=rider.worldX();rider.notices=[];rider.step(1/90);
+    if(Math.abs(rider.worldX()-before)<1e-8)clearSteps++;
+    else{const b=rider.lateralBounds();assert(Math.abs(rider.x-b.min)<1e-7||Math.abs(rider.x-b.max)<1e-7,'Uncommanded displacement is allowed only at a real wall');if(first){assert(rider.notices.some(n=>n.type==='bump'&&n.kind==='wall'));first=false;}wallSteps++;}
+    assert.equal(rider.vx,0);assert.equal(rider.steering,0);
+   }
+   assert(clearSteps>2,'Rider goes straight in free space before contact');assert(wallSteps>0&&rider.contacts>0,'Untouched rider really scrapes the fork wall');assert.equal(rider.hits,0);
+  }
+ }
+ const escape=new N.Run(N.freshProfile(),17,{traffic:false}),f=escape.forks[0];escape.phase='running';escape.items=[];f.choice=1;escape.distance=f.start+(f.end-f.start)*.88;escape.x=N.moveLimit;escape.speed=escape.role.speed+22;escape.vx=-12;escape.step(1/90,{steer:-1});assert(escape.contacts>0);assert(escape.vx< -10,'A wall does not erase steering away from it');
+}
+console.log('PASS all roles: untouched main/fork travel stays straight, sideways correction occurs only at real wall contact, and steering away from a wall remains responsive');
 {
  const r=run();r.items=[{type:'ramp',distance:1,x:0,done:false}];tick(r,.2);assert(r.vy>12&&r.y>0,'Ramp launches without a jump button');tick(r,1.5);assert.equal(r.y,0);
  const g=run();g.items=[{type:'speedGate',distance:1,x:0,done:false}];tick(g,.2);assert.equal(g.score,0,'Speed gate needs boosting');const h=run();h.items=[{type:'speedGate',distance:1,x:0,done:false}];tick(h,.2,{boost:true});assert.equal(h.score,160);

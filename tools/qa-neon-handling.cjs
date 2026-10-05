@@ -21,7 +21,7 @@ async function open(ctx){const p=await ctx.newPage();p.on('pageerror',e=>errors.
   await p.evaluate(()=>{const r=neonGame.run,f=r.forks[0];r.items=[];r.couriers=[];r.distance=f.start+5;r.x=-3;r.vx=0;r.speed=r.role.speed;r.autoBoost=false;f.choice=null;});
   await p.mouse.move(cx+pad.width*.30,cy);await p.mouse.down();await p.waitForTimeout(550);
   assert(await p.evaluate(()=>neonGame.run.x>1&&neonGame.run.forks[0].choice===null),'Joined fork remains crossable after entry');assert((await p.locator('#fork-title').textContent()).includes('仍可左右改選'));
-  await p.mouse.up();await p.waitForFunction(()=>neonGame.run.forks[0].choice===1);pass(`${width}x${height}: height-only resize preserves capture, stick hysteresis, late fork change with native pointer input`);
+  await p.waitForFunction(()=>neonGame.run.forks[0].choice!==null);assert.equal(await p.evaluate(()=>neonGame.run.forks[0].choice),1);await p.mouse.up();pass(`${width}x${height}: height-only resize preserves capture, stick hysteresis, late fork change with native pointer input`);
   // Drive into the actual inner wall; feedback must come from simulation contact.
   await p.evaluate(()=>{const r=neonGame.run,f=r.forks[0];r.distance=(f.start+f.end)/2;r.x=-NC.moveLimit;r.vx=0;r.impactCooldown=0;r.contacts=0;r.chain=5;neonGame.world.update(r,0);});
   await p.keyboard.down('ArrowLeft');await p.waitForFunction(()=>neonGame.world.contactRing.visible);await p.keyboard.up('ArrowLeft');

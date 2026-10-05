@@ -19,8 +19,8 @@ NC.World=class {
   box(material,x,y,z,sx,sy,sz,parent){return this.mesh(this.geometries.box,material,x,y,z,sx,sy,sz,parent);}
   batch(geo,mat,count){const m=new THREE.InstancedMesh(geo,mat,count);m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);m.frustumCulled=false;this.scene.add(m);return m;}
   instance(mesh,index,x,y,z,sx,sy,sz,ry=0,rz=0){const d=this.dummy;d.position.set(x,y,z);d.scale.set(sx,sy,sz);d.rotation.set(0,ry,rz);d.updateMatrix();mesh.setMatrixAt(index,d.matrix);}
-  curve(d){return Math.sin(d*.0032)*13+Math.sin(d*.0011)*16;}
-  tangent(d){return Math.cos(d*.0032)*.0416+Math.cos(d*.0011)*.0176;}
+  curve(d){return NC.curve(d);}
+  tangent(d){return NC.tangent(d);}
   center(run,d,side){const f=run?.forkAt(d);return this.curve(d)+(f&&side!==undefined?NC.forkOffset(f,d,side):run?.pathOffset(d)||0);}
   slope(run,d,side){const f=run?.forkAt(d),branch=side??f?.choice;return this.tangent(d)+(f&&branch!=null?NC.forkSlope(f,d,branch):0);}
   spread(run,d){const f=run?.forkAt(d);return f?Math.abs(NC.forkOffset(f,d,0)):0;}
@@ -168,7 +168,7 @@ NC.World=class {
   updateCouriers(run,dt,cover){
     this.courierModels.forEach((g,i)=>{
       const r=run?.couriers[i]?.run,ahead=r?r.distance-run.distance:0;g.visible=!!r&&!cover&&ahead> -6&&ahead<250;if(!g.visible)return;
-      g.position.set(this.center(r,r.distance)+r.x,r.y+Math.sin(this.time*6+i)*.035,-ahead);g.rotation.y+=(-Math.atan(this.tangent(r.distance)+r.routeSlope+r.vx/Math.max(30,r.speed))-g.rotation.y)*(dt?1-Math.exp(-dt*14):1);const bump=this.reduced?0:Math.sin((.28-r.impact)*40)*r.impact*.22*r.impactSide;g.rotation.z+=(-r.vx/NC.strafeSpeed*.14+bump-g.rotation.z)*(dt?1-Math.exp(-dt*14):1);
+      g.position.set(r.worldX(),r.y+Math.sin(this.time*6+i)*.035,-ahead);g.rotation.y+=(-Math.atan(r.vx/Math.max(30,r.speed))-g.rotation.y)*(dt?1-Math.exp(-dt*14):1);const bump=this.reduced?0:Math.sin((.28-r.impact)*40)*r.impact*.22*r.impactSide;g.rotation.z+=(-r.vx/NC.strafeSpeed*.14+bump-g.rotation.z)*(dt?1-Math.exp(-dt*14):1);
       g.userData.label.visible=ahead>4&&ahead<135;g.userData.trail.scale.z=r.boosting?2.6:.7;
     });
   }
@@ -220,7 +220,7 @@ NC.World=class {
     this.updateItems(run,d,cover);this.updateCouriers(run,dt,cover);
     const x=cover?bend+5:bend+(run?.x||0),y=cover?.10:run?.y||0;
     const bump=this.reduced?0:Math.sin((.28-(run?.impact||0))*40)*(run?.impact||0)*.3*(run?.impactSide||1);
-    this.pilot.position.set(x+bump*.7,y+Math.sin(t*7)*.035,0);const yaw=cover?-.5:-Math.atan(this.tangent(d)+(run?.routeSlope||0)+(run?.vx||0)/Math.max(30,run?.speed||0));this.pilot.rotation.y+=(yaw-this.pilot.rotation.y)*(dt?1-Math.exp(-dt*14):1);this.pilot.rotation.z+=((cover?-.08:-(run?.vx||0)/NC.strafeSpeed*.15+bump)-this.pilot.rotation.z)*(dt?1-Math.exp(-dt*16):1);
+    this.pilot.position.set(x+bump*.7,y+Math.sin(t*7)*.035,0);const yaw=cover?-.5:-Math.atan((run?.vx||0)/Math.max(30,run?.speed||0));this.pilot.rotation.y+=(yaw-this.pilot.rotation.y)*(dt?1-Math.exp(-dt*14):1);this.pilot.rotation.z+=((cover?-.08:-(run?.vx||0)/NC.strafeSpeed*.15+bump)-this.pilot.rotation.z)*(dt?1-Math.exp(-dt*16):1);
     this.body.rotation.x=run?.boosting?-.20:-.07;this.arms.forEach((a,i)=>a.rotation.x=(run?.boosting?-.6:-.3)+Math.sin(t*4+i)*.035);this.board.rotation.z=Math.sin(t*3)*.035;
     this.shadow.position.x=x;this.shadow.material.opacity=Math.max(.2,1-y*.15);this.shadow.scale.setScalar(1+y*.08);
     for(let i=0;i<12;i++){const active=run?.boosting&&!cover&&!this.reduced;this.instance(this.trails,i,x+(i%2?1:-1)*(1+i*.3),.15+(i%4)*.6,2+i*.4,.025,.025,active?(1+Math.sin(t*18+i)*.4):0);}this.trails.instanceMatrix.needsUpdate=true;
@@ -228,10 +228,17 @@ NC.World=class {
     const portrait=innerWidth<innerHeight;
     // Chase the physical rider position, never a blend of branch center and
     // branch-local x: that blend changes abruptly when the coordinate frame switches.
-    const target=cover?new THREE.Vector3(bend+(portrait?10:12),portrait?6:5.8,portrait?16:12):new THREE.Vector3(x-(run?.vx||0)*.055,(portrait?9:6)+y*.28,portrait?23:11.8);
-    if(dt===0)this.camera.position.copy(target);else this.camera.position.lerp(target,1-Math.exp(-dt*5));
-    const look=cover?new THREE.Vector3(bend+(portrait?2:0),portrait?2:2,-12):new THREE.Vector3(x+this.curve(d+24)-this.curve(d)+(run?.routeSlope||0)*24,1.7+y*.12,-23);
+    const target=cover?new THREE.Vector3(bend+(portrait?10:12),portrait?6:5.8,portrait?16:12):new THREE.Vector3(x,(portrait?9:6)+y*.28,portrait?23:11.8);
+    if(dt===0)this.camera.position.copy(target);else{
+      const cameraX=this.camera.position.x;
+      this.camera.position.lerp(target,1-Math.exp(-dt*5));
+      if(!cover)this.camera.position.x=cameraX+(target.x-cameraX)*(1-Math.exp(-dt*9));
+    }
+    // Keep the chase view facing forward. Steering anticipation would continue
+    // swinging the view after release and look like automatic rider steering.
+    const look=cover?new THREE.Vector3(bend+(portrait?2:0),portrait?2:2,-12):new THREE.Vector3(this.camera.position.x,1.7+y*.12,-23);
     if(!this.lookTarget||dt===0)this.lookTarget=look;else this.lookTarget.lerp(look,1-Math.exp(-dt*9));
+    if(!cover)this.lookTarget.x=this.camera.position.x;
     this.camera.lookAt(this.lookTarget);const fov=(portrait?68:62)+(run?.boosting&&!this.reduced?6:0);this.camera.fov+=(fov-this.camera.fov)*.06;this.camera.updateProjectionMatrix();
     r.render(this.scene,this.camera);
   }
