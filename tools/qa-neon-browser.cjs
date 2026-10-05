@@ -1,4 +1,5 @@
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const chooseLane=require('./neon-pilot.cjs');
 const base=process.env.GAME_BASE||'http://127.0.0.1:4174',out=path.resolve(__dirname,'../.qa/neon-courier'),suite=process.argv[2]||'all';fs.mkdirSync(out,{recursive:true});
 let browser;const errors=[],passes=[];
 function pass(s){passes.push(s);console.log('PASS '+s);}
@@ -30,21 +31,19 @@ async function fit(p,label){
  await p.locator('#pause-help').click();await p.locator('#info-content').hover();await p.mouse.wheel(0,800);await p.waitForFunction(()=>document.querySelector('.info-panel').scrollTop>0);assert.equal(await p.evaluate(()=>scrollY),0);await p.keyboard.press('Escape');assert.equal(await p.evaluate(()=>neonGame.mode),'paused');await p.keyboard.press('Escape');assert.equal(await p.evaluate(()=>neonGame.mode),'running');
  pass('keyboard start, name/role/contract selection, lane changes, jump, boost, live audio, pause and scrollable help');
  // One entire run uses the rendered game's real clock and actual key presses.
+ await p.addScriptTag({content:'window.neonTestPilot='+chooseLane.toString()});
  await p.keyboard.down('ArrowUp');const started=Date.now();let previous=-1;
  while(await p.evaluate(()=>neonGame.mode!=='result')){
   assert(Date.now()-started<180000,'Real-time run must finish');
-  const state=await p.evaluate(()=>{const r=neonGame.run,next=r.stops.find(s=>!s.done);let target=r.lane;
-   if(next&&next.distance-r.distance<85)target=next.lane;
-   else{const h=r.items.find(o=>!o.done&&['tower','barrier','vent'].includes(o.type)&&o.distance>r.distance&&o.distance-r.distance<65);if(h){const blocked=r.items.filter(o=>o.distance===h.distance&&['tower','barrier','vent'].includes(o.type)).map(o=>o.lane);target=[0,1,2].find(l=>!blocked.includes(l));}}
-   return{target,lane:r.lane,stop:r.completed,mode:neonGame.mode};});
+  const state=await p.evaluate(()=>{const r=neonGame.run;return{target:neonTestPilot(r,5),lane:r.lane,stop:r.completed,mode:neonGame.mode};});
   if(state.mode==='paused')throw Error('Unexpected pause during live run');
   for(let n=0;n<Math.abs(state.target-state.lane);n++)await p.keyboard.press(state.target<state.lane?'ArrowLeft':'ArrowRight');
   if(state.stop!==previous){previous=state.stop;console.log('LIVE '+state.stop+'/3 delivery gates passed');}
   await p.waitForTimeout(100);
  }
- await p.keyboard.up('ArrowUp');assert.equal(await p.evaluate(()=>neonGame.run.result.delivered),3);assert.equal(await p.evaluate(()=>neonGame.run.result.complete),true);assert(await p.evaluate(()=>neonGame.profile.xp>=220));assert.equal(await p.evaluate(()=>neonGame.profile.runs),1);
+ await p.keyboard.up('ArrowUp');assert.equal(await p.evaluate(()=>neonGame.run.result.delivered),3);assert.equal(await p.evaluate(()=>neonGame.run.result.complete),true);assert.equal(await p.evaluate(()=>neonGame.run.challenges),3);assert.deepEqual(await p.evaluate(()=>neonGame.run.forks.map(f=>f.choice)),[1,0,1]);assert(await p.evaluate(()=>neonGame.profile.xp>=220));assert.equal(await p.evaluate(()=>neonGame.profile.runs),1);
  await fit(p,'result');await p.screenshot({path:path.join(out,'result-desktop.png')});const score=await p.evaluate(()=>neonGame.profile.best);await p.waitForTimeout(150);assert.equal(await p.evaluate(()=>neonGame.profile.runs),1);
- pass('complete real-time run through all three districts using actual arrow keys: three deliveries, result, XP and one-time save');
+ pass('complete real-time run using actual arrow keys: right/left/right forks, three challenges, three deliveries, result, XP and one-time save');
  await p.locator('#result-home').click();await p.locator('#open-career').click();const points=await p.evaluate(()=>NC.points(neonGame.profile));assert(points>0);await p.locator('[data-skill="battery"]').click();assert.equal(await p.evaluate(()=>neonGame.profile.skills.battery),1);assert.equal(await p.evaluate(()=>NC.points(neonGame.profile)),points-1);
  await p.keyboard.press('Escape');await p.locator('#sound').click();assert.equal(await p.evaluate(()=>neonGame.audio.enabled),false);await p.reload();await p.waitForFunction(()=>window.neonGame);
  assert.equal(await p.locator('#pilot-name').inputValue(),'澄 / 07');assert.equal(await p.evaluate(()=>neonGame.profile.skills.battery),1);assert.equal(await p.evaluate(()=>neonGame.profile.best),score);assert.equal(await p.evaluate(()=>neonGame.audio.enabled),false);
@@ -54,21 +53,43 @@ async function fit(p,label){
   const ctx=await browser.newContext({viewport:{width,height},hasTouch:true,isMobile:width<900,deviceScaleFactor:width<900?2:1});p=await open(ctx);await fit(p,`${width} cover`);await p.screenshot({path:path.join(out,`cover-${width}x${height}.png`)});
   await p.locator('#launch').click();await p.waitForFunction(()=>neonGame.mode==='running');await fit(p,`${width} running`);
   const mobile=await p.locator('#touch-controls').isVisible();assert(mobile);
-  for(const action of ['left','right','jump']){await p.locator(`[data-action="${action}"]`).tap();if(action==='left')assert.equal(await p.evaluate(()=>neonGame.run.lane),0);if(action==='right')assert.equal(await p.evaluate(()=>neonGame.run.lane),1);if(action==='jump'){await p.waitForTimeout(100);assert(await p.evaluate(()=>neonGame.run.y>0));}}
+  const pad=await p.locator('#joystick').boundingBox(),cx=pad.x+pad.width/2,cy=pad.y+pad.height/2;
+  await p.mouse.move(cx,cy);await p.mouse.down();await p.mouse.move(cx+3,cy-2);assert.equal(await p.evaluate(()=>neonGame.run.lane),1,'Neutral thumb jitter does not steer');
+  await p.mouse.move(cx-pad.width*.32,cy);assert.equal(await p.evaluate(()=>neonGame.run.lane),0);
+  await p.mouse.move(cx+pad.width*.32,cy);assert.equal(await p.evaluate(()=>neonGame.run.lane),1,'Reversing direction moves once');await p.waitForTimeout(350);assert.equal(await p.evaluate(()=>neonGame.run.lane),2,'Holding repeats a lane change');
+  await p.mouse.move(cx,cy-pad.width*.32);assert.equal(await p.evaluate(()=>neonGame.input.boost),true);await p.mouse.move(cx,cy+pad.width*.32);assert.equal(await p.evaluate(()=>neonGame.input.brake),true);await p.mouse.up();assert.deepEqual(await p.evaluate(()=>[neonGame.input.boost,neonGame.input.brake,neonGame.stick.pointer]),[false,false,null]);
+  await p.locator('[data-action="jump"]').tap();await p.waitForTimeout(100);assert(await p.evaluate(()=>neonGame.run.y>0));
   const boost=p.locator('[data-action="boost"]'),box=await boost.boundingBox();await p.mouse.move(box.x+box.width/2,box.y+box.height/2);await p.mouse.down();await p.waitForTimeout(300);assert(await p.evaluate(()=>neonGame.input.boost));await p.mouse.up();assert.equal(await p.evaluate(()=>neonGame.input.boost),false);
-  const controls=await p.locator('#touch-controls button').evaluateAll(bs=>bs.map(b=>{const r=b.getBoundingClientRect();return{x:r.x,y:r.y,right:r.right,bottom:r.bottom,w:r.width,h:r.height};}));
+  // Real multi-touch: steering finger remains captured while another holds boost.
+  const cdp=await ctx.newCDPSession(p),finger=(id,x,y)=>({id,x,y,radiusX:4,radiusY:4,force:1}),left=finger(1,cx-pad.width*.32,cy),right=finger(2,box.x+box.width/2,box.y+box.height/2);
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger(1,cx,cy)]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[left]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[left,right]});assert.equal(await p.evaluate(()=>neonGame.input.boost),true);
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[left]});assert.equal(await p.evaluate(()=>neonGame.input.boost),true,'Releasing stick does not cancel another finger boost');assert.equal(await p.evaluate(()=>neonGame.stick.pointer),null);
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});assert.equal(await p.evaluate(()=>neonGame.input.boost),false);
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger(3,cx,cy-pad.width*.32)]});assert.equal(await p.evaluate(()=>neonGame.input.boost),true);await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});assert.equal(await p.evaluate(()=>neonGame.input.boost),false);assert.equal(await p.locator('#joystick-stick').evaluate(e=>e.style.transform),'');
+  const controls=await p.locator('#joystick, #touch-controls button').evaluateAll(bs=>bs.map(b=>{const r=b.getBoundingClientRect();return{x:r.x,y:r.y,right:r.right,bottom:r.bottom,w:r.width,h:r.height};}));
   for(const b of controls){assert(b.x>=47&&width-b.right>=47&&height-b.bottom>=47,JSON.stringify(b));assert(b.w>=44&&b.h>=44);}
-  assert(controls[1].right<=controls[2].x,'Touch groups do not overlap');
+  assert(controls[0].right<=controls[1].x,'Touch groups do not overlap');
   for(const side of ['ArrowLeft','ArrowRight','ArrowRight']){
    await p.keyboard.press(side);await p.waitForTimeout(400);
    const visible=await p.evaluate(()=>{const w=neonGame.world,v=w.pilot.position.clone().add(new THREE.Vector3(0,1.5,0)).project(w.camera);return{x:v.x,y:v.y};});assert(Math.abs(visible.x)<.90&&Math.abs(visible.y)<.92,`rider ${width} / ${side} visible: ${JSON.stringify(visible)}`);
   }
-  await p.screenshot({path:path.join(out,`run-${width}x${height}.png`)});await p.keyboard.press('Escape');await fit(p,`${width} pause`);
+  await p.screenshot({path:path.join(out,`run-${width}x${height}.png`)});
+  // Controlled milestones validate the render/layout of both branches without waiting six full runs.
+  await p.evaluate(()=>{const r=neonGame.run;r.distance=r.forks[0].start-80;r.lane=2;r.x=7;});await p.waitForTimeout(150);assert(await p.locator('#fork-card').isVisible());assert.equal(await p.locator('#radio').isVisible(),false);
+  for(const side of [0,1]){
+   await p.evaluate(side=>{const r=neonGame.run,f=r.forks[0];f.choice=side;r.distance=(f.start+f.end)/2;r.lane=side*2;r.x=(r.lane-1)*7;},side);await p.waitForTimeout(650);
+   const view=await p.evaluate(()=>{const w=neonGame.world,v=w.pilot.position.clone().add(new THREE.Vector3(0,1.5,0)).project(w.camera),b=document.querySelector('#fork-card').getBoundingClientRect(),m=document.querySelector('.mission-card').getBoundingClientRect(),stats=document.querySelector('.ride-stats').getBoundingClientRect(),energy=document.querySelector('.energy').getBoundingClientRect();const overlap=a=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;return{x:v.x,y:v.y,card:{x:b.x,y:b.y,right:b.right,bottom:b.bottom},missionBottom:m.bottom,overlap:overlap(stats)||overlap(energy),radio:!document.querySelector('#radio').hidden};});
+   assert(Math.abs(view.x)<.90&&Math.abs(view.y)<.92,`${width} branch ${side} rider visible`);assert(view.card.x>=0&&view.card.right<=width&&view.card.bottom<=height);assert(view.card.y>=view.missionBottom-1,'Fork choices below mission');assert.equal(view.overlap,false,'Fork card clear of score/energy');assert.equal(view.radio,false);
+   await p.screenshot({path:path.join(out,`fork-${side}-${width}x${height}.png`)});
+  }
+  await p.evaluate(()=>{const r=neonGame.run;r.distance=r.forks[0].end+.1;});await p.waitForTimeout(150);assert.equal(await p.locator('#fork-card').isVisible(),false);
+  await p.mouse.move(cx,cy);await p.mouse.down();await p.mouse.move(cx,cy-pad.width*.32);await p.keyboard.press('Escape');assert.equal(await p.evaluate(()=>neonGame.stick.pointer),null);assert.equal(await p.evaluate(()=>neonGame.input.boost),false);await p.mouse.up();await fit(p,`${width} pause`);
   await p.locator('#pause-help').click();await p.mouse.wheel(0,600);await p.keyboard.press('Escape');await p.setViewportSize({width:height,height:width});await p.waitForTimeout(150);await fit(p,`${width} rotated pause`);
   await p.keyboard.press('Escape');await p.keyboard.down('ArrowUp');await p.evaluate(()=>window.dispatchEvent(new Event('blur')));assert.equal(await p.evaluate(()=>neonGame.mode),'paused');assert.equal(await p.evaluate(()=>neonGame.input.boost),false);await p.keyboard.up('ArrowUp');
   await p.locator('#return-cover').click();await p.setViewportSize({width,height});await p.locator('#launch').click();await p.waitForFunction(()=>neonGame.mode==='running');await p.evaluate(()=>neonGame.run.remaining=.01);await p.waitForFunction(()=>neonGame.mode==='result');await fit(p,`${width} timeout result`);
   await p.keyboard.press('Space');assert.equal(await p.evaluate(()=>neonGame.mode),'countdown');await p.keyboard.press('Escape');await p.locator('#return-cover').click();await p.locator('#open-career').click();await fit(p,`${width} career`);
-  pass(`${width}x${height}: no page scrolling, touch inset/hold/release, visible rider in all lanes, pause/orientation, timeout/retry and career`);await ctx.close();
+  pass(`${width}x${height}: joystick dead zone/repeat/reversal, multi-touch/cancel, safe insets, both fork cameras/HUD, pause/orientation, timeout/retry and career`);await ctx.close();
  }
  const blocked=await browser.newContext({viewport:{width:390,height:844}});await blocked.addInitScript(()=>{Storage.prototype.getItem=function(){throw Error('blocked');};Storage.prototype.setItem=function(){throw Error('blocked');};window.AudioContext=undefined;window.webkitAudioContext=undefined;});p=await open(blocked);await p.keyboard.press('Space');await p.waitForFunction(()=>neonGame.mode==='running');await p.evaluate(()=>neonGame.run.remaining=.01);await p.waitForFunction(()=>neonGame.mode==='result');assert.equal(await p.evaluate(()=>neonGame.profile.runs),1);await blocked.close();pass('unavailable audio and blocked storage still allow play, settlement and session progression');
  const corrupt=await browser.newContext();await corrupt.addInitScript(()=>localStorage.setItem('neon_courier_profile_v1','{invalid'));p=await open(corrupt);assert.equal(await p.evaluate(()=>neonGame.profile.name),'夜行者');await p.locator('#launch').click();await p.evaluate(()=>document.getElementById('world').dispatchEvent(new Event('webglcontextlost',{cancelable:true})));assert(await p.locator('#error').isVisible());assert(await p.evaluate(()=>neonGame.ended));await corrupt.close();pass('malformed saved data falls back safely and lost WebGL context shows recovery');
