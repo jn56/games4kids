@@ -12,7 +12,7 @@ async function point(p,x,y,tap=false){const b=await p.locator('#gameCanvas').bou
   browser=await chromium.launch({channel:'msedge',headless:true});context=await browser.newContext({viewport:{width:1440,height:900}});
   await context.route('https://**/*',r=>r.abort());
   let p=await open('');
-  assert.equal(await p.locator('.game-card').count(),17);
+  assert.equal(await p.locator('.game-card').count(),18);
   await p.locator('[data-filter="動腦時間"]').click();assert.equal(await p.locator('.game-card').count(),5);
   await p.locator('#game-search').fill('泡泡');assert.equal(await p.locator('.game-card').count(),1);
   await p.locator('#game-search').fill('不存在的遊戲');assert(await p.locator('#empty-state').isVisible());
@@ -25,8 +25,8 @@ async function point(p,x,y,tap=false){const b=await p.locator('#gameCanvas').bou
     Storage.prototype.setItem=original;localStorage.removeItem(key);return latest;
   }),9);
   await p.keyboard.press('Escape');await p.keyboard.press('ArrowRight');await p.keyboard.press('Space');await p.waitForURL('**/pkmadv/index.html');
-  await p.keyboard.press('Escape');for(let i=0;i<3;i++)await p.keyboard.press('ArrowDown');await p.keyboard.press('Space');await p.waitForURL('http://127.0.0.1:4174/index.html');assert.equal(await p.locator('.game-card').count(),17);
-  pass('首頁：17 個有效入口、分類、搜尋、空結果與鍵盤進出遊戲');await p.close();
+  await p.keyboard.press('Escape');for(let i=0;i<3;i++)await p.keyboard.press('ArrowDown');await p.keyboard.press('Space');await p.waitForURL('http://127.0.0.1:4174/index.html');assert.equal(await p.locator('.game-card').count(),18);
+  pass('首頁：18 個有效入口、分類、搜尋、空結果與鍵盤進出遊戲');await p.close();
 
   p=await open('catch_candies');await start(p);
   await p.keyboard.press('Escape');assert(await p.evaluate(()=>GameShell.paused));

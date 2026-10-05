@@ -1,5 +1,5 @@
 (() => {
-  const catalog = [...GameCatalog, {id:'find_mom_3d',name:'找媽媽',icon:'🏡',category:'立體冒險',color:'#8b795c',tint:'#f0eadc',description:'走進立體世界，出發尋找媽媽。',preserved:true}];
+  const catalog = [...GameCatalog, {id:'find_mom_3d_v2',name:'找媽媽 V2：回家的四盞燈',icon:'🌲',category:'立體冒險',color:'#23594c',tint:'#e2eee1',description:'方向鍵與空白鍵展開四章冒險，躲蚊子、追猴子！角色可改名，也能親自配音。',preserved:true}, {id:'find_mom_3d',name:'找媽媽（原版）',icon:'🏡',category:'立體冒險',color:'#8b795c',tint:'#f0eadc',description:'走進立體世界，出發尋找媽媽。',preserved:true}];
   let filter='全部', query='', selected=-1;
   const grid=document.getElementById('game-grid');
   function render() {
