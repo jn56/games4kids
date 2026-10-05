@@ -168,7 +168,7 @@ NC.World=class {
   updateCouriers(run,dt,cover){
     this.courierModels.forEach((g,i)=>{
       const r=run?.couriers[i]?.run,ahead=r?r.distance-run.distance:0;g.visible=!!r&&!cover&&ahead> -6&&ahead<250;if(!g.visible)return;
-      g.position.set(this.center(r,r.distance)+r.x,r.y+Math.sin(this.time*6+i)*.035,-ahead);g.rotation.y=-Math.atan(this.slope(r,r.distance));const bump=this.reduced?0:Math.sin((.28-r.impact)*40)*r.impact*.22*r.impactSide;g.rotation.z+=(-r.vx/NC.strafeSpeed*.14+bump-g.rotation.z)*(dt?1-Math.exp(-dt*14):1);
+      g.position.set(this.center(r,r.distance)+r.x,r.y+Math.sin(this.time*6+i)*.035,-ahead);g.rotation.y+=(-Math.atan(this.tangent(r.distance)+r.routeSlope+r.vx/Math.max(30,r.speed))-g.rotation.y)*(dt?1-Math.exp(-dt*14):1);const bump=this.reduced?0:Math.sin((.28-r.impact)*40)*r.impact*.22*r.impactSide;g.rotation.z+=(-r.vx/NC.strafeSpeed*.14+bump-g.rotation.z)*(dt?1-Math.exp(-dt*14):1);
       g.userData.label.visible=ahead>4&&ahead<135;g.userData.trail.scale.z=r.boosting?2.6:.7;
     });
   }
@@ -216,19 +216,21 @@ NC.World=class {
     });this.buildings.instanceMatrix.needsUpdate=true;this.roofLights.instanceMatrix.needsUpdate=true;
     this.signs.forEach(g=>{const a=((g.userData.distance-d)%570+570)%570-30;g.position.set(this.curve(d+a)+g.userData.side*(21+this.spread(run,d+a)),10,-a);g.rotation.y=-g.userData.side*.3;});
     this.arches.forEach((g,i)=>{const a=((i*144-d)%576+576)%576-32;g.visible=!run?.forkAt(d+a);g.position.set(this.curve(d+a),0,-a);g.rotation.y=-Math.atan(this.tangent(d+a));});
-    this.fliers.forEach((g,i)=>{const a=((i*70-d*.5-t*(i%2?6:-3))%560+560)%560-40;g.position.set(bend+(i%2?1:-1)*(20+Math.sin(t*.3+i)*8),4+(i%4)*5+Math.sin(t+i)*.4,-a);});
+    this.fliers.forEach((g,i)=>{const a=((i*70-d*.5-t*(i%2?6:-3))%560+560)%560-40;g.position.set(this.curve(d)+(i%2?1:-1)*(20+Math.sin(t*.3+i)*8),4+(i%4)*5+Math.sin(t+i)*.4,-a);});
     this.updateItems(run,d,cover);this.updateCouriers(run,dt,cover);
     const x=cover?bend+5:bend+(run?.x||0),y=cover?.10:run?.y||0;
     const bump=this.reduced?0:Math.sin((.28-(run?.impact||0))*40)*(run?.impact||0)*.3*(run?.impactSide||1);
-    this.pilot.position.set(x+bump*.7,y+Math.sin(t*7)*.035,0);this.pilot.rotation.y=cover?-.5:-Math.atan(this.slope(run,d));this.pilot.rotation.z+=((cover?-.08:-(run?.vx||0)/NC.strafeSpeed*.15+bump)-this.pilot.rotation.z)*(dt?1-Math.exp(-dt*16):1);
+    this.pilot.position.set(x+bump*.7,y+Math.sin(t*7)*.035,0);const yaw=cover?-.5:-Math.atan(this.tangent(d)+(run?.routeSlope||0)+(run?.vx||0)/Math.max(30,run?.speed||0));this.pilot.rotation.y+=(yaw-this.pilot.rotation.y)*(dt?1-Math.exp(-dt*14):1);this.pilot.rotation.z+=((cover?-.08:-(run?.vx||0)/NC.strafeSpeed*.15+bump)-this.pilot.rotation.z)*(dt?1-Math.exp(-dt*16):1);
     this.body.rotation.x=run?.boosting?-.20:-.07;this.arms.forEach((a,i)=>a.rotation.x=(run?.boosting?-.6:-.3)+Math.sin(t*4+i)*.035);this.board.rotation.z=Math.sin(t*3)*.035;
     this.shadow.position.x=x;this.shadow.material.opacity=Math.max(.2,1-y*.15);this.shadow.scale.setScalar(1+y*.08);
     for(let i=0;i<12;i++){const active=run?.boosting&&!cover&&!this.reduced;this.instance(this.trails,i,x+(i%2?1:-1)*(1+i*.3),.15+(i%4)*.6,2+i*.4,.025,.025,active?(1+Math.sin(t*18+i)*.4):0);}this.trails.instanceMatrix.needsUpdate=true;
     this.updateRideEffects(run,cover);
-    const portrait=innerWidth<innerHeight,compactLandscape=!portrait&&innerHeight<=500;
-    const target=cover?new THREE.Vector3(bend+(portrait?10:12),portrait?6:5.8,portrait?16:12):new THREE.Vector3(bend+(run?.x||0)*(portrait?.75:compactLandscape?.75:.50),(portrait?9:6)+y*.28,portrait?23:11.8);
+    const portrait=innerWidth<innerHeight;
+    // Chase the physical rider position, never a blend of branch center and
+    // branch-local x: that blend changes abruptly when the coordinate frame switches.
+    const target=cover?new THREE.Vector3(bend+(portrait?10:12),portrait?6:5.8,portrait?16:12):new THREE.Vector3(x-(run?.vx||0)*.055,(portrait?9:6)+y*.28,portrait?23:11.8);
     if(dt===0)this.camera.position.copy(target);else this.camera.position.lerp(target,1-Math.exp(-dt*5));
-    const look=cover?new THREE.Vector3(bend+(portrait?2:0),portrait?2:2,-12):new THREE.Vector3(this.center(run,d+24)+(run?.x||0)*(portrait?.60:compactLandscape?.55:.32),1.7+y*.12,-23);
+    const look=cover?new THREE.Vector3(bend+(portrait?2:0),portrait?2:2,-12):new THREE.Vector3(x+this.curve(d+24)-this.curve(d)+(run?.routeSlope||0)*24,1.7+y*.12,-23);
     if(!this.lookTarget||dt===0)this.lookTarget=look;else this.lookTarget.lerp(look,1-Math.exp(-dt*9));
     this.camera.lookAt(this.lookTarget);const fov=(portrait?68:62)+(run?.boosting&&!this.reduced?6:0);this.camera.fov+=(fov-this.camera.fov)*.06;this.camera.updateProjectionMatrix();
     r.render(this.scene,this.camera);

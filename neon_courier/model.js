@@ -44,7 +44,7 @@ NC.Run=class {
   constructor(profile,seed=Date.now(),{traffic=true}={}) {
     this.profile=NC.profile(profile);this.role=NC.roles[this.profile.role];this.contract=NC.contracts[this.profile.contract];this.random=NC.random(seed);
     this.phase='countdown';this.countdown=2.4;this.distance=0;this.elapsed=0;this.remaining=this.contract.time+this.profile.skills.clock*3;
-    this.x=0;this.vx=0;this.steering=0;this.y=0;this.vy=0;this.jumps=0;this.jumpBuffer=0;this.speed=0;this.boosting=false;this.boostLocked=false;
+    this.x=0;this.vx=0;this.routeSlope=0;this.steering=0;this.y=0;this.vy=0;this.jumps=0;this.jumpBuffer=0;this.speed=0;this.boosting=false;this.boostLocked=false;
     this.impact=0;this.impactSide=0;this.impactCooldown=0;this.contacts=0;
     this.capacity=100+12*this.profile.skills.battery;this.energy=this.capacity;this.stumble=0;this.invincible=0;this.autoBoost=false;
     this.score=0;this.chain=0;this.maxChain=0;this.chainLife=0;this.delivered=0;this.hits=0;this.signals=0;this.completed=0;this.notices=[];
@@ -81,7 +81,7 @@ NC.Run=class {
     for(let branch=0;branch<2;branch++){
       const kind=fork.options[branch],put=(type,t,x,extra={})=>this.items.push({type,distance:fork.start+length*t,x,done:false,fork:fork.index,branch,...extra});
       const entry=branch===0?1:-1;
-      if(kind==='sprint')for(let i=0;i<3;i++){const t=.32+i*.21,x=entry*[4,.5,-4.2][i]+(this.random()-.5);put('speedGate',t,x,{goal:true});put('boost',t-.055,x);put('signal',t-.025,x,{height:1.2});}
+      if(kind==='sprint')for(let i=0;i<3;i++){const t=.32+i*.21,x=entry*[4,.5,-4.2][i]+(this.random()-.5);put('speedGate',t,x,{goal:true});put('boost',t-.03,x);put('signal',t-.025,x,{height:1.2});}
       // Leave enough flight distance even at boosted speed plus a tailwind.
       if(kind==='sky')for(let i=0;i<3;i++){const t=.255+i*108/length,x=entry*[5.6,.4,-4.5][i]+(this.random()-.5);put('ramp',t,x);put('skyStar',t+40/length,x,{height:5.8,goal:true});put('barrier',t+54/length,x);}
       if(kind==='slalom')for(let i=0;i<4;i++)put('styleGate',.30+i*.15,entry*[3.8,-3.8,3.8,-3.8][i]+(this.random()-.5)*.4,{goal:true});
@@ -92,7 +92,16 @@ NC.Run=class {
   pathOffset(distance=this.distance){const f=this.forkAt(distance);return f&&f.choice!==null?NC.forkOffset(f,distance,f.choice):0;}
   lateralPosition(){return this.pathOffset()+this.x;}
   lateralLimit(){const f=this.forkAt();return NC.moveLimit+(f&&!NC.separated(f,this.distance)?Math.abs(NC.forkOffset(f,this.distance,0)):0);}
-  lateralBounds(){const limit=this.lateralLimit(),f=this.forkAt(),offset=f&&!NC.separated(f,this.distance)?this.pathOffset():0;return {min:-limit-offset,max:limit-offset};}
+  lateralBounds(){
+    const f=this.forkAt();
+    if(f&&NC.separated(f,this.distance)){
+      // Taper the rider clearance at the divider tip, rather than pushing a
+      // centered rider sideways by the full clearance in a single frame.
+      const t=NC.clamp((Math.abs(NC.forkOffset(f,this.distance,0))-NC.roadHalfWidth)/8,0,1),inner=NC.roadHalfWidth-(NC.roadHalfWidth-NC.moveLimit)*t*t*(3-2*t);
+      return f.choice===0?{min:-NC.moveLimit,max:inner}:{min:-inner,max:NC.moveLimit};
+    }
+    const limit=this.lateralLimit(),offset=this.pathOffset();return {min:-limit-offset,max:limit-offset};
+  }
   routeKind(){const f=this.forkAt();return f&&f.choice!==null?f.options[f.choice]:null;}
   itemActive(item){return item.fork===undefined||this.forks[item.fork].choice===item.branch;}
   routePoint(item){
@@ -127,7 +136,7 @@ NC.Run=class {
     const kind=this.routeKind();
     const targetSpeed=(this.role.speed+(this.boosting?22:0)+(this.event==='tailwind'?6:0)+(kind==='sprint'?6:0))*(input.brake?.52:1)*(this.stumble>0?.52:1);
     this.speed+=(targetSpeed-this.speed)*(1-Math.exp(-7*dt));
-    const oldDistance=this.distance,oldOffset=this.pathOffset(),oldFork=this.forkAt(),oldChoice=oldFork?.choice;
+    const oldDistance=this.distance,oldOffset=this.pathOffset();
     const oldX=this.x;this.distance=Math.min(this.contract.length,this.distance+this.speed*dt);
     this.steering=Number.isFinite(input.steer)?NC.clamp(input.steer,-1,1):0;
     const targetVX=this.steering*NC.strafeSpeed;
@@ -139,10 +148,11 @@ NC.Run=class {
       if(f.choice===null&&NC.separated(f,this.distance)&&this.distance>=f.start&&this.distance<f.end){f.choice=this.x>0?1:0;this.emit('fork',{index:f.index,kind:f.options[f.choice],side:f.choice});}
       if(!f.exited&&this.distance>=f.end){f.exited=true;this.emit('merge',{index:f.index,won:f.won});}
     }
-    const newFork=this.forkAt();
-    // Rebase once on selection, then follow that road smoothly through the merge.
-    // Joined decks keep the entire combined width available, including the other half.
-    if(oldFork!==newFork||oldChoice!==newFork?.choice)this.x+=oldOffset-this.pathOffset();
+    const newFork=this.forkAt(),slope=newFork&&newFork.choice!==null?NC.forkSlope(newFork,this.distance,newFork.choice):0;
+    // Integrate in world coordinates. Selecting a branch changes only the local
+    // coordinate frame; its automatic turn eases in instead of snapping sideways.
+    this.routeSlope+=(slope-this.routeSlope)*(1-Math.exp(-12*dt));
+    this.x+=oldOffset+this.routeSlope*(this.distance-oldDistance)-this.pathOffset();
     const bounds=this.lateralBounds(),bounded=NC.clamp(this.x,bounds.min,bounds.max);
     if(bounded!==this.x){this.bump('wall',Math.sign(this.x));this.x=bounded;this.vx=0;}
     if(this.jumpBuffer>0&&this.jumps<this.role.jumps&&this.jumpCooldown===0){this.vy=11.5;this.jumps++;this.jumpBuffer=0;this.jumpCooldown=.15;this.emit('jump',{double:this.jumps>1});}
