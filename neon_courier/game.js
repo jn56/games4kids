@@ -5,8 +5,8 @@
   try{game.profile=NC.profile(JSON.parse(localStorage.getItem(storageKey)));}catch{game.storageOK=false;}
   const save=()=>{try{localStorage.setItem(storageKey,JSON.stringify(game.profile));game.storageOK=true;}catch{game.storageOK=false;}};
   const audio=game.audio=new NC.Audio(game.profile.sound);let world,stick=null;
-  const held={left:false,right:false,stickX:0,boost:false,brake:false,touchBoost:false,stickBoost:false,stickBrake:false};
-  function syncInput(){game.input.steer=NC.clamp(Number(held.right)-Number(held.left)+Number(held.stickX),-1,1);game.input.boost=held.boost||held.touchBoost||held.stickBoost;game.input.brake=held.brake||held.stickBrake;}
+  const held={left:false,right:false,stickX:0,boost:false,brake:false};
+  function syncInput(){game.input.steer=NC.clamp(Number(held.right)-Number(held.left)+Number(held.stickX),-1,1);game.input.boost=held.boost;game.input.brake=held.brake;}
   function error(message){game.ended=true;clearInput();audio.quiet();$('error-text').textContent=message;$('error').hidden=false;$('error').querySelector('button').focus({preventScroll:true});}
   try{world=game.world=new NC.World($('world'));}catch(e){error('瀏覽器目前無法顯示 3D 航道。請啟用硬體加速，或換用支援 WebGL 的瀏覽器。');console.warn('WebGL initialization unavailable',e);return;}
   window.neonGame=game;
@@ -56,7 +56,7 @@
     const r=game.run;for(const n of r.notices.splice(0)){
       if(['signal','jump','clear','charge','stumble','delivery','start'].includes(n.type))audio.effect(n.type);
       if(['star','gate','challenge'].includes(n.type))audio.effect(n.type==='challenge'?'delivery':'clear');if(n.type==='ramp')audio.effect('jump');
-      if(n.type==='start'){mode('running');$('countdown').hidden=true;toast('LET’S FLOW',1.5);const hint=matchMedia('(pointer: coarse)').matches||innerWidth<850?'推搖桿自由左右移動、選岔路；上推衝刺，下拉緩行。右側按鈕跳躍。':'按住左、右自由移動與選路，空白鍵跳躍。按住 ↑，把速度拉起來。';radio('絮 / 城市調度',`${game.profile.name}，${hint}`,4);}
+      if(n.type==='start'){mode('running');$('countdown').hidden=true;toast('LET’S FLOW',1.5);const hint=matchMedia('(pointer: coarse)').matches||innerWidth<850?'搖桿偏左向左、偏右向右。點一下衝刺跑到沒氣，另一顆按鈕跳躍。':'按住左、右自由移動與選路，空白鍵跳躍。按住 ↑，把速度拉起來。';radio('絮 / 城市調度',`${game.profile.name}，${hint}`,4);}
       if(n.type==='stumble')toast('重整節奏 · 再追上去',1.3);
       if(n.type==='jump'&&n.double)toast('DOUBLE AIR +',.8);
       if(n.type==='clear')toast('乾淨越障 +90',.85);
@@ -67,7 +67,7 @@
       if(n.type==='ramp')toast('升空！接住高空星',1);
       if(n.type==='star')toast('高空光星 +160',.8);
       if(n.type==='gate')toast('完美穿環 +160',.8);
-      if(n.type==='gateMiss'&&n.boost)toast('按住衝刺，再穿光門',1.4);
+      if(n.type==='gateMiss'&&n.boost)toast('啟動衝刺，再穿光門',1.4);
       if(n.type==='challenge')toast('支線達成 · +4 秒 / +25 XP',2);
       if(n.type==='delivery'){
         const stop=r.stops[n.index];document.querySelector(`[data-stop="${n.index}"]`).className=stop.status;
@@ -87,6 +87,8 @@
     $('delivery-count').textContent=`${r.delivered} / 3 已送達`;$('route-fill').style.width=Math.min(100,r.distance/r.contract.length*100)+'%';
     $('speed').textContent=Math.round(r.speed*3.6);$('score').textContent=String(r.score).padStart(6,'0');$('combo').textContent=`FLOW ×${1+Math.min(4,Math.floor(r.chain/5))}${r.chain?' / '+r.chain:''}`;
     $('energy-value').textContent=Math.round(r.energy/r.capacity*100)+'%';$('energy-fill').style.width=r.energy/r.capacity*100+'%';
+    const boostButton=document.querySelector('[data-action="boost"]');boostButton.classList.toggle('held',r.autoBoost);boostButton.setAttribute('aria-pressed',String(r.autoBoost));boostButton.querySelector('small').textContent=r.autoBoost?'衝刺中':'衝刺';
+    $('fleet-status').textContent=`同場 ${r.racePosition()} / 6`;
     $('event').hidden=!r.event;if(r.event)$('event').querySelector('span').textContent={tailwind:'順風航道',magnet:'磁力潮汐',flow:'追光時刻'}[r.event]+' · '+Math.ceil(r.eventTimer)+'s';
     if(r.phase==='countdown')$('countdown').querySelector('strong').textContent=Math.max(1,Math.ceil(r.countdown));
     const fork=r.forks.find(f=>r.distance>=f.start-120&&r.distance<f.end),card=$('fork-card');card.hidden=!fork||r.phase==='countdown';
@@ -97,7 +99,7 @@
       else{const route=NC.routes[fork.options[fork.choice]];$('fork-progress').textContent=fork.won?'✓ 挑戰達成，額外經驗已取得':`${route.hint} · ${fork.progress} / ${route.need}`;}
     }else if(game.radioTime>0)$('radio').hidden=false;
   }
-  const manual=`<div class="manual"><p>你是霓光城的夜班快遞員。角色會自動前進，一班約一分鐘，依路線與操作節奏變化。把三件包裹送進跑道上的<strong>綠色光門</strong>，再衝過終點。</p><div class="key-row"><span>按住左右自由移動，放開即停</span><kbd>← / →</kbd></div><div class="key-row"><span>跳躍；躍動角色可再跳一次</span><kbd>SPACE</kbd></div><div class="key-row"><span>按住衝刺 / 按住緩行</span><kbd>↑ / ↓</kbd></div><div class="key-row"><span>暫停 / 返回</span><kbd>ESC</kbd></div><h3>看路線，也抓節奏</h3><ul><li>青色光環：補充能量，連續收集會提高倍率，最高 ×5。超過 5.5 秒沒接到連段會歸零。</li><li>橘色橫桿、通風口：跳過或從旁邊繞過。紫色高柱：從旁邊繞過。</li><li>青色地面箭頭：經過就補充 25 點能量。</li><li>綠色交付光門：對準光門穿過即自動交付，獎勵 4 秒與能量。</li><li>失誤會短暫減速並中斷連段，包裹不會掉落。錯過交付點也能繼續完成航程。</li></ul><h3>分岔：選一條你的路</h3><p>每趟有三處分岔。接近路口時，站在跑道左半邊選左路、右半邊選右路；正中央預設左路。進入後路線固定，仍可在整片支線跑道內自由左右移動，末端自動匯流。</p><ul><li>極速環道：速度更快，按住衝刺穿過三道光門。</li><li>空中躍台：踩紫色跳台會自動彈起，在空中接住三顆高空星。</li><li>節奏曲線：自由轉向，連續穿過四道精準環。</li><li>磁力花園：吸取範圍擴大，接住六顆光環。</li></ul><p>每完成一條支線挑戰，加 4 秒、積分、能量及 25 XP；磁力花園會充滿能量。挑戰沒完成也能繼續配送。</p><h3>成為你的那一種快遞員</h3><p>疾風擅長速度；躍動擅長二段跳；共鳴擅長遠距收集。完成委託累積經驗，每 220 XP 升一級並獲得技能點，最多 9 點，能永久提升能量、收集範圍或委託時間。</p><h3>城市會跟著你變化</h3><p>順風航道提高速度；磁力潮汐擴大收集範圍；追光時刻讓積分加倍。每次路線配置會改變，每組障礙都保留足夠的通行空間。</p><p>手機用左側搖桿左右移動／選路，輕推微調、推到底快速移動，放手就停在當前位置；上推衝刺、下拉緩行。右側也保留跳躍與衝刺按鈕，可同時操作。暫停與說明期間倒數停止；切換分頁也會自動暫停。</p><p class="storage-note">角色與最高紀錄只儲存在目前瀏覽器。本遊戲不需要登入或連線，也沒有付費項目。</p></div>`;
+  const manual=`<div class="manual"><p>你是霓光城的夜班快遞員。角色會自動前進，一班約一分鐘，依路線與操作節奏變化。把三件包裹送進跑道上的<strong>綠色光門</strong>，再衝過終點。</p><div class="key-row"><span>按住左右自由移動，放開即停</span><kbd>← / →</kbd></div><div class="key-row"><span>跳躍；躍動角色可再跳一次</span><kbd>SPACE</kbd></div><div class="key-row"><span>按住衝刺 / 按住緩行</span><kbd>↑ / ↓</kbd></div><div class="key-row"><span>暫停 / 返回</span><kbd>ESC</kbd></div><h3>看路線，也抓節奏</h3><ul><li>青色光環：補充能量，連續收集會提高倍率，最高 ×5。超過 5.5 秒沒接到連段會歸零。</li><li>橘色橫桿、通風口：跳過或從旁邊繞過。紫色高柱：從旁邊繞過。</li><li>青色地面箭頭：經過就補充 25 點能量。</li><li>綠色交付光門：對準光門穿過即自動交付，獎勵 4 秒與能量。</li><li>失誤會短暫減速並中斷連段，包裹不會掉落。錯過交付點也能繼續完成航程。</li></ul><h3>分岔：選一條你的路</h3><p>每趟有三處分岔。接近路口時，站在跑道左半邊選左路、右半邊選右路；正中央預設左路。進入後路線固定，仍可在整片支線跑道內自由左右移動，末端自動匯流。</p><ul><li>極速環道：速度更快，啟動衝刺穿過三道光門。</li><li>空中躍台：踩紫色跳台會自動彈起，在空中接住三顆高空星。</li><li>節奏曲線：自由轉向，連續穿過四道精準環。</li><li>磁力花園：吸取範圍擴大，接住六顆光環。</li></ul><p>每完成一條支線挑戰，加 4 秒、積分、能量及 25 XP；磁力花園會充滿能量。挑戰沒完成也能繼續配送。</p><h3>成為你的那一種快遞員</h3><p>疾風擅長速度；躍動擅長二段跳；共鳴擅長遠距收集。完成委託累積經驗，每 220 XP 升一級並獲得技能點，最多 9 點，能永久提升能量、收集範圍或委託時間。</p><h3>五位同行外送員</h3><p>小嵐、阿澈、米洛、沐沐、星野由電腦控制，會自行選路、避開設施、踩跳台、衝刺並配送。頭上標示名字與 AI，各自有獨立能量和包裹；不會搶走你的光環，也不會撞傷你。左下方顯示你在六位外送員中的即時順位。</p><h3>城市會跟著你變化</h3><p>順風航道提高速度；磁力潮汐擴大收集範圍；追光時刻讓積分加倍。每次路線配置會改變，每組障礙都保留足夠的通行空間。</p><p>手機搖桿可任意旋轉：偏左就向左、偏右就向右，純上下不改變速度，放手就停止橫移。右側衝刺點一次就持續到能量耗盡，放手仍會衝刺；耗盡後自動回充，再點一次可重新啟動。另一顆按鈕用來跳躍，可同時操作。暫停與說明期間倒數停止；切換分頁也會自動暫停。</p><p class="storage-note">角色與最高紀錄只儲存在目前瀏覽器。本遊戲不需要登入或連線，也沒有付費項目。</p></div>`;
   function openInfo(kind){
     game.infoOrigin=game.mode==='paused'?'paused':'cover';game.infoFocus=document.activeElement;game.infoKind=kind;mode('info');
     $('info-kicker').textContent=kind==='career'?'RUNNER PROFILE':'FIELD MANUAL';$('info-title').textContent=kind==='career'?'把專長，練成風格。':'夜航指南';
@@ -118,14 +120,14 @@
   $('launch').onclick=launch;$('again').onclick=launch;$('restart').onclick=launch;$('pause').onclick=pause;$('resume').onclick=resume;
   $('return-cover').onclick=cover;$('result-home').onclick=cover;$('open-career').onclick=()=>openInfo('career');$('open-help').onclick=()=>openInfo('help');$('pause-help').onclick=()=>openInfo('help');$('close-info').onclick=closeInfo;
   $('sound').onclick=()=>{audio.toggle();game.profile.sound=audio.enabled;save();syncSound();};
-  stick=game.stick=new NC.TouchStick($('joystick'),$('joystick-stick'),{active:()=>['running','countdown'].includes(game.mode),axes:(x,boost,brake)=>{held.stickX=x;held.stickBoost=boost;held.stickBrake=brake;syncInput();},unlock:()=>audio.unlock()});
+  stick=game.stick=new NC.TouchStick($('joystick'),$('joystick-stick'),{active:()=>['running','countdown'].includes(game.mode),axes:x=>{held.stickX=x;syncInput();},unlock:()=>audio.unlock()});
   for(const button of document.querySelectorAll('[data-action]')){
     let pointer=null;
     button.addEventListener('pointerdown',e=>{
       e.preventDefault();if(!['running','countdown'].includes(game.mode)||pointer!==null)return;pointer=e.pointerId;audio.unlock();button.setPointerCapture(e.pointerId);button.classList.add('held');const a=button.dataset.action;
-      if(a==='jump')game.run.jump();if(a==='boost'){held.touchBoost=true;syncInput();}
+      if(a==='jump')game.run.jump();if(a==='boost')game.run.startBoost();
     });
-    const release=e=>{if(e.pointerId!==pointer)return;pointer=null;button.classList.remove('held');if(button.dataset.action==='boost'){held.touchBoost=false;syncInput();}};
+    const release=e=>{if(e.pointerId!==pointer)return;pointer=null;if(button.dataset.action!=='boost')button.classList.remove('held');};
     button.addEventListener('pointerup',release);button.addEventListener('pointercancel',release);button.addEventListener('lostpointercapture',release);
   }
   function menuButtons(){const root=$({cover:'cover',paused:'pause-panel',result:'result',info:'info-panel'}[game.mode]);return root?[...root.querySelectorAll('button:not(:disabled),input,a')].filter(e=>e.getClientRects().length):[];}

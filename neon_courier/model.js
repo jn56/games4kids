@@ -3,9 +3,9 @@
 const NC = {
   roadHalfWidth:11.5, moveLimit:9.8, strafeSpeed:18,
   roles: {
-    velocity: {name:'疾風', color:0xdcff78, speed:35, drain:18, regen:10, jumps:1, magnet:1.8, description:'基礎速度較快，衝刺耗能較低。'},
-    aerial: {name:'躍動', color:0xb89aff, speed:33, drain:22, regen:12, jumps:2, magnet:1.8, description:'可在空中再跳一次，越過連續維修平台。'},
-    resonance: {name:'共鳴', color:0x75efff, speed:33, drain:20, regen:13, jumps:1, magnet:3.5, description:'更遠收集光能，回充更快，容易保持連段。'}
+    velocity: {name:'疾風', color:0xdcff78, speed:52.5, drain:18, regen:10, jumps:1, magnet:1.8, description:'基礎速度較快，衝刺耗能較低。'},
+    aerial: {name:'躍動', color:0xb89aff, speed:49.5, drain:22, regen:12, jumps:2, magnet:1.8, description:'可在空中再跳一次，越過連續維修平台。'},
+    resonance: {name:'共鳴', color:0x75efff, speed:49.5, drain:20, regen:13, jumps:1, magnet:3.5, description:'更遠收集光能，回充更快，容易保持連段。'}
   },
   contracts: [
     {name:'夜市補給',label:'暖身',length:2400,time:108,spacing:88,clients:['阿森 / 屋頂溫室','露可 / 夜市食堂','阿澄 / 星光書店'],parcels:['夜光種子','派對冰茶','首版詩集'],deliveryX:[.8,-5.8,5.3],messages:['種子要趕上午夜的第一場雨。拜託你了！','冰茶還冰著！大家剛好都到了。','詩集收到了。今晚的朗讀會，有你一份。']},
@@ -40,18 +40,18 @@ const NC = {
 };
 
 NC.Run=class {
-  constructor(profile,seed=Date.now()) {
+  constructor(profile,seed=Date.now(),{traffic=true}={}) {
     this.profile=NC.profile(profile);this.role=NC.roles[this.profile.role];this.contract=NC.contracts[this.profile.contract];this.random=NC.random(seed);
     this.phase='countdown';this.countdown=2.4;this.distance=0;this.elapsed=0;this.remaining=this.contract.time+this.profile.skills.clock*3;
     this.x=0;this.steering=0;this.y=0;this.vy=0;this.jumps=0;this.jumpBuffer=0;this.speed=0;this.boosting=false;this.boostLocked=false;
-    this.capacity=100+12*this.profile.skills.battery;this.energy=this.capacity;this.stumble=0;this.invincible=0;
+    this.capacity=100+12*this.profile.skills.battery;this.energy=this.capacity;this.stumble=0;this.invincible=0;this.autoBoost=false;
     this.score=0;this.chain=0;this.maxChain=0;this.chainLife=0;this.delivered=0;this.hits=0;this.signals=0;this.completed=0;this.notices=[];
     this.event=null;this.eventTimer=0;this.nextEvent=17;this.eventIndex=Math.floor(this.random()*3);this.jumpCooldown=0;
     this.stops=[1,2,3].map((n)=>({type:'delivery',distance:this.contract.length*n/3-30,x:this.contract.deliveryX[n-1],index:n-1,status:'pending',done:false}));
     const section=this.contract.length/3,order=Object.keys(NC.routes);
     for(let i=order.length-1;i>0;i--){const j=Math.floor(this.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
     this.forks=[0,1,2].map((index)=>{const pair=index===0?[order[0],order[1]]:index===1?[order[2],order[3]]:[order[1],order[2]];if(this.random()<.5)pair.reverse();return {index,start:section*index+section*.30,end:section*index+section*.76,options:pair,choice:null,progress:0,won:false,exited:false};});
-    this.challenges=0;this.items=[];this.buildRoute();this.result=null;
+    this.challenges=0;this.items=[];this.buildRoute();this.result=null;this.couriers=traffic?NC.createCouriers(this,seed):[];
   }
   emit(type,data={}){this.notices.push({type,...data});}
   buildRoute(){
@@ -93,10 +93,13 @@ NC.Run=class {
     if(f.progress>=NC.routes[kind].need){f.won=true;this.challenges++;this.addChain(500);this.remaining+=4;this.energy=kind==='charge'?this.capacity:Math.min(this.capacity,this.energy+20);this.emit('challenge',{index:f.index,kind});}
   }
   jump(){if(this.phase==='running')this.jumpBuffer=.16;}
+  startBoost(){if(!['running','countdown'].includes(this.phase)||this.energy<=0||this.autoBoost)return false;this.autoBoost=true;this.boostLocked=false;return true;}
+  racePosition(){return 1+this.couriers.filter(c=>c.run.distance>this.distance).length;}
   addChain(points){this.chain++;this.maxChain=Math.max(this.maxChain,this.chain);this.chainLife=5.5;this.score+=Math.round(points*(1+Math.min(4,Math.floor(this.chain/5)))*(this.event==='flow'?2:1));}
   hit(){
     if(this.invincible>0)return;
     this.hits++;this.stumble=.95;this.invincible=1.25;this.energy=Math.max(0,this.energy-14);this.chain=0;this.chainLife=0;
+    if(this.energy===0&&this.autoBoost){this.autoBoost=false;this.emit('empty');}
     this.emit('stumble');
   }
   step(dt,input={}){
@@ -106,10 +109,11 @@ NC.Run=class {
     if(this.chainLife>0){this.chainLife-=dt;if(this.chainLife<=0)this.chain=0;}
     this.eventTimer=Math.max(0,this.eventTimer-dt);if(this.event&&this.eventTimer<=0){this.event=null;this.emit('eventEnd');}
     if(this.elapsed>=this.nextEvent){this.event=['tailwind','magnet','flow'][this.eventIndex++%3];this.eventTimer=8;this.nextEvent=this.elapsed+22+this.random()*5;this.emit('event',{event:this.event});}
-    if(!input.boost||this.energy>=25)this.boostLocked=false;
-    this.boosting=!!input.boost&&!input.brake&&!this.boostLocked&&this.energy>0&&this.stumble===0;
+    const wantsBoost=input.boost||this.autoBoost;
+    if(!wantsBoost||this.energy>=25)this.boostLocked=false;
+    this.boosting=!!wantsBoost&&!input.brake&&!this.boostLocked&&this.energy>0&&this.stumble===0;
     this.energy=NC.clamp(this.energy+(this.boosting?-this.role.drain:this.role.regen)*dt,0,this.capacity);
-    if(this.boosting&&this.energy<=0){this.boostLocked=true;this.boosting=false;this.emit('empty');}
+    if(this.boosting&&this.energy<=0){this.boostLocked=true;this.boosting=false;this.autoBoost=false;this.emit('empty');}
     const kind=this.routeKind();
     const targetSpeed=(this.role.speed+(this.boosting?22:0)+(this.event==='tailwind'?6:0)+(kind==='sprint'?6:0))*(input.brake?.52:1)*(this.stumble>0?.52:1);
     this.speed+=(targetSpeed-this.speed)*(1-Math.exp(-7*dt));
@@ -142,6 +146,7 @@ NC.Run=class {
         item.done=true;if(this.y>(item.type==='tower'?4.8:item.type==='vent'?.55:1.35)){this.addChain(90);this.emit('clear');}else this.hit();
       }
     }
+    for(const courier of this.couriers)courier.step(dt);
     if(this.distance>=this.contract.length||this.remaining<=0)this.finish();
   }
   finish(){
@@ -150,7 +155,38 @@ NC.Run=class {
     this.score+=Math.floor(this.distance/3)+Math.floor(this.remaining*12);
     const grade=!complete?'D':this.delivered===3&&this.hits<=2&&this.score>=7500?'S':this.delivered===3?'A':this.delivered===2?'B':'C';
     this.result={score:this.score,delivered:this.delivered,maxChain:this.maxChain,hits:this.hits,grade,complete,challenges:this.challenges,xp:Math.floor(this.distance/32)+this.delivered*45+this.challenges*25+(complete?65:0)};
-    this.phase='finished';this.emit('finish',{result:this.result});return this.result;
+    this.autoBoost=false;this.boosting=false;this.phase='finished';this.emit('finish',{result:this.result});return this.result;
+  }
+};
+NC.courierStyles=[{name:'小嵐',color:0x71eaff,role:'velocity'},{name:'阿澈',color:0xb89aff,role:'aerial'},{name:'米洛',color:0xffb68e,role:'resonance'},{name:'沐沐',color:0xff87bc,role:'aerial'},{name:'星野',color:0x80baff,role:'velocity'}];
+NC.createCouriers=function(parent,seed){return NC.courierStyles.map((style,index)=>new NC.Courier(parent,seed,style,index));};
+NC.Courier=class {
+  constructor(parent,seed,style,index){
+    Object.assign(this,style);this.index=index;this.choices=(seed+index*3)%8;
+    const profile={...NC.freshProfile(),contract:parent.profile.contract,role:style.role};
+    this.run=new NC.Run(profile,seed,{traffic:false});this.run.phase='running';this.run.distance=14+index*13;this.run.x=[-6,3,-2,7,0][index];
+    this.run.role={...this.run.role,speed:this.run.role.speed*(.96+index*.012)};
+  }
+  target(){
+    const r=this.run,pending=r.forks.find(f=>f.choice===null&&f.start-r.distance>=0&&f.start-r.distance<110);
+    if(pending)return (this.choices>>pending.index)&1?4:-4;
+    const fork=r.forkAt();if(fork){const goal=r.items.find(o=>o.fork===fork.index&&r.itemActive(o)&&!o.done&&o.distance>r.distance&&['ramp','skyStar','speedGate','styleGate','signal'].includes(o.type));if(goal)return goal.x;}
+    const stop=r.stops.find(s=>!s.done);if(stop&&stop.distance-r.distance<110)return stop.x;
+    const hazard=r.items.find(o=>r.itemActive(o)&&['tower','barrier','vent'].includes(o.type)&&o.distance>r.distance&&o.distance-r.distance<100);
+    if(hazard){
+      const group=r.items.filter(o=>r.itemActive(o)&&o.distance===hazard.distance&&['tower','barrier','vent'].includes(o.type));
+      const clear=r.items.find(o=>o.type==='signal'&&o.height===1.2&&o.distance===hazard.distance-14);if(clear)return clear.x;
+      const candidates=Array.from({length:37},(_,i)=>-9+i*.5).filter(x=>group.every(o=>Math.abs(x-o.x)>3.4));
+      if(candidates.length)return candidates.sort((a,b)=>Math.abs(a-r.x)-Math.abs(b-r.x))[0];
+    }
+    return Math.sin(r.distance*.012+this.index)*5.5;
+  }
+  step(dt){
+    const r=this.run;if(r.result)return;
+    const steer=NC.clamp((this.target()-r.x)/(NC.strafeSpeed*dt),-1,1),sprint=r.routeKind()==='sprint';
+    // Each courier has its own stamina and timing, and consumes only its own pickups.
+    const boost=sprint||(r.elapsed+this.index*2)%11<5;
+    r.step(dt,{steer,boost});r.notices.length=0;
   }
 };
 if(typeof window!=='undefined')window.NC=NC;

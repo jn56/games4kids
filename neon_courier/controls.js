@@ -1,6 +1,6 @@
 'use strict';
-// A captured, single-finger analog stick. The dead zone filters thumb jitter;
-// the remaining travel scales continuous sideways speed, with no lane snapping.
+// The stick can rotate freely, but only its left/right half controls movement.
+// A small central dead zone avoids drift; vertical motion never changes speed.
 NC.TouchStick=class {
   constructor(pad,knob,{active,axes,unlock}){
     Object.assign(this,{pad,knob,active,axes,unlock});this.pointer=null;this.x=this.y=0;
@@ -13,8 +13,7 @@ NC.TouchStick=class {
   move(e){
     const r=this.pad.getBoundingClientRect(),radius=r.width*.34,dx=e.clientX-r.x-r.width/2,dy=e.clientY-r.y-r.height/2,length=Math.hypot(dx,dy),scale=length>radius?radius/length:1;
     this.x=dx*scale/radius;this.y=dy*scale/radius;this.knob.style.transform=`translate(${dx*scale}px,${dy*scale}px)`;
-    const steer=Math.sign(this.x)*Math.max(0,(Math.abs(this.x)-.18)/.82);
-    this.axes(steer,Math.abs(this.x)<.65&&this.y<-.65,Math.abs(this.x)<.65&&this.y>.65);
+    this.axes(length<radius*.18||Math.abs(dx)<1?0:Math.sign(dx));
   }
-  reset(){const pointer=this.pointer;this.pointer=null;this.x=this.y=0;this.knob.style.transform='';this.pad.classList.remove('engaged');this.axes(0,false,false);if(pointer!==null&&this.pad.hasPointerCapture(pointer))this.pad.releasePointerCapture(pointer);}
+  reset(){const pointer=this.pointer;this.pointer=null;this.x=this.y=0;this.knob.style.transform='';this.pad.classList.remove('engaged');this.axes(0);if(pointer!==null&&this.pad.hasPointerCapture(pointer))this.pad.releasePointerCapture(pointer);}
 };

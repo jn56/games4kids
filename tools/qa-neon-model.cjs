@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),N=require('../neon_courier/model.js'),targetX=require('./neon-pilot.cjs');
 const tick=(r,seconds,input={})=>{for(let i=0;i<Math.round(seconds*90);i++)r.step(1/90,input);};
-const run=(role='velocity')=>{const p=N.freshProfile();p.role=role;const r=new N.Run(p,92);r.phase='running';r.items=[];r.forks=[];return r;};
+const run=(role='velocity')=>{const p=N.freshProfile();p.role=role;const r=new N.Run(p,92,{traffic:false});r.phase='running';r.items=[];r.forks=[];return r;};
 const bad=N.profile({name:'<script>演員</script>',role:'constructor',xp:-5,contract:99,skills:{battery:99},best:NaN});assert.equal(bad.role,'velocity');assert.equal(bad.xp,0);assert.equal(bad.contract,2);assert.equal(bad.skills.battery,0);assert(bad.name.length<=14);
 const veteran=N.profile({xp:220*4,skills:{battery:3,magnet:3,clock:3}});assert.deepEqual(veteran.skills,{battery:3,magnet:1,clock:0});assert.equal(N.points(veteran),0);
 console.log('PASS profile validation, safe role IDs and skill-point accounting');
@@ -16,10 +16,18 @@ console.log('PASS countdown and pause freeze simulation timers, events and input
 }
 console.log('PASS analog movement, arbitrary stop positions, deck limits, grounded jump, second jump specialization and landing reset');
 {
- const r=run();tick(r,2);assert(r.speed>34.9,'Cruising speed increased by 25%');tick(r,2,{boost:true});assert(r.speed>56.9,'Boost increased to 57 m/s');assert(r.energy<70);tick(r,6,{boost:true});assert(r.boostLocked||r.energy<25);const before=r.energy;tick(r,2);assert(r.energy>before);assert.equal(r.boosting,false);
- tick(r,1,{brake:true});assert(r.speed<20);const e=r.energy;r.items=[{type:'boost',distance:r.distance+1,x:r.x,done:false}];tick(r,.15);assert(r.energy>=e);
+ const r=run();tick(r,2);assert(Math.abs(r.speed-52.5)<.001,'Base speed increased by 50%');tick(r,2,{boost:true});assert(r.speed>74.4,'Boost adds 22 m/s to the faster base');assert(r.energy<70);tick(r,6,{boost:true});assert(r.boostLocked||r.energy<25);const before=r.energy;tick(r,2);assert(r.energy>before);assert.equal(r.boosting,false);
+ tick(r,1,{brake:true});assert(r.speed<28);const e=r.energy;r.items=[{type:'boost',distance:r.distance+1,x:r.x,done:false}];tick(r,.15);assert(r.energy>=e);
 }
 console.log('PASS boost drain, automatic cooldown, recharge, braking and boost pads');
+{
+ assert.equal(N.roles.velocity.speed,35*1.5);assert.equal(N.roles.aerial.speed,33*1.5);assert.equal(N.roles.resonance.speed,33*1.5);
+ const r=run();assert(r.startBoost());tick(r,1);assert(r.autoBoost&&r.boosting&&r.energy<83,'One press runs without a held input');const energy=r.energy;assert.equal(r.startBoost(),false);assert.equal(r.energy,energy,'Repeated taps do not refill or restart');
+ r.phase='paused';const paused=JSON.stringify(r);tick(r,3);assert.equal(JSON.stringify(r),paused);r.phase='running';tick(r,5);assert.equal(r.autoBoost,false);assert.equal(r.boosting,false);tick(r,3);assert(r.energy>25);assert.equal(r.boosting,false,'Recharge never restarts a one-shot boost');assert(r.startBoost());tick(r,.2);assert(r.boosting);
+ const empty=run();empty.energy=0;assert.equal(empty.startBoost(),false);tick(empty,.3);assert(empty.startBoost());empty.energy=5;empty.hit();assert.equal(empty.autoBoost,false,'Impact that empties stamina also ends auto boost');
+ r.finish();assert.equal(r.autoBoost,false);assert.equal(r.startBoost(),false);
+}
+console.log('PASS exact 50% speed increase, one-tap boost, pause/resume, depletion, no automatic restart and fresh reactivation');
 {
  const r=run();r.speed=45;r.items=[{type:'barrier',distance:.1,x:0,done:false}];tick(r,.02,{boost:true});assert.equal(r.hits,1);assert(r.stumble>0);assert(r.remaining>99);assert.equal(r.delivered,0);
  r.items=[{type:'tower',distance:r.distance+.1,x:0,done:false}];tick(r,.02);assert.equal(r.hits,1,'Invulnerability prevents duplicate collisions');tick(r,1.4);assert.equal(r.stumble,0);
@@ -57,9 +65,21 @@ console.log('PASS fork selection/locking, unchosen-road collision isolation, pau
  const reward=new N.Run(N.freshProfile(),12),f=reward.forks[0];f.choice=0;f.options[0]='charge';const item={goal:true,fork:0,branch:0},time=reward.remaining;for(let i=0;i<12;i++)reward.routePoint(item);assert.equal(f.progress,6);assert.equal(reward.challenges,1);assert.equal(reward.remaining,time+4);assert.equal(reward.energy,reward.capacity);
 }
 console.log('PASS automatic launch ramps, high-star altitude, boost-only gates and one-time challenge rewards');
+{
+ let air=false,boost=false,deliveries=0;
+ for(let seed=1;seed<=3;seed++)for(let contract=0;contract<3;contract++){
+  const p=N.freshProfile();p.contract=contract;const r=new N.Run(p,seed);assert.equal(r.couriers.length,5);assert.equal(new Set(r.couriers.map(c=>c.name)).size,5);assert.equal(new Set(r.couriers.map(c=>c.color)).size,5);
+  const items=JSON.stringify(r.items),profile=JSON.stringify(r.profile);assert(r.couriers.every(c=>c.run.couriers.length===0&&c.run.items!==r.items&&c.run.forks!==r.forks));
+  tick(r,1);assert(r.couriers.every((c,i)=>c.run.distance===14+i*13),'Countdown freezes fleet');r.phase='paused';const frozen=JSON.stringify(r.couriers);tick(r,2);assert.equal(JSON.stringify(r.couriers),frozen);
+  for(let i=0;i<90*100&&r.couriers.some(c=>!c.run.result);i++)for(const c of r.couriers){c.step(1/90);air ||= c.run.y>1;boost ||= c.run.boosting;assert(Number.isFinite(c.run.x)&&Math.abs(c.run.x)<=N.moveLimit);}
+  for(const c of r.couriers){assert(c.run.result?.complete);assert.equal(c.run.delivered,3,`${seed}/${contract}/${c.name} delivers all parcels`);assert(c.run.forks.every(f=>f.choice!==null));assert(c.run.signals>0);deliveries+=c.run.delivered;}
+  assert.equal(JSON.stringify(r.items),items,'AI pickups cannot consume player objects');assert.equal(JSON.stringify(r.profile),profile,'AI rewards cannot change player progression');assert.equal(r.delivered,0);
+ }
+ assert(air&&boost);console.log(`PASS 45 independent AI courier journeys: ${deliveries} deliveries, forks, jumping/boosting, independent pickups/progression and pause/countdown freeze`);
+}
 let total=0;const kinds=new Set();
 for(let seed=1;seed<=4;seed++)for(let contract=0;contract<3;contract++)for(const role of Object.keys(N.roles))for(let choices=0;choices<8;choices++){
- const p=N.freshProfile();p.role=role;p.contract=contract;const r=new N.Run(p,seed);
+ const p=N.freshProfile();p.role=role;p.contract=contract;const r=new N.Run(p,seed,{traffic:false});
  const groups=new Map();for(const item of r.items)if(['tower','barrier','vent'].includes(item.type)){const key=[item.distance,item.fork,item.branch].join(':');if(!groups.has(key))groups.set(key,new Set());groups.get(key).add(item.x);assert(r.stops.every(s=>Math.abs(s.distance-item.distance)>=100));if(item.fork===undefined)assert(r.forks.every(f=>item.distance<f.start-125||item.distance>f.end+45));}
  assert([...groups.values()].every(g=>g.size<=2));assert(r.items.every(o=>Number.isFinite(o.x)&&Math.abs(o.x)<=N.moveLimit));assert(new Set(r.items.map(o=>o.x)).size>12,"Objects are not constrained to three positions");
  for(let i=0;i<90*160&&!r.result;i++){const steer=N.clamp((targetX(r,choices)-r.x)/(N.strafeSpeed/90),-1,1);r.step(1/90,{boost:true,steer});r.notices.length=0;}
