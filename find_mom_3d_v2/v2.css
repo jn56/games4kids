@@ -1,5 +1,7 @@
 @charset "UTF-8";
 :root{--ink:#24463f;--green:#23594c;--paper:#fff9eb;--gold:#cf994b}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 .v2-badge{font:700 10px system-ui;background:#23594c;color:#fff1cc;padding:3px 6px;border-radius:5px;letter-spacing:1px;vertical-align:middle}
 body.cover .vignette{background:linear-gradient(90deg,#f7f1e4fa 0%,#f7f1e4e0 21%,#f7f1e46b 43%,transparent 66%)}
 .cover-copy{top:20%}.cover-copy .eyebrow{color:#547d68}.cover-description{color:#4d6c62}.chapter-card{background:#fff8e9d9;backdrop-filter:blur(10px)}
