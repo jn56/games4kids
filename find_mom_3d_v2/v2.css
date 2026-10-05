@@ -4,7 +4,10 @@
 body.cover .vignette{background:linear-gradient(90deg,#f7f1e4fa 0%,#f7f1e4e0 21%,#f7f1e46b 43%,transparent 66%)}
 .cover-copy{top:20%}.cover-copy .eyebrow{color:#547d68}.cover-description{color:#4d6c62}.chapter-card{background:#fff8e9d9;backdrop-filter:blur(10px)}
 .primary-btn{background:#23594c;box-shadow:0 8px 22px #153a2f22}.primary-btn:hover{background:#174a3f}
-button:focus,a:focus,select:focus,input:focus{outline:3px solid #d19a39;outline-offset:3px;box-shadow:0 0 0 6px #fff6dccc}
+button:focus,a:focus,select:focus,input:focus,#voice-studio :focus-visible{outline:0;outline-offset:0;box-shadow:none}
+button:focus-visible,a:focus-visible{filter:brightness(.91)}
+button:focus-visible:not(.primary-btn),a:focus-visible{background-color:#e7eedc}
+input:focus-visible,select:focus-visible{background-color:#eef3e5}
 body:not(.cover) .vignette{background:radial-gradient(ellipse at 50% 45%,transparent 54%,#233e4324)}
 .desktop-controls{background:#fff8e7df;font-size:12px;padding:10px 14px;border:1px solid #fff7dc88;backdrop-filter:blur(8px)}
 @media(hover:hover) and (pointer:fine){#play-hud .desktop-controls{display:flex}}
