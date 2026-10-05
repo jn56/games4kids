@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#090d20">
-  <meta name="description" content="霓光快遞：極速夜航。穿越霓虹空中都市的 3D 即時角色扮演遊戲，切換航道、跳躍、衝刺，在限時內把城市的期待送達。">
+  <meta name="description" content="霓光快遞：極速夜航。穿越霓虹空中都市的 3D 即時角色扮演遊戲，自由左右移動、跳躍、衝刺，在限時內把城市的期待送達。">
   <title>霓光快遞：極速夜航 · NEON COURIER</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23090d20'/%3E%3Cpath d='M37 6 14 36h17l-4 22 24-32H34z' fill='%23d9ff6b'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=3">
   <script src="three.min.js" defer></script>
-  <script src="model.js?v=2" defer></script>
-  <script src="world.js?v=2" defer></script>
+  <script src="model.js?v=3" defer></script>
+  <script src="world.js?v=3" defer></script>
   <script src="audio.js" defer></script>
-  <script src="controls.js?v=2" defer></script>
-  <script src="game.js?v=2" defer></script>
+  <script src="controls.js?v=3" defer></script>
+  <script src="game.js?v=3" defer></script>
 </head>
 <body data-mode="cover">
   <canvas id="world" aria-label="霓虹城市的立體航道"></canvas>
@@ -50,13 +50,13 @@
     <div id="fork-card" class="fork-card" hidden><span id="fork-title" class="tiny-label"></span><div id="fork-options"><div data-branch="0"><strong></strong><small></small></div><div data-branch="1"><strong></strong><small></small></div></div><p id="fork-progress" hidden></p></div>
     <div class="ride-stats"><div class="speed"><strong id="speed">0</strong><span>KM/H</span></div><div class="score-stack"><span id="combo">FLOW ×1</span><strong id="score">000000</strong></div></div>
     <div class="energy"><div><span>BOOST</span><strong id="energy-value">100%</strong></div><div class="energy-track"><i id="energy-fill"></i></div><small>按住 ↑ 衝刺 / ↓ 緩行</small></div>
-    <div class="keyboard-strip"><span>← → 換道</span><span>SPACE 跳躍</span><span>↑ 衝刺</span></div>
+    <div class="keyboard-strip"><span>← → 自由移動</span><span>SPACE 跳躍</span><span>↑ 衝刺</span></div>
     <div id="radio" class="radio" hidden><div class="radio-face" aria-hidden="true"><span>◡</span></div><div><strong id="radio-name"></strong><p id="radio-text"></p></div></div>
     <div id="toast" class="toast" role="status" hidden></div>
     <div id="countdown" class="countdown" hidden><strong>3</strong><span>空中航道已開放</span></div>
   </section>
   <div id="touch-controls" hidden>
-    <div id="joystick" role="group" aria-label="觸控搖桿：左右換道及選路，上推衝刺，下拉緩行"><span class="joystick-cross" aria-hidden="true">✣</span><span id="joystick-stick" aria-hidden="true"></span></div>
+    <div id="joystick" role="group" aria-label="觸控搖桿：自由左右移動及選路，上推衝刺，下拉緩行"><span class="joystick-cross" aria-hidden="true">✣</span><span id="joystick-stick" aria-hidden="true"></span></div>
     <div class="touch-moves"><button data-action="boost" aria-label="按住衝刺"><span>ϟ</span><small>衝刺</small></button><button data-action="jump" aria-label="跳躍"><span>↑</span><small>跳躍</small></button></div>
   </div>
 

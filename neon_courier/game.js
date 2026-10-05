@@ -1,12 +1,12 @@
 'use strict';
 (() => {
   const $=id=>document.getElementById(id), storageKey='neon_courier_profile_v1';
-  const game={mode:'cover',run:null,input:{boost:false,brake:false},profile:NC.freshProfile(),storageOK:true,toastTime:0,radioTime:0,lastStamp:0,accumulator:0,infoOrigin:'cover',infoFocus:null,ended:false};
+  const game={mode:'cover',run:null,input:{steer:0,boost:false,brake:false},profile:NC.freshProfile(),storageOK:true,toastTime:0,radioTime:0,lastStamp:0,accumulator:0,infoOrigin:'cover',infoFocus:null,ended:false};
   try{game.profile=NC.profile(JSON.parse(localStorage.getItem(storageKey)));}catch{game.storageOK=false;}
   const save=()=>{try{localStorage.setItem(storageKey,JSON.stringify(game.profile));game.storageOK=true;}catch{game.storageOK=false;}};
   const audio=game.audio=new NC.Audio(game.profile.sound);let world,stick=null;
-  const held={boost:false,brake:false,touchBoost:false,stickBoost:false,stickBrake:false};
-  function syncInput(){game.input.boost=held.boost||held.touchBoost||held.stickBoost;game.input.brake=held.brake||held.stickBrake;}
+  const held={left:false,right:false,stickX:0,boost:false,brake:false,touchBoost:false,stickBoost:false,stickBrake:false};
+  function syncInput(){game.input.steer=NC.clamp(Number(held.right)-Number(held.left)+Number(held.stickX),-1,1);game.input.boost=held.boost||held.touchBoost||held.stickBoost;game.input.brake=held.brake||held.stickBrake;}
   function error(message){game.ended=true;clearInput();audio.quiet();$('error-text').textContent=message;$('error').hidden=false;$('error').querySelector('button').focus({preventScroll:true});}
   try{world=game.world=new NC.World($('world'));}catch(e){error('瀏覽器目前無法顯示 3D 航道。請啟用硬體加速，或換用支援 WebGL 的瀏覽器。');console.warn('WebGL initialization unavailable',e);return;}
   window.neonGame=game;
@@ -20,7 +20,7 @@
     if(value!=='running'&&value!=='countdown'){clearInput();audio.quiet();}
   }
   function syncTouch(){$('touch-controls').hidden=!['running','countdown'].includes(game.mode)||(!matchMedia('(pointer: coarse)').matches&&innerWidth>=850);}
-  function clearInput(){for(const key of Object.keys(held))held[key]=false;stick?.reset();syncInput();document.querySelectorAll('.held').forEach(el=>el.classList.remove('held'));}
+  function clearInput(){for(const key of Object.keys(held))held[key]=false;stick?.reset();syncInput();if(game.run)game.run.steering=0;document.querySelectorAll('.held').forEach(el=>el.classList.remove('held'));}
   function syncSound(){$('sound').textContent=audio.enabled?'♪':'♪̸';$('sound').setAttribute('aria-label',audio.enabled?'關閉音樂與音效':'開啟音樂與音效');$('sound').setAttribute('aria-pressed',String(audio.enabled));}
   function syncCover(){
     const p=game.profile,rank=NC.rank(p),contract=NC.contracts[p.contract];$('pilot-name').value=p.name;
@@ -56,7 +56,7 @@
     const r=game.run;for(const n of r.notices.splice(0)){
       if(['signal','jump','clear','charge','stumble','delivery','start'].includes(n.type))audio.effect(n.type);
       if(['star','gate','challenge'].includes(n.type))audio.effect(n.type==='challenge'?'delivery':'clear');if(n.type==='ramp')audio.effect('jump');
-      if(n.type==='start'){mode('running');$('countdown').hidden=true;toast('LET’S FLOW',1.5);const hint=matchMedia('(pointer: coarse)').matches||innerWidth<850?'推搖桿換道、選岔路；上推衝刺，下拉緩行。右側按鈕跳躍。':'左、右換道與選路，空白鍵跳躍。按住 ↑，把速度拉起來。';radio('絮 / 城市調度',`${game.profile.name}，${hint}`,4);}
+      if(n.type==='start'){mode('running');$('countdown').hidden=true;toast('LET’S FLOW',1.5);const hint=matchMedia('(pointer: coarse)').matches||innerWidth<850?'推搖桿自由左右移動、選岔路；上推衝刺，下拉緩行。右側按鈕跳躍。':'按住左、右自由移動與選路，空白鍵跳躍。按住 ↑，把速度拉起來。';radio('絮 / 城市調度',`${game.profile.name}，${hint}`,4);}
       if(n.type==='stumble')toast('重整節奏 · 再追上去',1.3);
       if(n.type==='jump'&&n.double)toast('DOUBLE AIR +',.8);
       if(n.type==='clear')toast('乾淨越障 +90',.85);
@@ -81,7 +81,7 @@
   function hud(){
     const r=game.run;if(!r)return;const next=r.stops.find(s=>!s.done),district=Math.min(2,Math.floor(r.distance/(r.contract.length/3)));
     $('district-label').textContent=`0${district+1} / ${NC.districts[district]}`;
-    $('mission').textContent=next?`${r.contract.parcels[next.index]} → ${['左','中','右'][next.lane]}線`:'最後直線 · 全速返航';
+    $('mission').textContent=next?`${r.contract.parcels[next.index]} → ${next.x< -2.5?'偏左':next.x>2.5?'偏右':'前方'}`:'最後直線 · 全速返航';
     $('target-hint').textContent=next?`${Math.max(0,Math.ceil(next.distance-r.distance))} m · 穿過綠色光門自動交付`:'穿過終點，完成本班委託';
     const fixed=r.remaining.toFixed(1),[whole,part]=fixed.split('.');$('timer').innerHTML=`${whole}<span>.${part}</span>`;$('timer').parentElement.classList.toggle('urgent',r.remaining<15);
     $('delivery-count').textContent=`${r.delivered} / 3 已送達`;$('route-fill').style.width=Math.min(100,r.distance/r.contract.length*100)+'%';
@@ -93,11 +93,11 @@
     if(fork&&!card.hidden){
       $('radio').hidden=true;const pending=fork.choice===null;card.classList.toggle('chosen',!pending);$('fork-options').hidden=!pending;$('fork-progress').hidden=pending;
       $('fork-title').textContent=pending?`前方分岔 ${Math.max(0,Math.ceil(fork.start-r.distance))} m · 左右選路`:`${NC.routes[fork.options[fork.choice]].name} · ${Math.ceil(fork.end-r.distance)} m 後匯流`;
-      if(pending)document.querySelectorAll('[data-branch]').forEach(el=>{const side=Number(el.dataset.branch),route=NC.routes[fork.options[side]];el.querySelector('strong').textContent=(side?'↗ ':'↖ ')+route.name;el.querySelector('small').textContent=route.short;el.style.setProperty('--route-color',route.color);el.classList.toggle('selected',(r.lane===2?1:0)===side);});
+      if(pending)document.querySelectorAll('[data-branch]').forEach(el=>{const side=Number(el.dataset.branch),route=NC.routes[fork.options[side]];el.querySelector('strong').textContent=(side?'↗ ':'↖ ')+route.name;el.querySelector('small').textContent=route.short;el.style.setProperty('--route-color',route.color);el.classList.toggle('selected',(r.x>0?1:0)===side);});
       else{const route=NC.routes[fork.options[fork.choice]];$('fork-progress').textContent=fork.won?'✓ 挑戰達成，額外經驗已取得':`${route.hint} · ${fork.progress} / ${route.need}`;}
     }else if(game.radioTime>0)$('radio').hidden=false;
   }
-  const manual=`<div class="manual"><p>你是霓光城的夜班快遞員。角色會自動前進，一班約一分鐘，依路線與操作節奏變化。把三件包裹送進指定航道的<strong>綠色光門</strong>，再衝過終點。</p><div class="key-row"><span>左右換一條航道</span><kbd>← / →</kbd></div><div class="key-row"><span>跳躍；躍動角色可再跳一次</span><kbd>SPACE</kbd></div><div class="key-row"><span>按住衝刺 / 按住緩行</span><kbd>↑ / ↓</kbd></div><div class="key-row"><span>暫停 / 返回</span><kbd>ESC</kbd></div><h3>看路線，也抓節奏</h3><ul><li>青色光環：補充能量，連續收集會提高倍率，最高 ×5。超過 5.5 秒沒接到連段會歸零。</li><li>橘色橫桿、通風口：跳過或換道。紫色高柱：從旁邊繞過。</li><li>青色地面箭頭：經過就補充 25 點能量。</li><li>綠色交付光門：走對航道即自動交付，獎勵 4 秒與能量。</li><li>失誤會短暫減速並中斷連段，包裹不會掉落。錯過交付點也能繼續完成航程。</li></ul><h3>分岔：選一條你的路</h3><p>每趟有三處分岔。接近路口時，左／中航道選左路，右航道選右路。進入後路線固定，仍可在支線內左右換道，末端自動匯流。</p><ul><li>極速環道：速度更快，按住衝刺穿過三道光門。</li><li>空中躍台：踩紫色跳台會自動彈起，在空中接住三顆高空星。</li><li>節奏曲線：左右換道，連續穿過四道精準環。</li><li>磁力花園：吸取範圍擴大，接住六顆光環。</li></ul><p>每完成一條支線挑戰，加 4 秒、積分、能量及 25 XP；磁力花園會充滿能量。挑戰沒完成也能繼續配送。</p><h3>成為你的那一種快遞員</h3><p>疾風擅長速度；躍動擅長二段跳；共鳴擅長遠距收集。完成委託累積經驗，每 220 XP 升一級並獲得技能點，最多 9 點，能永久提升能量、收集範圍或委託時間。</p><h3>城市會跟著你變化</h3><p>順風航道提高速度；磁力潮汐擴大收集範圍；追光時刻讓積分加倍。每次路線配置會改變，每組障礙都保留一條可通行航道。</p><p>手機用左側搖桿左右換道／選路，持續推動可繼續換道；上推衝刺、下拉緩行。右側也保留跳躍與衝刺按鈕，可同時操作。暫停與說明期間倒數停止；切換分頁也會自動暫停。</p><p class="storage-note">角色與最高紀錄只儲存在目前瀏覽器。本遊戲不需要登入或連線，也沒有付費項目。</p></div>`;
+  const manual=`<div class="manual"><p>你是霓光城的夜班快遞員。角色會自動前進，一班約一分鐘，依路線與操作節奏變化。把三件包裹送進跑道上的<strong>綠色光門</strong>，再衝過終點。</p><div class="key-row"><span>按住左右自由移動，放開即停</span><kbd>← / →</kbd></div><div class="key-row"><span>跳躍；躍動角色可再跳一次</span><kbd>SPACE</kbd></div><div class="key-row"><span>按住衝刺 / 按住緩行</span><kbd>↑ / ↓</kbd></div><div class="key-row"><span>暫停 / 返回</span><kbd>ESC</kbd></div><h3>看路線，也抓節奏</h3><ul><li>青色光環：補充能量，連續收集會提高倍率，最高 ×5。超過 5.5 秒沒接到連段會歸零。</li><li>橘色橫桿、通風口：跳過或從旁邊繞過。紫色高柱：從旁邊繞過。</li><li>青色地面箭頭：經過就補充 25 點能量。</li><li>綠色交付光門：對準光門穿過即自動交付，獎勵 4 秒與能量。</li><li>失誤會短暫減速並中斷連段，包裹不會掉落。錯過交付點也能繼續完成航程。</li></ul><h3>分岔：選一條你的路</h3><p>每趟有三處分岔。接近路口時，站在跑道左半邊選左路、右半邊選右路；正中央預設左路。進入後路線固定，仍可在整片支線跑道內自由左右移動，末端自動匯流。</p><ul><li>極速環道：速度更快，按住衝刺穿過三道光門。</li><li>空中躍台：踩紫色跳台會自動彈起，在空中接住三顆高空星。</li><li>節奏曲線：自由轉向，連續穿過四道精準環。</li><li>磁力花園：吸取範圍擴大，接住六顆光環。</li></ul><p>每完成一條支線挑戰，加 4 秒、積分、能量及 25 XP；磁力花園會充滿能量。挑戰沒完成也能繼續配送。</p><h3>成為你的那一種快遞員</h3><p>疾風擅長速度；躍動擅長二段跳；共鳴擅長遠距收集。完成委託累積經驗，每 220 XP 升一級並獲得技能點，最多 9 點，能永久提升能量、收集範圍或委託時間。</p><h3>城市會跟著你變化</h3><p>順風航道提高速度；磁力潮汐擴大收集範圍；追光時刻讓積分加倍。每次路線配置會改變，每組障礙都保留足夠的通行空間。</p><p>手機用左側搖桿左右移動／選路，輕推微調、推到底快速移動，放手就停在當前位置；上推衝刺、下拉緩行。右側也保留跳躍與衝刺按鈕，可同時操作。暫停與說明期間倒數停止；切換分頁也會自動暫停。</p><p class="storage-note">角色與最高紀錄只儲存在目前瀏覽器。本遊戲不需要登入或連線，也沒有付費項目。</p></div>`;
   function openInfo(kind){
     game.infoOrigin=game.mode==='paused'?'paused':'cover';game.infoFocus=document.activeElement;game.infoKind=kind;mode('info');
     $('info-kicker').textContent=kind==='career'?'RUNNER PROFILE':'FIELD MANUAL';$('info-title').textContent=kind==='career'?'把專長，練成風格。':'夜航指南';
@@ -118,7 +118,7 @@
   $('launch').onclick=launch;$('again').onclick=launch;$('restart').onclick=launch;$('pause').onclick=pause;$('resume').onclick=resume;
   $('return-cover').onclick=cover;$('result-home').onclick=cover;$('open-career').onclick=()=>openInfo('career');$('open-help').onclick=()=>openInfo('help');$('pause-help').onclick=()=>openInfo('help');$('close-info').onclick=closeInfo;
   $('sound').onclick=()=>{audio.toggle();game.profile.sound=audio.enabled;save();syncSound();};
-  stick=game.stick=new NC.TouchStick($('joystick'),$('joystick-stick'),{active:()=>['running','countdown'].includes(game.mode),steer:dir=>game.run.steer(dir),axes:(boost,brake)=>{held.stickBoost=boost;held.stickBrake=brake;syncInput();},unlock:()=>audio.unlock()});
+  stick=game.stick=new NC.TouchStick($('joystick'),$('joystick-stick'),{active:()=>['running','countdown'].includes(game.mode),axes:(x,boost,brake)=>{held.stickX=x;held.stickBoost=boost;held.stickBrake=brake;syncInput();},unlock:()=>audio.unlock()});
   for(const button of document.querySelectorAll('[data-action]')){
     let pointer=null;
     button.addEventListener('pointerdown',e=>{
@@ -137,14 +137,14 @@
     e.preventDefault();audio.unlock();
     if(e.code==='Escape'&&!e.repeat){if(['running','countdown'].includes(game.mode))pause();else if(game.mode==='paused')resume();else if(game.mode==='info')closeInfo();else if(game.mode==='result')cover();return;}
     if(['running','countdown'].includes(game.mode)){
-      if(e.code==='ArrowUp')held.boost=true;if(e.code==='ArrowDown')held.brake=true;syncInput();
-      if(e.repeat)return;if(e.code==='ArrowLeft')game.run.steer(-1);if(e.code==='ArrowRight')game.run.steer(1);if(e.code==='Space')game.run.jump();return;
+      if(e.code==='ArrowUp')held.boost=true;if(e.code==='ArrowDown')held.brake=true;if(e.code==='ArrowLeft')held.left=true;if(e.code==='ArrowRight')held.right=true;syncInput();
+      if(!e.repeat&&e.code==='Space')game.run.jump();return;
     }
     if(e.repeat)return;const buttons=menuButtons();if(!buttons.length)return;let index=buttons.indexOf(document.activeElement);
     if(e.code==='Space'){if(index<0)index=0;const target=buttons[index];if(target.tagName==='INPUT')target.focus();else target.click();}
     else if(e.code.startsWith('Arrow')){const delta=e.code==='ArrowDown'||e.code==='ArrowRight'?1:-1;index=index<0?0:(index+delta+buttons.length)%buttons.length;buttons[index].focus({preventScroll:true});if(game.mode==='info')buttons[index].scrollIntoView({block:'nearest'});}
   });
-  document.addEventListener('keyup',e=>{if(e.code==='ArrowUp')held.boost=false;if(e.code==='ArrowDown')held.brake=false;syncInput();});
+  document.addEventListener('keyup',e=>{if(e.code==='ArrowUp')held.boost=false;if(e.code==='ArrowDown')held.brake=false;if(e.code==='ArrowLeft')held.left=false;if(e.code==='ArrowRight')held.right=false;syncInput();});
   window.addEventListener('blur',()=>{clearInput();pause();});document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInput();pause();audio.quiet();}});
   window.addEventListener('resize',()=>{clearInput();syncTouch();});window.addEventListener('pagehide',()=>audio.quiet());
   $('world').addEventListener('webglcontextlost',e=>{e.preventDefault();pause();error('3D 畫面連線已中斷。角色紀錄已保留，請重新整理再出發。');});
@@ -152,7 +152,6 @@
   function frame(now){
     if(game.ended)return;const dt=Math.min(.10,Math.max(0,(now-(game.lastStamp||now))/1000));game.lastStamp=now;
     if(['running','countdown'].includes(game.mode)){
-      stick.update(dt);
       game.accumulator+=dt;while(game.accumulator>=1/90&&['running','countdown'].includes(game.mode)){game.run.step(1/90,game.input);game.accumulator-=1/90;notices();}
       game.toastTime=Math.max(0,game.toastTime-dt);game.radioTime=Math.max(0,game.radioTime-dt);if(!game.toastTime)$('toast').hidden=true;if(!game.radioTime)$('radio').hidden=true;hud();
     }

@@ -21,8 +21,8 @@ NC.World=class {
   instance(mesh,index,x,y,z,sx,sy,sz,ry=0,rz=0){const d=this.dummy;d.position.set(x,y,z);d.scale.set(sx,sy,sz);d.rotation.set(0,ry,rz);d.updateMatrix();mesh.setMatrixAt(index,d.matrix);}
   curve(d){return Math.sin(d*.0032)*13+Math.sin(d*.0011)*16;}
   tangent(d){return Math.cos(d*.0032)*.0416+Math.cos(d*.0011)*.0176;}
-  center(run,d,side){const f=run?.forkAt(d);return this.curve(d)+(f?NC.forkOffset(f,d,side??f.choice??(run.lane===2?1:0)):0);}
-  slope(run,d,side){const f=run?.forkAt(d);return this.tangent(d)+(f?NC.forkSlope(f,d,side??f.choice??(run.lane===2?1:0)):0);}
+  center(run,d,side){const f=run?.forkAt(d);return this.curve(d)+(f?NC.forkOffset(f,d,side??f.choice??(run.x>0?1:0)):0);}
+  slope(run,d,side){const f=run?.forkAt(d);return this.tangent(d)+(f?NC.forkSlope(f,d,side??f.choice??(run.x>0?1:0)):0);}
   spread(run,d){const f=run?.forkAt(d);return f?Math.abs(NC.forkOffset(f,d,0)):0;}
   makeSky(){
     this.skyMaterial=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:{bottom:{value:new THREE.Color(0x252956)},top:{value:new THREE.Color(0x030916)}},vertexShader:'varying vec3 v;void main(){v=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'varying vec3 v;uniform vec3 bottom;uniform vec3 top;void main(){float h=clamp(normalize(v).y*.9,0.,1.);gl_FragColor=vec4(mix(bottom,top,pow(h,.45)),1.);}'});
@@ -51,7 +51,7 @@ NC.World=class {
     const canvas=document.createElement('canvas');canvas.width=512;canvas.height=256;const c=canvas.getContext('2d');c.fillStyle='#111c34';c.fillRect(0,0,512,256);c.fillStyle=color;c.font=`700 ${title.length>4?64:86}px "Segoe UI","Microsoft JhengHei",sans-serif`;c.textAlign='center';c.fillText(title,256,136);c.font='18px Consolas,sans-serif';c.fillStyle='#b9c8e0';c.fillText(subtitle,256,197);c.fillStyle=color;c.fillRect(25,25,70,4);c.fillRect(417,227,70,4);const texture=new THREE.CanvasTexture(canvas);texture.encoding=THREE.sRGBEncoding;return texture;
   }
   makeRoad(){
-    this.rails=this.batch(this.geometries.box,this.materials.edge,224);this.railGlow=this.batch(this.geometries.box,this.materials.white,224);this.laneMarks=this.batch(this.geometries.box,this.glow(0x6b89b0,.55),448);this.seams=this.batch(this.geometries.box,this.glow(0x73dcea,.20),112);
+    this.rails=this.batch(this.geometries.box,this.materials.edge,224);this.railGlow=this.batch(this.geometries.box,this.materials.white,224);this.seams=this.batch(this.geometries.box,this.glow(0x73dcea,.20),112);
     this.railGlow.material=this.glow(0xffffff);this.routeColors=Object.fromEntries(Object.entries(NC.routes).map(([k,v])=>[k,new THREE.Color(v.color).convertSRGBToLinear()]));this.routeColors.main=new THREE.Color(0x71eaff).convertSRGBToLinear();
     this.underRoad=this.batch(this.geometries.box,this.materials.edge,112);this.posts=this.batch(this.geometries.box,this.materials.violet,224);
     this.arches=[];for(let i=0;i<4;i++){const g=new THREE.Group();this.box(this.materials.edge,-12,7,0,.5,14,.6,g);this.box(this.materials.edge,12,7,0,.5,14,.6,g);this.box(this.materials.edge,0,14,0,24.5,.7,.6,g);this.box(this.materials.violet,0,13.6,.34,22,.10,.12,g);this.scene.add(g);this.arches.push(g);}
@@ -65,8 +65,8 @@ NC.World=class {
     this.deck=new THREE.Mesh(this.deckGeometry,this.materials.road);this.deck.frustumCulled=false;this.scene.add(this.deck);
   }
   deckSection(index,run,d,abs,side){
-    const near=abs-6,far=abs+6,left=this.center(run,near,side)-11.5,right=this.center(run,far,side)-11.5,z0=d-near,z1=d-far;
-    const a=[left,0,z0],b=[left+23,0,z0],c=[right,0,z1],e=[right+23,0,z1],al=[left,-.8,z0],bl=[left+23,-.8,z0],cl=[right,-.8,z1],el=[right+23,-.8,z1];
+    const near=abs-6,far=abs+6,width=NC.roadHalfWidth*2,left=this.center(run,near,side)-width/2,right=this.center(run,far,side)-width/2,z0=d-near,z1=d-far;
+    const a=[left,0,z0],b=[left+width,0,z0],c=[right,0,z1],e=[right+width,0,z1],al=[left,-.8,z0],bl=[left+width,-.8,z0],cl=[right,-.8,z1],el=[right+width,-.8,z1];
     const faces=[[a,b,c,b,e,c],[a,c,al,c,cl,al],[b,bl,e,e,bl,el]],normals=[[0,1,0],[-1,0,0],[1,0,0]];let offset=index*54;
     for(let f=0;f<3;f++)for(const point of faces[f]){this.deckPositions.set(point,offset);this.deckNormals.set(normals[f],offset);offset+=3;}
   }
@@ -151,7 +151,7 @@ NC.World=class {
   update(run,dt,cover=false){
     this.time+=dt;const d=cover?this.time*3:(run?.distance||0),t=this.time,bend=this.center(run,d),r=this.renderer;
     const district=run?Math.min(2,Math.floor(d/(run.contract.length/3))):0;this.scene.fog.color.lerp(this.colors[district],.02);this.skyMaterial.uniforms.bottom.value.copy(this.scene.fog.color).multiplyScalar(1.4);this.updateDistrict(d,district,run);
-    let roads=0,rails=0,marks=0,supports=0,posts=0;
+    let roads=0,rails=0,supports=0,posts=0;
     for(let i=0;i<56;i++){
       const ahead=i*12-48-d%12,abs=d+ahead,f=run?.forkAt(abs),spread=this.spread(run,abs);
       for(const branch of f?[0,1]:[undefined]){
@@ -160,12 +160,11 @@ NC.World=class {
         for(let side=0;side<2;side++){
           const inner=f&&spread<12&&(branch===0?side===1:side===0),x=side?11.8:-11.8;
           if(!inner){this.instance(this.rails,rails,c+x,.28,-ahead,.35,.6,length,angle);this.instance(this.railGlow,rails,c+x,.62,-ahead,.10,.06,length,angle);this.railGlow.setColorAt(rails,this.routeColors[f?f.options[branch]:'main']);this.instance(this.reflections,rails,c+x*.89,.02,-ahead,1.7,.01,length,angle);rails++;}
-          for(let k=0;k<2;k++)this.instance(this.laneMarks,marks++,c+(side?3.5:-3.5),.025,-ahead+k*6,.065,.025,3,angle);
         }
         if(i%4===0){this.instance(this.underRoad,supports++,c,-7,-ahead,24,1.1,1);for(const side of [-1,1])this.instance(this.posts,posts++,c+side*14,3,-ahead,.07,6,.09);}
       }
     }
-    for(const [m,count] of [[this.seams,roads],[this.rails,rails],[this.railGlow,rails],[this.reflections,rails],[this.laneMarks,marks],[this.underRoad,supports],[this.posts,posts]]){m.count=count;m.instanceMatrix.needsUpdate=true;}this.railGlow.instanceColor.needsUpdate=true;
+    for(const [m,count] of [[this.seams,roads],[this.rails,rails],[this.railGlow,rails],[this.reflections,rails],[this.underRoad,supports],[this.posts,posts]]){m.count=count;m.instanceMatrix.needsUpdate=true;}this.railGlow.instanceColor.needsUpdate=true;
     this.deckGeometry.setDrawRange(0,roads*18);this.deckGeometry.attributes.position.needsUpdate=true;this.deckGeometry.attributes.normal.needsUpdate=true;
     this.forkSigns.forEach((g,i)=>{const f=run?.forks[i],ahead=f?f.start-d:0;g.visible=!!f&&ahead> -16&&ahead<360;if(!g.visible)return;g.position.set(this.curve(f.start),0,-ahead);const key=f.options.join('|');if(g.userData.key!==key){g.userData.key=key;g.userData.panels.forEach((p,side)=>{const route=NC.routes[f.options[side]],old=p.material.map;p.material.map=this.sign((side?'↗ ':'↖ ')+route.name,route.short,route.color);old.dispose();});}});
     this.cityData.forEach((b,i)=>{const ahead=((b.d-d)%600+600)%600-60,x=this.curve(d+ahead)+(b.x+this.spread(run,d+ahead))*b.side;
@@ -176,21 +175,21 @@ NC.World=class {
     this.fliers.forEach((g,i)=>{const a=((i*70-d*.5-t*(i%2?6:-3))%560+560)%560-40;g.position.set(bend+(i%2?1:-1)*(20+Math.sin(t*.3+i)*8),4+(i%4)*5+Math.sin(t+i)*.4,-a);});
     this.updateItems(run,d,cover);
     const x=cover?bend+5:bend+(run?.x||0),y=cover?.10:run?.y||0;
-    this.pilot.position.set(x,y+Math.sin(t*7)*.035,0);this.pilot.rotation.y=cover?-.5:-Math.atan(this.slope(run,d));this.pilot.rotation.z=cover?-.08:NC.clamp(((run?.lane??1)-1)*7-(run?.x||0),-4,4)*-.045;
+    this.pilot.position.set(x,y+Math.sin(t*7)*.035,0);this.pilot.rotation.y=cover?-.5:-Math.atan(this.slope(run,d));this.pilot.rotation.z+=( (cover?-.08:-(run?.steering||0)*.18)-this.pilot.rotation.z)*(dt?1-Math.exp(-dt*12):1);
     this.body.rotation.x=run?.boosting?-.20:-.07;this.arms.forEach((a,i)=>a.rotation.x=(run?.boosting?-.6:-.3)+Math.sin(t*4+i)*.035);this.board.rotation.z=Math.sin(t*3)*.035;
     this.shadow.position.x=x;this.shadow.material.opacity=Math.max(.2,1-y*.15);this.shadow.scale.setScalar(1+y*.08);
     for(let i=0;i<12;i++){const active=run?.boosting&&!cover&&!this.reduced;this.instance(this.trails,i,x+(i%2?1:-1)*(1+i*.3),.15+(i%4)*.6,2+i*.4,.025,.025,active?(1+Math.sin(t*18+i)*.4):0);}this.trails.instanceMatrix.needsUpdate=true;
     const portrait=innerWidth<innerHeight,compactLandscape=!portrait&&innerHeight<=500;
-    const target=cover?new THREE.Vector3(bend+(portrait?10:12),portrait?6:5.8,portrait?16:12):new THREE.Vector3(bend+(run?.x||0)*(portrait?.55:compactLandscape?.65:.22),(portrait?9:6)+y*.28,portrait?23:11.8);
+    const target=cover?new THREE.Vector3(bend+(portrait?10:12),portrait?6:5.8,portrait?16:12):new THREE.Vector3(bend+(run?.x||0)*(portrait?.75:compactLandscape?.75:.50),(portrait?9:6)+y*.28,portrait?23:11.8);
     if(dt===0)this.camera.position.copy(target);else this.camera.position.lerp(target,1-Math.exp(-dt*5));
-    const look=cover?new THREE.Vector3(bend+(portrait?2:0),portrait?2:2,-12):new THREE.Vector3(this.center(run,d+24)+(run?.x||0)*(portrait?.40:compactLandscape?.45:.13),1.7+y*.12,-23);
+    const look=cover?new THREE.Vector3(bend+(portrait?2:0),portrait?2:2,-12):new THREE.Vector3(this.center(run,d+24)+(run?.x||0)*(portrait?.60:compactLandscape?.55:.32),1.7+y*.12,-23);
     this.camera.lookAt(look);const fov=(portrait?68:62)+(run?.boosting&&!this.reduced?6:0);this.camera.fov+=(fov-this.camera.fov)*.06;this.camera.updateProjectionMatrix();
     r.render(this.scene,this.camera);
   }
   updateItems(run,d,cover){
     const used=Object.fromEntries(Object.keys(this.pools).map(k=>[k,0]));let count=0;
-    const items=cover?Array.from({length:20},(_,i)=>({type:'signal',lane:i%3,distance:d+22+i*15,height:1.3})):run?.items||[];
-    for(const item of items){const ahead=item.distance-d;if(item.done||ahead< -6||ahead>300)continue;const x=this.center(run,item.distance,item.branch)+(item.lane-1)*7;
+    const items=cover?Array.from({length:20},(_,i)=>({type:'signal',x:Math.sin(i*.7)*5,distance:d+22+i*15,height:1.3})):run?.items||[];
+    for(const item of items){const ahead=item.distance-d;if(item.done||ahead< -6||ahead>300)continue;const x=this.center(run,item.distance,item.branch)+item.x;
       if(item.type==='signal'||item.type==='skyStar'){
         if(count>=120)continue;const scale=item.type==='skyStar'?1.35:1;this.instance(this.signalRings,count,x,item.height,-ahead,scale,scale,scale,Math.sin(this.time*2+item.distance)*.25);this.signalRings.setColorAt(count,this.routeColors[item.type==='skyStar'?'sky':'main']);
         this.instance(this.signalCores,count,x,item.height,-ahead,scale,scale,scale,this.time*2,this.time);count++;
