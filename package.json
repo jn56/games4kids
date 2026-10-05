@@ -4,7 +4,7 @@
   "scripts": {
     "start": "node tools/serve.cjs",
     "test": "node tools/verify.cjs && node tools/input-audio.cjs && node tools/audit.cjs && node tools/display.cjs",
-    "test:find-mom-v2": "node find_mom_3d_v2/tools/build-voice-catalog.cjs --check && node tools/qa-find-mom-v2.cjs && node tools/qa-find-mom-v2-interface.cjs"
+    "test:find-mom-v2": "node find_mom_3d_v2/tools/build-voice-catalog.cjs --check && node tools/qa-find-mom-v2.cjs && node tools/qa-find-mom-v2-interface.cjs && node tools/qa-find-mom-v2-portraits.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"

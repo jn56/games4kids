@@ -21,11 +21,7 @@ Meadow.Dialogue = class {
     document.getElementById('dialogue-name').textContent=line.name;
     document.getElementById('dialogue-text').textContent=line.text;
     document.getElementById('dialogue-count').textContent=`${this.index+1} / ${this.lines.length}`;
-    const portrait=document.getElementById('dialogue-portrait');
-    portrait.className=`portrait ${line.name==='小米'?'girl':line.name.startsWith('媽媽')?'mom':''}`;
-    portrait.textContent=line.name==='小米'?'👧':line.name.startsWith('媽媽')?'♡':line.name==='栗栗'?'🦔':line.name==='咕咕'?'🦉':line.name==='木木'?'🦫':line.name==='星星'?'🐿':line.name==='灰爪'?'🐺':line.name==='小皮'?'🐒':line.name==='嗡嗡'?'🦟':'🐰';
-    const resident=this.game.world.residents?.find(n=>n.name===line.name);
-    if(resident)portrait.textContent={cat:'🐱',turtle:'🐢',bird:'🐦'}[resident.kind];
+    Meadow.Portraits.render(document.getElementById('dialogue-portrait'),line,this.game);
     document.getElementById('dialogue-next').innerHTML=this.index===this.lines.length-1?'出發吧 <span>→</span>':'繼續 <span>→</span>';
     const options=document.getElementById('dialogue-choices'),last=this.index===this.lines.length-1&&this.choices;
     options.replaceChildren();options.hidden=!last;document.getElementById('dialogue-next').hidden=!!last;
