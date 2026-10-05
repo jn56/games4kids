@@ -10,7 +10,7 @@ NC.World=class {
     this.dummy=new THREE.Object3D();this.colors=[new THREE.Color(0x151c42),new THREE.Color(0x103a48),new THREE.Color(0x3b254a)];
     this.geometries={box:new THREE.BoxGeometry(1,1,1),sphere:new THREE.SphereGeometry(1,16,12),cylinder:new THREE.CylinderGeometry(1,1,1,12),ring:new THREE.TorusGeometry(.8,.12,8,24)};
     this.materials={road:this.material(0x172335,.48,.45),edge:this.material(0x263047,.58,.55),building:this.material(0x142136,.8,.28),dark:this.material(0x12172d,.7,.3),skin:this.material(0xd8ae94,.85),jacket:this.material(0xdcff78,.6,.16),pants:this.material(0x2b3050,.8),visor:this.material(0x285c73,.22,.8),white:this.material(0xd2dcea,.5,.3),lime:this.glow(0xdcff78),cyan:this.glow(0x71eaff),violet:this.glow(0xa998ff),peach:this.glow(0xffc1a0)};
-    this.makeSky();this.makeCity();this.makeRoad();this.makeProps();this.makeDistricts();this.makePilot();this.makeCouriers();this.resize();
+    this.makeSky();this.makeCity();this.makeRoad();this.makeProps();this.makeDistricts();this.makePilot();this.makeRideEffects();this.makeCouriers();this.resize();
     this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(canvas);this.update(null,0,true);
   }
   material(color,roughness=.7,metalness=0){return new THREE.MeshStandardMaterial({color:new THREE.Color(color).convertSRGBToLinear(),roughness,metalness});}
@@ -21,8 +21,8 @@ NC.World=class {
   instance(mesh,index,x,y,z,sx,sy,sz,ry=0,rz=0){const d=this.dummy;d.position.set(x,y,z);d.scale.set(sx,sy,sz);d.rotation.set(0,ry,rz);d.updateMatrix();mesh.setMatrixAt(index,d.matrix);}
   curve(d){return Math.sin(d*.0032)*13+Math.sin(d*.0011)*16;}
   tangent(d){return Math.cos(d*.0032)*.0416+Math.cos(d*.0011)*.0176;}
-  center(run,d,side){const f=run?.forkAt(d);return this.curve(d)+(f?NC.forkOffset(f,d,side??f.choice??(run.x>0?1:0)):0);}
-  slope(run,d,side){const f=run?.forkAt(d);return this.tangent(d)+(f?NC.forkSlope(f,d,side??f.choice??(run.x>0?1:0)):0);}
+  center(run,d,side){const f=run?.forkAt(d);return this.curve(d)+(f&&side!==undefined?NC.forkOffset(f,d,side):run?.pathOffset(d)||0);}
+  slope(run,d,side){const f=run?.forkAt(d),branch=side??f?.choice;return this.tangent(d)+(f&&branch!=null?NC.forkSlope(f,d,branch):0);}
   spread(run,d){const f=run?.forkAt(d);return f?Math.abs(NC.forkOffset(f,d,0)):0;}
   makeSky(){
     this.skyMaterial=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:{bottom:{value:new THREE.Color(0x252956)},top:{value:new THREE.Color(0x030916)}},vertexShader:'varying vec3 v;void main(){v=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'varying vec3 v;uniform vec3 bottom;uniform vec3 top;void main(){float h=clamp(normalize(v).y*.9,0.,1.);gl_FragColor=vec4(mix(bottom,top,pow(h,.45)),1.);}'});
@@ -128,6 +128,31 @@ NC.World=class {
     const shadowCanvas=document.createElement('canvas');shadowCanvas.width=64;shadowCanvas.height=64;const ctx=shadowCanvas.getContext('2d'),gradient=ctx.createRadialGradient(32,32,0,32,32,32);gradient.addColorStop(0,'#000a');gradient.addColorStop(1,'#0000');ctx.fillStyle=gradient;ctx.fillRect(0,0,64,64);
     this.shadow=this.mesh(new THREE.PlaneGeometry(3.5,5),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(shadowCanvas),transparent:true,depthWrite:false}),0,.07,0);this.shadow.rotation.x=-Math.PI/2;
   }
+  makeRideEffects(){
+    const additive=(color,opacity)=>{const m=this.glow(color,opacity);m.blending=THREE.AdditiveBlending;return m;};
+    this.nitro=new THREE.Group();this.board.add(this.nitro);this.nitro.visible=false;
+    const cone=new THREE.ConeGeometry(1,1,12),outer=additive(0x38cfff,.36),inner=additive(0xe3fbff,.82);
+    this.jets=[];
+    for(const side of [-1,1]){
+      this.mesh(this.geometries.cylinder,this.materials.dark,side*.48,.30,1.46,.23,.32,.23,this.board).rotation.x=Math.PI/2;
+      const jet=new THREE.Group();jet.position.set(side*.48,.30,1.62);this.nitro.add(jet);this.jets.push(jet);
+      this.mesh(cone,outer,0,0,1.05,.29,2.1,.29,jet).rotation.x=Math.PI/2;
+      this.mesh(cone,inner,0,0,.65,.14,1.3,.14,jet).rotation.x=Math.PI/2;
+    }
+    this.nitroMist=this.batch(new THREE.IcosahedronGeometry(1,1),additive(0x67dfff,.18),16);
+    this.contactRing=this.mesh(new THREE.TorusGeometry(.55,.035,6,24),this.glow(0xd8f8ff,.8),0,0,0);this.contactRing.visible=false;this.contactRing.rotation.x=-Math.PI/2;
+  }
+  updateRideEffects(run,cover){
+    const active=!!run?.boosting&&!cover&&run.phase==='running',t=this.time;
+    this.nitro.visible=active;this.nitroMist.visible=active&&!this.reduced;
+    for(let i=0;i<this.jets.length;i++)this.jets[i].scale.z=this.reduced?.7:1+Math.sin(t*32+i)*.12;
+    if(this.nitroMist.visible){for(let i=0;i<16;i++){
+      const age=(t*2.8+Math.floor(i/2)/8)%1,side=i%2?1:-1,size=.09+age*.26;
+      this.instance(this.nitroMist,i,this.pilot.position.x+side*(.48+age*.3),run.y+.30+age*.15,1.9+age*3.8,size,size*.65,size*2.6);
+    }this.nitroMist.instanceMatrix.needsUpdate=true;}
+    this.contactRing.visible=!!run?.impact&&!cover;
+    if(this.contactRing.visible){const fade=run.impact/.28;this.contactRing.position.set(this.pilot.position.x+run.impactSide*.8,run.y+.35,.15);this.contactRing.scale.setScalar(this.reduced?1:1+(1-fade)*1.2);this.contactRing.material.opacity=fade*.7;}
+  }
   makeCouriers(){
     const m=this.materials;this.courierModels=NC.courierStyles.map(style=>{
       const g=new THREE.Group(),coat=this.material(style.color,.62,.12),glow=this.glow(style.color);this.scene.add(g);g.visible=false;
@@ -143,7 +168,7 @@ NC.World=class {
   updateCouriers(run,dt,cover){
     this.courierModels.forEach((g,i)=>{
       const r=run?.couriers[i]?.run,ahead=r?r.distance-run.distance:0;g.visible=!!r&&!cover&&ahead> -6&&ahead<250;if(!g.visible)return;
-      g.position.set(this.center(r,r.distance)+r.x,r.y+Math.sin(this.time*6+i)*.035,-ahead);g.rotation.y=-Math.atan(this.slope(r,r.distance));g.rotation.z+=(-r.steering*.14-g.rotation.z)*(dt?1-Math.exp(-dt*10):1);
+      g.position.set(this.center(r,r.distance)+r.x,r.y+Math.sin(this.time*6+i)*.035,-ahead);g.rotation.y=-Math.atan(this.slope(r,r.distance));const bump=this.reduced?0:Math.sin((.28-r.impact)*40)*r.impact*.22*r.impactSide;g.rotation.z+=(-r.vx/NC.strafeSpeed*.14+bump-g.rotation.z)*(dt?1-Math.exp(-dt*14):1);
       g.userData.label.visible=ahead>4&&ahead<135;g.userData.trail.scale.z=r.boosting?2.6:.7;
     });
   }
@@ -172,12 +197,12 @@ NC.World=class {
     const district=run?Math.min(2,Math.floor(d/(run.contract.length/3))):0;this.scene.fog.color.lerp(this.colors[district],.02);this.skyMaterial.uniforms.bottom.value.copy(this.scene.fog.color).multiplyScalar(1.4);this.updateDistrict(d,district,run);
     let roads=0,rails=0,supports=0,posts=0;
     for(let i=0;i<56;i++){
-      const ahead=i*12-48-d%12,abs=d+ahead,f=run?.forkAt(abs),spread=this.spread(run,abs);
+      const ahead=i*12-48-d%12,abs=d+ahead,f=run?.forkAt(abs);
       for(const branch of f?[0,1]:[undefined]){
         const c=this.center(run,abs,branch),angle=-Math.atan(this.slope(run,abs,branch)),length=12*Math.sqrt(1+this.slope(run,abs,branch)**2)+.25;
         this.deckSection(roads,run,d,abs,branch);this.instance(this.seams,roads,c,.012,-ahead,22.5,.015,.07,angle);roads++;
         for(let side=0;side<2;side++){
-          const inner=f&&spread<12&&(branch===0?side===1:side===0),x=side?11.8:-11.8;
+          const inner=f&&!NC.separated(f,abs)&&(branch===0?side===1:side===0),x=side?11.8:-11.8;
           if(!inner){this.instance(this.rails,rails,c+x,.28,-ahead,.35,.6,length,angle);this.instance(this.railGlow,rails,c+x,.62,-ahead,.10,.06,length,angle);this.railGlow.setColorAt(rails,this.routeColors[f?f.options[branch]:'main']);this.instance(this.reflections,rails,c+x*.89,.02,-ahead,1.7,.01,length,angle);rails++;}
         }
         if(i%4===0){this.instance(this.underRoad,supports++,c,-7,-ahead,24,1.1,1);for(const side of [-1,1])this.instance(this.posts,posts++,c+side*14,3,-ahead,.07,6,.09);}
@@ -194,15 +219,18 @@ NC.World=class {
     this.fliers.forEach((g,i)=>{const a=((i*70-d*.5-t*(i%2?6:-3))%560+560)%560-40;g.position.set(bend+(i%2?1:-1)*(20+Math.sin(t*.3+i)*8),4+(i%4)*5+Math.sin(t+i)*.4,-a);});
     this.updateItems(run,d,cover);this.updateCouriers(run,dt,cover);
     const x=cover?bend+5:bend+(run?.x||0),y=cover?.10:run?.y||0;
-    this.pilot.position.set(x,y+Math.sin(t*7)*.035,0);this.pilot.rotation.y=cover?-.5:-Math.atan(this.slope(run,d));this.pilot.rotation.z+=( (cover?-.08:-(run?.steering||0)*.18)-this.pilot.rotation.z)*(dt?1-Math.exp(-dt*12):1);
+    const bump=this.reduced?0:Math.sin((.28-(run?.impact||0))*40)*(run?.impact||0)*.3*(run?.impactSide||1);
+    this.pilot.position.set(x+bump*.7,y+Math.sin(t*7)*.035,0);this.pilot.rotation.y=cover?-.5:-Math.atan(this.slope(run,d));this.pilot.rotation.z+=((cover?-.08:-(run?.vx||0)/NC.strafeSpeed*.15+bump)-this.pilot.rotation.z)*(dt?1-Math.exp(-dt*16):1);
     this.body.rotation.x=run?.boosting?-.20:-.07;this.arms.forEach((a,i)=>a.rotation.x=(run?.boosting?-.6:-.3)+Math.sin(t*4+i)*.035);this.board.rotation.z=Math.sin(t*3)*.035;
     this.shadow.position.x=x;this.shadow.material.opacity=Math.max(.2,1-y*.15);this.shadow.scale.setScalar(1+y*.08);
     for(let i=0;i<12;i++){const active=run?.boosting&&!cover&&!this.reduced;this.instance(this.trails,i,x+(i%2?1:-1)*(1+i*.3),.15+(i%4)*.6,2+i*.4,.025,.025,active?(1+Math.sin(t*18+i)*.4):0);}this.trails.instanceMatrix.needsUpdate=true;
+    this.updateRideEffects(run,cover);
     const portrait=innerWidth<innerHeight,compactLandscape=!portrait&&innerHeight<=500;
     const target=cover?new THREE.Vector3(bend+(portrait?10:12),portrait?6:5.8,portrait?16:12):new THREE.Vector3(bend+(run?.x||0)*(portrait?.75:compactLandscape?.75:.50),(portrait?9:6)+y*.28,portrait?23:11.8);
     if(dt===0)this.camera.position.copy(target);else this.camera.position.lerp(target,1-Math.exp(-dt*5));
     const look=cover?new THREE.Vector3(bend+(portrait?2:0),portrait?2:2,-12):new THREE.Vector3(this.center(run,d+24)+(run?.x||0)*(portrait?.60:compactLandscape?.55:.32),1.7+y*.12,-23);
-    this.camera.lookAt(look);const fov=(portrait?68:62)+(run?.boosting&&!this.reduced?6:0);this.camera.fov+=(fov-this.camera.fov)*.06;this.camera.updateProjectionMatrix();
+    if(!this.lookTarget||dt===0)this.lookTarget=look;else this.lookTarget.lerp(look,1-Math.exp(-dt*9));
+    this.camera.lookAt(this.lookTarget);const fov=(portrait?68:62)+(run?.boosting&&!this.reduced?6:0);this.camera.fov+=(fov-this.camera.fov)*.06;this.camera.updateProjectionMatrix();
     r.render(this.scene,this.camera);
   }
   updateItems(run,d,cover){

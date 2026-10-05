@@ -1,6 +1,6 @@
 // Plan a horizontal target using visible objects; tests steer without teleporting.
 module.exports=function targetX(r,choices=0){
-  const fork=r.forks.find(f=>f.choice===null&&f.start>=r.distance&&f.start-r.distance<90);
+  const fork=r.forks.find(f=>f.choice===null&&r.distance<f.end&&f.start-r.distance<140);
   if(fork)return (choices>>fork.index)&1?4:-4;
   const active=r.forkAt();
   if(active){

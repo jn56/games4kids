@@ -1,11 +1,11 @@
 'use strict';
 // Pure simulation: seconds and metres, independent of frame rate and rendering.
 const NC = {
-  roadHalfWidth:11.5, moveLimit:9.8, strafeSpeed:18,
+  roadHalfWidth:11.5, moveLimit:9.8, strafeSpeed:12,
   roles: {
-    velocity: {name:'疾風', color:0xdcff78, speed:52.5, drain:18, regen:10, jumps:1, magnet:1.8, description:'基礎速度較快，衝刺耗能較低。'},
-    aerial: {name:'躍動', color:0xb89aff, speed:49.5, drain:22, regen:12, jumps:2, magnet:1.8, description:'可在空中再跳一次，越過連續維修平台。'},
-    resonance: {name:'共鳴', color:0x75efff, speed:49.5, drain:20, regen:13, jumps:1, magnet:3.5, description:'更遠收集光能，回充更快，容易保持連段。'}
+    velocity: {name:'疾風', color:0xdcff78, speed:65.625, drain:18, regen:10, jumps:1, magnet:1.8, description:'基礎速度較快，衝刺耗能較低。'},
+    aerial: {name:'躍動', color:0xb89aff, speed:61.875, drain:22, regen:12, jumps:2, magnet:1.8, description:'可在空中再跳一次，越過連續維修平台。'},
+    resonance: {name:'共鳴', color:0x75efff, speed:61.875, drain:20, regen:13, jumps:1, magnet:3.5, description:'更遠收集光能，回充較快，容易保持連段。'}
   },
   contracts: [
     {name:'夜市補給',label:'暖身',length:2400,time:108,spacing:88,clients:['阿森 / 屋頂溫室','露可 / 夜市食堂','阿澄 / 星光書店'],parcels:['夜光種子','派對冰茶','首版詩集'],deliveryX:[.8,-5.8,5.3],messages:['種子要趕上午夜的第一場雨。拜託你了！','冰茶還冰著！大家剛好都到了。','詩集收到了。今晚的朗讀會，有你一份。']},
@@ -22,6 +22,7 @@ const NC = {
   // The same continuous fork geometry positions roads, riders and interactables.
   forkOffset(fork,distance,side){const t=this.clamp((distance-fork.start)/(fork.end-fork.start),0,1);return (side===0?-1:1)*26*Math.sin(Math.PI*t)**2;},
   forkSlope(fork,distance,side){const t=this.clamp((distance-fork.start)/(fork.end-fork.start),0,1);return (side===0?-1:1)*26*Math.PI*Math.sin(2*Math.PI*t)/(fork.end-fork.start);},
+  separated(fork,distance){return Math.abs(this.forkOffset(fork,distance,0))>=this.roadHalfWidth;},
   skills: {battery:{name:'超導電容',detail:'每級增加 12 點能量上限。'},magnet:{name:'光流引力',detail:'每級增加 0.65 公尺收集範圍。'},clock:{name:'城市默契',detail:'每級為委託增加 3 秒時間。'}},
   clamp: (x,a,b)=>Math.max(a,Math.min(b,x)),
   random(seed) {return ()=>{let t=seed+=0x6d2b79f5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;};},
@@ -43,7 +44,8 @@ NC.Run=class {
   constructor(profile,seed=Date.now(),{traffic=true}={}) {
     this.profile=NC.profile(profile);this.role=NC.roles[this.profile.role];this.contract=NC.contracts[this.profile.contract];this.random=NC.random(seed);
     this.phase='countdown';this.countdown=2.4;this.distance=0;this.elapsed=0;this.remaining=this.contract.time+this.profile.skills.clock*3;
-    this.x=0;this.steering=0;this.y=0;this.vy=0;this.jumps=0;this.jumpBuffer=0;this.speed=0;this.boosting=false;this.boostLocked=false;
+    this.x=0;this.vx=0;this.steering=0;this.y=0;this.vy=0;this.jumps=0;this.jumpBuffer=0;this.speed=0;this.boosting=false;this.boostLocked=false;
+    this.impact=0;this.impactSide=0;this.impactCooldown=0;this.contacts=0;
     this.capacity=100+12*this.profile.skills.battery;this.energy=this.capacity;this.stumble=0;this.invincible=0;this.autoBoost=false;
     this.score=0;this.chain=0;this.maxChain=0;this.chainLife=0;this.delivered=0;this.hits=0;this.signals=0;this.completed=0;this.notices=[];
     this.event=null;this.eventTimer=0;this.nextEvent=17;this.eventIndex=Math.floor(this.random()*3);this.jumpCooldown=0;
@@ -78,13 +80,19 @@ NC.Run=class {
     const length=fork.end-fork.start;
     for(let branch=0;branch<2;branch++){
       const kind=fork.options[branch],put=(type,t,x,extra={})=>this.items.push({type,distance:fork.start+length*t,x,done:false,fork:fork.index,branch,...extra});
-      if(kind==='sprint')for(let i=0;i<3;i++){const t=.27+i*.23,x=[-2.4,6.2,-5.1][i]+(this.random()-.5)*1.5;put('speedGate',t,x,{goal:true});put('boost',t-.08,x);put('signal',t-.04,x,{height:1.2});}
-      if(kind==='sky')for(let i=0;i<3;i++){const t=.24+i*.24,x=[-5.6,.8,6.2][i]+(this.random()-.5)*1.4;put('ramp',t,x);put('skyStar',t+24/length,x,{height:5.8,goal:true});put('barrier',t+34/length,x);}
-      if(kind==='slalom')for(let i=0;i<4;i++)put('styleGate',.24+i*.17,[-5.7,5.2,-4.3,6.6][i]+(this.random()-.5),{goal:true});
-      if(kind==='charge'){const phase=this.random()*Math.PI;for(let i=0;i<12;i++){const x=Math.sin(i*.65+phase)*6;put('signal',.22+i*.05,x,{height:1.2,goal:true});if(i===5||i===9)put('boost',.245+i*.05,x);}}
+      const entry=branch===0?1:-1;
+      if(kind==='sprint')for(let i=0;i<3;i++){const t=.32+i*.21,x=entry*[4,.5,-4.2][i]+(this.random()-.5);put('speedGate',t,x,{goal:true});put('boost',t-.055,x);put('signal',t-.025,x,{height:1.2});}
+      // Leave enough flight distance even at boosted speed plus a tailwind.
+      if(kind==='sky')for(let i=0;i<3;i++){const t=.255+i*108/length,x=entry*[5.6,.4,-4.5][i]+(this.random()-.5);put('ramp',t,x);put('skyStar',t+40/length,x,{height:5.8,goal:true});put('barrier',t+54/length,x);}
+      if(kind==='slalom')for(let i=0;i<4;i++)put('styleGate',.30+i*.15,entry*[3.8,-3.8,3.8,-3.8][i]+(this.random()-.5)*.4,{goal:true});
+      if(kind==='charge')for(let i=0;i<12;i++){const x=entry*Math.cos(i*.45)*4.6;put('signal',.28+i*.042,x,{height:1.2,goal:true});if(i===5||i===9)put('boost',.30+i*.042,x);}
     }
   }
   forkAt(distance=this.distance){return this.forks.find(f=>distance>=f.start&&distance<f.end)||null;}
+  pathOffset(distance=this.distance){const f=this.forkAt(distance);return f&&f.choice!==null?NC.forkOffset(f,distance,f.choice):0;}
+  lateralPosition(){return this.pathOffset()+this.x;}
+  lateralLimit(){const f=this.forkAt();return NC.moveLimit+(f&&!NC.separated(f,this.distance)?Math.abs(NC.forkOffset(f,this.distance,0)):0);}
+  lateralBounds(){const limit=this.lateralLimit(),f=this.forkAt(),offset=f&&!NC.separated(f,this.distance)?this.pathOffset():0;return {min:-limit-offset,max:limit-offset};}
   routeKind(){const f=this.forkAt();return f&&f.choice!==null?f.options[f.choice]:null;}
   itemActive(item){return item.fork===undefined||this.forks[item.fork].choice===item.branch;}
   routePoint(item){
@@ -95,6 +103,7 @@ NC.Run=class {
   jump(){if(this.phase==='running')this.jumpBuffer=.16;}
   startBoost(){if(!['running','countdown'].includes(this.phase)||this.energy<=0||this.autoBoost)return false;this.autoBoost=true;this.boostLocked=false;return true;}
   racePosition(){return 1+this.couriers.filter(c=>c.run.distance>this.distance).length;}
+  bump(kind,side){if(this.impactCooldown>0)return;this.contacts++;this.impact=.28;this.impactSide=side||1;this.impactCooldown=.65;this.speed*=.97;this.emit('bump',{kind,side:this.impactSide});}
   addChain(points){this.chain++;this.maxChain=Math.max(this.maxChain,this.chain);this.chainLife=5.5;this.score+=Math.round(points*(1+Math.min(4,Math.floor(this.chain/5)))*(this.event==='flow'?2:1));}
   hit(){
     if(this.invincible>0)return;
@@ -106,6 +115,7 @@ NC.Run=class {
     if(this.phase==='finished'||this.phase==='paused')return;
     if(this.phase==='countdown'){this.countdown-=dt;if(this.countdown<=0){this.phase='running';this.emit('start');}return;}
     this.elapsed+=dt;this.remaining=Math.max(0,this.remaining-dt);this.stumble=Math.max(0,this.stumble-dt);this.invincible=Math.max(0,this.invincible-dt);this.jumpCooldown=Math.max(0,this.jumpCooldown-dt);
+    this.impact=Math.max(0,this.impact-dt);this.impactCooldown=Math.max(0,this.impactCooldown-dt);
     if(this.chainLife>0){this.chainLife-=dt;if(this.chainLife<=0)this.chain=0;}
     this.eventTimer=Math.max(0,this.eventTimer-dt);if(this.event&&this.eventTimer<=0){this.event=null;this.emit('eventEnd');}
     if(this.elapsed>=this.nextEvent){this.event=['tailwind','magnet','flow'][this.eventIndex++%3];this.eventTimer=8;this.nextEvent=this.elapsed+22+this.random()*5;this.emit('event',{event:this.event});}
@@ -117,13 +127,24 @@ NC.Run=class {
     const kind=this.routeKind();
     const targetSpeed=(this.role.speed+(this.boosting?22:0)+(this.event==='tailwind'?6:0)+(kind==='sprint'?6:0))*(input.brake?.52:1)*(this.stumble>0?.52:1);
     this.speed+=(targetSpeed-this.speed)*(1-Math.exp(-7*dt));
-    const oldDistance=this.distance;this.distance=Math.min(this.contract.length,this.distance+this.speed*dt);
-    const oldX=this.x;this.steering=Number.isFinite(input.steer)?NC.clamp(input.steer,-1,1):0;
-    this.x=NC.clamp(this.x+this.steering*NC.strafeSpeed*dt,-NC.moveLimit,NC.moveLimit);
+    const oldDistance=this.distance,oldOffset=this.pathOffset(),oldFork=this.forkAt(),oldChoice=oldFork?.choice;
+    const oldX=this.x;this.distance=Math.min(this.contract.length,this.distance+this.speed*dt);
+    this.steering=Number.isFinite(input.steer)?NC.clamp(input.steer,-1,1):0;
+    const targetVX=this.steering*NC.strafeSpeed;
+    // Ease into a turn; release or reverse brakes quickly, avoiding long sideways drift.
+    const response=!this.steering||Math.sign(this.vx)!==Math.sign(targetVX)?36:13;
+    this.vx+=(targetVX-this.vx)*(1-Math.exp(-response*dt));if(Math.abs(this.vx)<.025)this.vx=0;
+    this.x+=this.vx*dt;
     for(const f of this.forks){
-      if(f.choice===null&&this.distance>=f.start){f.choice=this.x>0?1:0;this.emit('fork',{index:f.index,kind:f.options[f.choice],side:f.choice});}
+      if(f.choice===null&&NC.separated(f,this.distance)&&this.distance>=f.start&&this.distance<f.end){f.choice=this.x>0?1:0;this.emit('fork',{index:f.index,kind:f.options[f.choice],side:f.choice});}
       if(!f.exited&&this.distance>=f.end){f.exited=true;this.emit('merge',{index:f.index,won:f.won});}
     }
+    const newFork=this.forkAt();
+    // Rebase once on selection, then follow that road smoothly through the merge.
+    // Joined decks keep the entire combined width available, including the other half.
+    if(oldFork!==newFork||oldChoice!==newFork?.choice)this.x+=oldOffset-this.pathOffset();
+    const bounds=this.lateralBounds(),bounded=NC.clamp(this.x,bounds.min,bounds.max);
+    if(bounded!==this.x){this.bump('wall',Math.sign(this.x));this.x=bounded;this.vx=0;}
     if(this.jumpBuffer>0&&this.jumps<this.role.jumps&&this.jumpCooldown===0){this.vy=11.5;this.jumps++;this.jumpBuffer=0;this.jumpCooldown=.15;this.emit('jump',{double:this.jumps>1});}
     this.jumpBuffer=Math.max(0,this.jumpBuffer-dt);this.vy-=28*dt;this.y+=this.vy*dt;
     if(this.y<=0){if(this.jumps&&this.vy<0)this.emit('land');this.y=0;this.vy=0;this.jumps=0;}
@@ -131,8 +152,9 @@ NC.Run=class {
     for(const item of this.items){
       if(item.done||!this.itemActive(item)||item.distance<oldDistance-4||item.distance>this.distance+5)continue;
       const crossed=oldDistance<=item.distance&&this.distance>=item.distance;
-      const atCrossing=crossed&&this.distance>oldDistance?oldX+(this.x-oldX)*(item.distance-oldDistance)/(this.distance-oldDistance):this.x;
-      const dx=Math.abs(item.x-atCrossing);
+      const atCrossing=crossed&&this.distance>oldDistance?oldX+oldOffset+(this.lateralPosition()-oldX-oldOffset)*(item.distance-oldDistance)/(this.distance-oldDistance):this.lateralPosition();
+      const itemOffset=item.fork===undefined?0:NC.forkOffset(this.forks[item.fork],item.distance,item.branch);
+      const dx=Math.abs(item.x+itemOffset-atCrossing);
       if(item.type==='signal'||item.type==='skyStar'){
         if(Math.abs(item.distance-this.distance)<4.5&&dx<magnet&&Math.abs(this.y+1.1-item.height)<1.8){item.done=true;this.signals++;this.energy=Math.min(this.capacity,this.energy+3);this.addChain(item.type==='skyStar'?160:35);this.routePoint(item);this.emit(item.type==='skyStar'?'star':'signal',{item});}
       }else if(item.type==='delivery'&&crossed){
@@ -146,7 +168,11 @@ NC.Run=class {
         item.done=true;if(this.y>(item.type==='tower'?4.8:item.type==='vent'?.55:1.35)){this.addChain(90);this.emit('clear');}else this.hit();
       }
     }
-    for(const courier of this.couriers)courier.step(dt);
+    for(const courier of this.couriers){
+      const other=courier.run,oldGap=other.distance-oldDistance;courier.step(dt);
+      const gap=other.distance-this.distance;
+      if((Math.abs(gap)<2.7||oldGap*gap<0)&&Math.abs(other.y-this.y)<1.8&&Math.abs(other.lateralPosition()-this.lateralPosition())<1.45){const side=Math.sign(other.lateralPosition()-this.lateralPosition())||1;this.bump('courier',side);other.bump('courier',-side);}
+    }
     if(this.distance>=this.contract.length||this.remaining<=0)this.finish();
   }
   finish(){
@@ -168,7 +194,7 @@ NC.Courier=class {
     this.run.role={...this.run.role,speed:this.run.role.speed*(.96+index*.012)};
   }
   target(){
-    const r=this.run,pending=r.forks.find(f=>f.choice===null&&f.start-r.distance>=0&&f.start-r.distance<110);
+    const r=this.run,pending=r.forks.find(f=>f.choice===null&&r.distance<f.end&&f.start-r.distance<140);
     if(pending)return (this.choices>>pending.index)&1?4:-4;
     const fork=r.forkAt();if(fork){const goal=r.items.find(o=>o.fork===fork.index&&r.itemActive(o)&&!o.done&&o.distance>r.distance&&['ramp','skyStar','speedGate','styleGate','signal'].includes(o.type));if(goal)return goal.x;}
     const stop=r.stops.find(s=>!s.done);if(stop&&stop.distance-r.distance<110)return stop.x;
@@ -183,7 +209,7 @@ NC.Courier=class {
   }
   step(dt){
     const r=this.run;if(r.result)return;
-    const steer=NC.clamp((this.target()-r.x)/(NC.strafeSpeed*dt),-1,1),sprint=r.routeKind()==='sprint';
+    const steer=NC.clamp((this.target()-r.x)*8/NC.strafeSpeed,-1,1),sprint=r.routeKind()==='sprint';
     // Each courier has its own stamina and timing, and consumes only its own pickups.
     const boost=sprint||(r.elapsed+this.index*2)%11<5;
     r.step(dt,{steer,boost});r.notices.length=0;

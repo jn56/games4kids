@@ -24,7 +24,7 @@ async function fit(p,label){
  await p.locator('[data-role="aerial"]').click();assert.equal(await p.evaluate(()=>neonGame.profile.role),'aerial');await p.locator('[data-role="velocity"]').click();
  await p.locator('#contract-next').click();assert.equal(await p.evaluate(()=>neonGame.profile.contract),2);await p.locator('#contract-next').click();await p.locator('#contract-next').click();assert.equal(await p.evaluate(()=>neonGame.profile.contract),1);
  await p.locator('#launch').focus();await p.keyboard.press('Space');assert.equal(await p.evaluate(()=>neonGame.mode),'countdown');await p.waitForFunction(()=>neonGame.mode==='running');
- await p.keyboard.down('ArrowLeft');await p.waitForTimeout(180);await p.keyboard.up('ArrowLeft');const stopped=await p.evaluate(()=>neonGame.run.x);assert(stopped< -1&&stopped> -5,'Short hold stops between former lanes');await p.waitForTimeout(200);assert.equal(await p.evaluate(()=>neonGame.run.x),stopped,'Keyboard release stops without snapping');await p.keyboard.down('ArrowRight');await p.waitForTimeout(100);await p.keyboard.up('ArrowRight');
+ await p.keyboard.down('ArrowLeft');await p.waitForTimeout(180);await p.keyboard.up('ArrowLeft');await p.waitForTimeout(200);const stopped=await p.evaluate(()=>neonGame.run.x);assert(stopped< -1&&stopped> -5,'Short hold stops between former lanes');await p.waitForTimeout(200);assert.equal(await p.evaluate(()=>neonGame.run.x),stopped,'Keyboard release stops without snapping');await p.keyboard.down('ArrowRight');await p.waitForTimeout(100);await p.keyboard.up('ArrowRight');
  await p.keyboard.press('Space');await p.waitForTimeout(130);assert(await p.evaluate(()=>neonGame.run.y>0));await p.keyboard.down('ArrowUp');await p.waitForTimeout(600);assert(await p.evaluate(()=>neonGame.run.boosting&&neonGame.run.speed>40));await p.keyboard.up('ArrowUp');
  assert.equal(await p.evaluate(()=>neonGame.audio.context.state),'running');assert.equal(await p.evaluate(()=>neonGame.run.couriers.length),5);assert.equal(await p.evaluate(()=>neonGame.world.courierModels.length),5);assert(await p.evaluate(()=>neonGame.world.courierModels.filter(g=>g.visible).length>=3));await p.screenshot({path:path.join(out,'run-desktop.png')});
  await p.keyboard.press('Escape');const frozen=await p.evaluate(()=>[neonGame.run.distance,neonGame.run.remaining,neonGame.run.elapsed,...neonGame.run.couriers.map(c=>[c.run.distance,c.run.x,c.run.energy])]);await p.waitForTimeout(350);assert.deepEqual(await p.evaluate(()=>[neonGame.run.distance,neonGame.run.remaining,neonGame.run.elapsed,...neonGame.run.couriers.map(c=>[c.run.distance,c.run.x,c.run.energy])]),frozen);
@@ -58,7 +58,7 @@ async function fit(p,label){
   await p.mouse.move(cx,cy);await p.mouse.down();await p.mouse.move(cx+3,cy-2);assert.equal(await p.evaluate(()=>neonGame.input.steer),0,'Neutral thumb jitter does not steer');
   await p.mouse.move(cx-pad.width*.32,cy);await p.waitForTimeout(150);const leftX=await p.evaluate(()=>neonGame.run.x);assert(leftX<-.5&&leftX> -6,'Partial hold moves smoothly between old lanes');
   await p.mouse.move(cx+pad.width*.15,cy);assert.equal(await p.evaluate(()=>neonGame.input.steer),1,'Any rightward push steers right');await p.waitForTimeout(120);assert(await p.evaluate(x=>neonGame.run.x>x,leftX));
-  await p.mouse.move(cx+pad.width*.32,cy);assert(await p.evaluate(()=>neonGame.input.steer>.9));await p.waitForTimeout(150);await p.mouse.up();const freeX=await p.evaluate(()=>neonGame.run.x);await p.waitForTimeout(150);assert.equal(await p.evaluate(()=>neonGame.run.x),freeX,'Stick release stays at current position');
+  await p.mouse.move(cx+pad.width*.32,cy);assert(await p.evaluate(()=>neonGame.input.steer>.9));await p.waitForTimeout(150);await p.mouse.up();await p.waitForTimeout(200);const freeX=await p.evaluate(()=>neonGame.run.x);await p.waitForTimeout(150);assert.equal(await p.evaluate(()=>neonGame.run.x),freeX,'Stick release stays at current position');
   await p.mouse.move(cx,cy);await p.mouse.down();
   for(const [dx,dy,expected] of [[0,-.32,0],[.04,-.32,1],[-.04,-.32,-1],[-.04,.32,-1],[.04,.32,1],[0,.32,0]]){await p.mouse.move(cx+pad.width*dx,cy+pad.width*dy);assert.deepEqual(await p.evaluate(()=>[neonGame.input.steer,neonGame.input.boost,neonGame.input.brake]),[expected,false,false],'Any stick angle affects left/right only');}
   await p.mouse.up();assert.deepEqual(await p.evaluate(()=>[neonGame.input.steer,neonGame.stick.pointer]),[0,null]);
@@ -77,10 +77,11 @@ async function fit(p,label){
   for(const b of controls){assert(b.x>=47&&width-b.right>=47&&height-b.bottom>=47,JSON.stringify(b));assert(b.w>=44&&b.h>=44);}
   assert(controls[0].right<=controls[1].x,'Touch groups do not overlap');
   for(const side of ['ArrowLeft','ArrowRight']){
-   await p.keyboard.down(side);await p.waitForTimeout(1350);await p.keyboard.up(side);await p.waitForTimeout(200);assert.equal(await p.evaluate(()=>Math.abs(neonGame.run.x)),9.8,'Deck boundary contains rider');
+   await p.evaluate(()=>{const r=neonGame.run;r.distance=0;r.items=[];r.forks=[];r.vx=0;});await p.keyboard.down(side);await p.waitForTimeout(2000);await p.keyboard.up(side);await p.waitForTimeout(200);assert.equal(await p.evaluate(()=>Math.abs(neonGame.run.x)),9.8,'Deck boundary contains rider');
    const visible=await p.evaluate(()=>{const w=neonGame.world,v=w.pilot.position.clone().add(new THREE.Vector3(0,1.5,0)).project(w.camera);return{x:v.x,y:v.y};});assert(Math.abs(visible.x)<.90&&Math.abs(visible.y)<.92,`rider ${width} / ${side} visible: ${JSON.stringify(visible)}`);
   }
   await p.screenshot({path:path.join(out,`run-${width}x${height}.png`)});
+  await p.evaluate(()=>{const saved=new NC.Run(neonGame.profile,17,{traffic:false});neonGame.run.forks=saved.forks;neonGame.run.items=saved.items;});
   // Controlled milestones validate the render/layout of both branches without waiting six full runs.
   await p.evaluate(()=>{const r=neonGame.run;r.forks[0].choice=null;r.distance=r.forks[0].start-80;r.x=2.7;});await p.waitForTimeout(150);assert(await p.locator('#fork-card').isVisible());assert.equal(await p.locator('#radio').isVisible(),false);
   for(const side of [0,1]){
