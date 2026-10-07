@@ -36,7 +36,6 @@
   }
   function nameChanged(){game.profile.name=$('pilot-name').value.trim().slice(0,12)||'夜行者';$('pilot-name').value=game.profile.name;save();}
   function toast(text,seconds=1.8){$('toast').textContent=text;$('toast').hidden=false;game.toastTime=seconds;}
-  function radio(name,text,seconds=5){$('radio-name').textContent=name;$('radio-text').textContent=text;$('radio').hidden=false;game.radioTime=seconds;}
   function launch(){
     nameChanged();clearInput();audio.unlock();game.run=new NC.Run(game.profile);game.accumulator=0;game.lastStamp=performance.now();game.toastTime=game.radioTime=0;
     $('toast').hidden=$('radio').hidden=true;$('event').hidden=$('fork-card').hidden=true;$('countdown').hidden=false;
@@ -60,50 +59,39 @@
     const r=game.run;for(const n of r.notices.splice(0)){
       if(['signal','jump','clear','charge','stumble','bump','delivery','start'].includes(n.type))audio.effect(n.type);
       if(['star','gate','challenge'].includes(n.type))audio.effect(n.type==='challenge'?'delivery':'clear');if(n.type==='ramp')audio.effect('jump');
-      if(n.type==='start'){mode('running');$('countdown').hidden=true;toast('LET’S FLOW',1.5);const hint=matchMedia('(pointer: coarse)').matches||innerWidth<850?'搖桿偏左向左、偏右向右。點一下衝刺跑到沒氣，另一顆按鈕跳躍。':'按住左、右自由移動與選路，空白鍵跳躍。按住 ↑，把速度拉起來。';radio('絮 / 城市調度',`${game.profile.name}，${hint}`,4);}
-      if(n.type==='stumble')toast('重整節奏 · 再追上去',1.3);
-      if(n.type==='jump'&&n.double)toast('DOUBLE AIR +',.8);
-      if(n.type==='clear')toast('乾淨越障 +90',.85);
-      if(n.type==='charge')toast('能量軌道 +25',.8);
-      if(n.type==='empty')toast('能量回充中',1.2);
-      if(n.type==='fork'){toast('進入 '+NC.routes[n.kind].name,1.5);game.radioTime=0;$('radio').hidden=true;}
-      if(n.type==='merge')toast(n.won?'完成支線 · 匯入主航道':'匯入主航道 · 繼續配送',1.5);
-      if(n.type==='ramp')toast('升空！接住高空星',1);
-      if(n.type==='star')toast('高空光星 +160',.8);
-      if(n.type==='gate')toast('完美穿環 +160',.8);
-      if(n.type==='gateMiss'&&n.boost)toast('啟動衝刺，再穿光門',1.4);
-      if(n.type==='challenge')toast('支線達成 · +4 秒 / +25 XP',2);
+      if(n.type==='start'){mode('running');$('countdown').hidden=true;toast('出發！',1);}
+      if(n.type==='empty')toast('ϟ 回充中',1);
+      if(n.type==='gateMiss'&&n.boost)toast('ϟ 衝刺穿門',1.2);
+      if(n.type==='challenge')toast('✓ 挑戰完成',1.2);
       if(n.type==='delivery'){
         const stop=r.stops[n.index];document.querySelector(`[data-stop="${n.index}"]`).className=stop.status;
-        if(n.success){toast('準時送達 · +4 秒',2.2);radio(r.contract.clients[n.index],n.index===0?'收到！接下來的路，繼續照你的節奏走。':r.contract.messages[n.index],4.5);}
-        else{toast('錯過光門 · 下一站追回來',2);radio('絮 / 城市調度','這件改由接駁機接手。朝下一個亮綠色光門前進！',4);}
+        toast(n.success?`✓ 送達 ${r.delivered}/3`:'錯過交付點',1.5);
       }
-      if(n.type==='event')toast({tailwind:'順風航道 · 速度提升',magnet:'磁力潮汐 · 遠距吸取',flow:'追光時刻 · 積分雙倍'}[n.event],2);
+      if(n.type==='event')toast({tailwind:'↗ 順風加速',magnet:'◎ 磁力提升',flow:'積分 ×2'}[n.event],1.2);
       if(n.type==='finish')finish(n.result);
     }
   }
   function hud(){
-    const r=game.run;if(!r)return;const next=r.stops.find(s=>!s.done),district=Math.min(2,Math.floor(r.distance/(r.contract.length/3)));
-    $('district-label').textContent=`0${district+1} / ${NC.districts[district]}`;
-    $('mission').textContent=next?`${r.contract.parcels[next.index]} → ${next.x< -2.5?'偏左':next.x>2.5?'偏右':'前方'}`:'最後直線 · 全速返航';
-    $('target-hint').textContent=next?`${Math.max(0,Math.ceil(next.distance-r.distance))} m · 穿過綠色光門自動交付`:'穿過終點，完成本班委託';
+    const r=game.run;if(!r)return;const next=r.stops.find(s=>!s.done),distance=Math.max(0,Math.ceil((next?.distance??r.contract.length)-r.distance)),direction=next?(next.x< -2.5?'↖':next.x>2.5?'↗':'↑'):'⚑';
+    $('mission').textContent=`${direction} ${distance} m`;
+    $('mission').setAttribute('aria-label',next?`交付點在${next.x< -2.5?'左':next.x>2.5?'右':'前'}方，距離 ${distance} 公尺`:`終點距離 ${distance} 公尺`);
     const fixed=r.remaining.toFixed(1),[whole,part]=fixed.split('.');$('timer').innerHTML=`${whole}<span>.${part}</span>`;$('timer').parentElement.classList.toggle('urgent',r.remaining<15);
-    $('delivery-count').textContent=`${r.delivered} / 3 已送達`;$('route-fill').style.width=Math.min(100,r.distance/r.contract.length*100)+'%';
-    $('speed').textContent=Math.round(r.speed*3.6);$('score').textContent=String(r.score).padStart(6,'0');$('combo').textContent=`FLOW ×${1+Math.min(4,Math.floor(r.chain/5))}${r.chain?' / '+r.chain:''}`;
+    $('delivery-count').textContent=`✓ ${r.delivered}/3`;$('delivery-count').setAttribute('aria-label',`已送達 ${r.delivered} 件，共 3 件`);$('route-fill').style.width=Math.min(100,r.distance/r.contract.length*100)+'%';
+    $('speed').textContent=Math.round(r.speed*3.6);$('score').textContent=String(r.score).padStart(6,'0');$('combo').textContent=`×${1+Math.min(4,Math.floor(r.chain/5))}`;$('combo').hidden=r.chain<5;
     $('energy-value').textContent=Math.round(r.energy/r.capacity*100)+'%';$('energy-fill').style.width=r.energy/r.capacity*100+'%';
     const boostButton=document.querySelector('[data-action="boost"]');boostButton.classList.toggle('held',r.autoBoost);boostButton.setAttribute('aria-pressed',String(r.autoBoost));boostButton.querySelector('small').textContent=r.autoBoost?'衝刺中':'衝刺';
-    $('fleet-status').textContent=`同場 ${r.racePosition()} / 6`;
-    $('event').hidden=!r.event;if(r.event)$('event').querySelector('span').textContent={tailwind:'順風航道',magnet:'磁力潮汐',flow:'追光時刻'}[r.event]+' · '+Math.ceil(r.eventTimer)+'s';
+    $('fleet-status').textContent=`⚑ ${r.racePosition()}/6`;
     if(r.phase==='countdown')$('countdown').querySelector('strong').textContent=Math.max(1,Math.ceil(r.countdown));
     const fork=r.forks.find(f=>r.distance>=f.start-160&&r.distance<f.end),card=$('fork-card');card.hidden=!fork||r.phase==='countdown';
     if(fork&&!card.hidden){
-      $('radio').hidden=true;const pending=fork.choice===null;card.classList.toggle('chosen',!pending);$('fork-options').hidden=!pending;$('fork-progress').hidden=pending;
-      $('fork-title').textContent=pending?(r.distance<fork.start?`前方分岔 ${Math.ceil(fork.start-r.distance)} m · 左右選路`:'路口仍可左右改選 · 護欄分開後確定'):`${NC.routes[fork.options[fork.choice]].name} · ${Math.ceil(fork.end-r.distance)} m 後匯流`;
-      if(pending)document.querySelectorAll('[data-branch]').forEach(el=>{const side=Number(el.dataset.branch),route=NC.routes[fork.options[side]];el.querySelector('strong').textContent=(side?'↗ ':'↖ ')+route.name;el.querySelector('small').textContent=route.short;el.style.setProperty('--route-color',route.color);el.classList.toggle('selected',(r.x>0?1:0)===side);});
-      else{const route=NC.routes[fork.options[fork.choice]];$('fork-progress').textContent=fork.won?'✓ 挑戰達成，額外經驗已取得':`${route.hint} · ${fork.progress} / ${route.need}`;}
-    }else if(game.radioTime>0)$('radio').hidden=false;
+      const pending=fork.choice===null;card.classList.toggle('chosen',!pending);$('fork-options').hidden=!pending;$('fork-progress').hidden=pending;
+      $('fork-title').textContent=pending?(r.distance<fork.start?`選路 · ${Math.ceil(fork.start-r.distance)} m`:'← 選路 →'):NC.routes[fork.options[fork.choice]].name;
+      const actions={sprint:'衝刺穿門',sky:'跳台接星',slalom:'左右穿環',charge:'收集光環'};
+      if(pending)document.querySelectorAll('[data-branch]').forEach(el=>{const side=Number(el.dataset.branch),kind=fork.options[side],route=NC.routes[kind];el.querySelector('strong').textContent=(side?'↗ ':'↖ ')+actions[kind];el.style.setProperty('--route-color',route.color);el.classList.toggle('selected',(r.x>0?1:0)===side);});
+      else{const kind=fork.options[fork.choice],route=NC.routes[kind];$('fork-progress').textContent=`${actions[kind]} ${fork.progress}/${route.need}`;card.hidden=fork.won;}
+    }
   }
-  const manual=`<div class="manual"><p>你是霓光城的晴空快遞員。角色會自動前進，一班約一至兩分鐘，依路線與操作節奏變化。把三件包裹送進跑道上的<strong>綠色光門</strong>，再衝過終點。</p><div class="key-row"><span>按住左右平順移動，放開快速停住</span><kbd>← / →</kbd></div><div class="key-row"><span>跳躍；躍動角色可再跳一次</span><kbd>SPACE</kbd></div><div class="key-row"><span>按住衝刺 / 按住緩行</span><kbd>↑ / ↓</kbd></div><div class="key-row"><span>暫停 / 返回</span><kbd>ESC</kbd></div><h3>看路線，也抓節奏</h3><ul><li>青色光環：補充能量，連續收集會提高倍率，最高 ×5。超過 5.5 秒沒接到連段會歸零。</li><li>橘色橫桿、通風口：跳過或從旁邊繞過。紫色高柱：從旁邊繞過。</li><li>青色地面箭頭：經過就補充 25 點能量。</li><li>綠色交付光門：對準光門穿過即自動交付，獎勵 4 秒與能量。</li><li>失誤會短暫減速並中斷連段，包裹不會掉落。錯過交付點也能繼續完成航程。</li></ul><h3>分岔：選一條你的路</h3><p>每趟有三處分岔。接近路口時，站在跑道左半邊選左路、右半邊選右路；正中央預設左路。兩側還連在一起時可自由改選，等中央護欄真正分開才確定路線。不碰搖桿或方向鍵會直行，彎道要自行左右操控；碰到護欄才會擦撞。支線內仍可自由左右移動，末端重新連成寬跑道。</p><ul><li>極速環道：速度更快，啟動衝刺穿過三道光門。</li><li>空中躍台：踩紫色跳台會自動彈起，在空中接住三顆高空星。</li><li>節奏曲線：自由轉向，連續穿過四道精準環。</li><li>磁力花園：吸取範圍擴大，接住六顆光環。</li></ul><p>每完成一條支線挑戰，加 4 秒、積分、能量及 25 XP；磁力花園會充滿能量。挑戰沒完成也能繼續配送。</p><h3>成為你的那一種快遞員</h3><p>可選三位快遞員，或紅、黃、藍皮克敏。紅皮克敏與疾風擅長衝刺；黃皮克敏與躍動可二段跳；藍皮克敏與共鳴擅長遠距收集。三種皮克敏都有獨立 3D 造型，選好後會自動保存。完成委託累積經驗，每 220 XP 升一級並獲得技能點，最多 9 點，能永久提升能量、收集範圍或委託時間。</p><h3>五位同行外送員</h3><p>小嵐、阿澈、米洛、沐沐、星野由電腦控制，會自行選路、避開設施、踩跳台、衝刺並配送。頭上標示名字與 AI，各自有獨立能量和包裹；不會搶走你的光環，碰到同行者會輕微彈開、亮起接觸光圈並短暫減速；擦到護欄會輕晃和減速，不扣能量、不打斷連段。左下方顯示你在六位外送員中的即時順位。</p><h3>城市會跟著你變化</h3><p>順風航道提高速度；磁力潮汐擴大收集範圍；追光時刻讓積分加倍。每次路線配置會改變，每組障礙都保留足夠的通行空間。</p><p>手機搖桿可任意旋轉：偏左就向左、偏右就向右，純上下不改變速度，橫移會平順起步、快速停住，垂直附近設有防抖區。右側衝刺點一次就持續到能量耗盡，浮板會噴出青白色氮氣尾焰，放手仍會衝刺；耗盡後自動回充，再點一次可重新啟動。另一顆按鈕用來跳躍，可同時操作。暫停與說明期間倒數停止；切換分頁也會自動暫停。</p><p class="storage-note">角色與最高紀錄只儲存在目前瀏覽器。本遊戲不需要登入或連線，也沒有付費項目。</p></div>`;
+  const manual=`<div class="manual"><p>你是霓光城的晴空快遞員。角色會自動前進，一班約一至兩分鐘，依路線與操作節奏變化。把三件包裹送進跑道上的<strong>綠色光門</strong>，再衝過終點。</p><div class="key-row"><span>按住左右平順移動，放開快速停住</span><kbd>← / →</kbd></div><div class="key-row"><span>跳躍；躍動角色可再跳一次</span><kbd>SPACE</kbd></div><div class="key-row"><span>按住衝刺 / 按住緩行</span><kbd>↑ / ↓</kbd></div><div class="key-row"><span>暫停 / 返回</span><kbd>ESC</kbd></div><h3>看路線，也抓節奏</h3><ul><li>青色光環：補充能量，連續收集會提高倍率，最高 ×5。超過 5.5 秒沒接到連段會歸零。</li><li>橘色橫桿、通風口：跳過或從旁邊繞過。橘色警示箱：從旁邊繞過。</li><li>青色地面箭頭：經過就補充 25 點能量。</li><li>綠色交付光門：對準光門穿過即自動交付，獎勵 4 秒與能量。</li><li>失誤會短暫減速並中斷連段，包裹不會掉落。錯過交付點也能繼續完成航程。</li></ul><h3>分岔：選一條你的路</h3><p>每趟有三處分岔。接近路口時，站在跑道左半邊選左路、右半邊選右路；正中央預設左路。兩側還連在一起時可自由改選，等中央護欄真正分開才確定路線。不碰搖桿或方向鍵會直行，彎道要自行左右操控；碰到護欄才會擦撞。支線內仍可自由左右移動，末端重新連成寬跑道。</p><ul><li>極速環道：速度更快，啟動衝刺穿過三道光門。</li><li>空中躍台：踩紫色跳台會自動彈起，在空中接住三顆高空星。</li><li>節奏曲線：自由轉向，連續穿過四道精準環。</li><li>磁力花園：吸取範圍擴大，接住六顆光環。</li></ul><p>每完成一條支線挑戰，加 4 秒、積分、能量及 25 XP；磁力花園會充滿能量。挑戰沒完成也能繼續配送。</p><h3>成為你的那一種快遞員</h3><p>可選三位快遞員，或紅、黃、藍皮克敏。紅皮克敏與疾風擅長衝刺；黃皮克敏與躍動可二段跳；藍皮克敏與共鳴擅長遠距收集。三種皮克敏都有獨立 3D 造型，選好後會自動保存。完成委託累積經驗，每 220 XP 升一級並獲得技能點，最多 9 點，能永久提升能量、收集範圍或委託時間。</p><h3>五位同行外送員</h3><p>小嵐、阿澈、米洛、沐沐、星野由電腦控制，會自行選路、避開設施、踩跳台、衝刺並配送。近處以小色點辨識，各自有獨立能量和包裹；不會搶走你的光環，碰到同行者會輕微彈開、亮起接觸光圈並短暫減速；擦到護欄會輕晃和減速，不扣能量、不打斷連段。左下方顯示你在六位外送員中的即時順位。</p><h3>城市會跟著你變化</h3><p>順風航道提高速度；磁力潮汐擴大收集範圍；追光時刻讓積分加倍。每次路線配置會改變，每組障礙都保留足夠的通行空間。</p><p>手機搖桿可任意旋轉：偏左就向左、偏右就向右，純上下不改變速度，橫移會平順起步、快速停住，垂直附近設有防抖區。右側衝刺點一次就持續到能量耗盡，浮板會噴出青白色氮氣尾焰，放手仍會衝刺；耗盡後自動回充，再點一次可重新啟動。另一顆按鈕用來跳躍，可同時操作。暫停與說明期間倒數停止；切換分頁也會自動暫停。</p><p class="storage-note">角色與最高紀錄只儲存在目前瀏覽器。本遊戲不需要登入或連線，也沒有付費項目。</p></div>`;
   function openInfo(kind){
     game.infoOrigin=game.mode==='paused'?'paused':'cover';game.infoFocus=document.activeElement;game.infoKind=kind;mode('info');
     $('info-kicker').textContent=kind==='career'?'RUNNER PROFILE':'FIELD MANUAL';$('info-title').textContent=kind==='career'?'把專長，練成風格。':'晴空指南';

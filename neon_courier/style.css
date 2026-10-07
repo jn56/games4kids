@@ -38,3 +38,16 @@ body:not([data-mode=cover]) .screen-shade{background:linear-gradient(180deg,#e5f
 
 @media(max-width:600px) and (orientation:portrait){.cover-stamp{display:none}.screen-shade{background:linear-gradient(0deg,#f5f9efff 0%,#f5f9eff2 31%,#f5f9ef00 65%)}.cover .eyebrow{max-width:60%;flex-wrap:wrap;gap:5px}.cover .eyebrow i{display:none}}
 @media(max-width:359px) and (orientation:portrait){.cover h1{font-size:33px}.cover .eyebrow{max-width:60%;font-size:6px}.screen-shade{background:linear-gradient(0deg,#f5f9efff 0%,#f5f9eff2 49%,#f5f9ef00 80%)}}
+
+/* Keep the road readable; full instructions and progression live in opened panels. */
+#career-badge,#best-label,#district-label,#target-hint,.route-progress,.keyboard-strip,#score,.energy small,.clock-card>.tiny-label,#fork-options small{display:none}
+.cover h1{font-size:clamp(46px,4.8vw,68px);letter-spacing:-2px;margin-bottom:24px}
+.contract-row .tiny-label{display:none}.contract-row>div{display:flex;flex-wrap:wrap;gap:5px 12px}.cover-links button{min-height:32px}
+.mission-card{padding:9px 12px;border-radius:8px;max-width:170px;background:#f5fcf3ad}.mission-card strong{font-size:17px;letter-spacing:0}
+.clock-card>strong{font-size:38px;letter-spacing:-2px}.clock-card strong>span{font-size:19px}.clock-card{gap:3px}
+.score-stack{gap:5px}.energy{width:115px}.energy-track{margin-top:8px}
+.fork-card,.fork-card.chosen{top:151px;width:270px;background:#f5fcf3b8;padding:8px 10px}.fork-card>.tiny-label{margin-bottom:6px}.fork-card.chosen{width:auto;min-width:150px}.fork-card.chosen>.tiny-label{display:none}#fork-progress{margin:0;font-size:12px}#fork-options>div{padding:7px}#fork-options strong{font-size:12px}
+.toast{font-size:15px}#hud:has(#fork-card:not([hidden])) .toast{top:235px}
+@media(max-width:600px) and (orientation:portrait){.cover h1{font-size:43px;margin-bottom:18px}.mission-card{max-width:150px}.mission-card strong{font-size:15px}.clock-card>strong{font-size:32px}.clock-card strong>span{font-size:16px}.energy{width:95px}.fork-card,.fork-card.chosen{top:154px;width:240px}.fork-card.chosen{width:auto}.cover-copy{bottom:max(36px,env(safe-area-inset-bottom))}}
+@media(max-width:359px) and (orientation:portrait){.cover h1{font-size:35px;margin-bottom:12px}.cover-copy{bottom:max(25px,env(safe-area-inset-bottom))}.energy{width:82px}}
+@media(max-height:500px) and (orientation:landscape){.cover h1{font-size:38px;margin-bottom:0}.cover-links button{min-height:26px}.mission-card{top:61px;padding:6px 9px}.clock-card{top:60px}.clock-card>strong{font-size:30px}.fork-card,.fork-card.chosen{top:112px;width:min(270px,calc(100% - 280px));padding:6px 8px}.fork-card.chosen{width:auto;min-width:140px}#fork-options strong{font-size:10px}.energy{width:95px}#hud:has(#fork-card:not([hidden])) .toast{top:auto;bottom:14px}}
