@@ -267,7 +267,6 @@ Meadow.Game = class {
     this.streetRun.update(paused?0:dt);
     this.living.update(paused?0:dt);
     this.polish.update(paused?0:dt);
-    this.identity.update();
     this.view.update(dt,this.state.mode==='title',this.reducedMotion);
     this.minimap.update();
     if(this.trials.active&&this.state.mode==='action'&&!this.reducedMotion&&this.trials.shake>0)this.camera.position.x+=Math.sin(this.time*35)*.045;

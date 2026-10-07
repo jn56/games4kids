@@ -31,7 +31,20 @@ async function core(){
   await pause();pass('keyboard title, prologue, walking, ribbon dialogue, pause/resume');
   await p.keyboard.press('Escape');await activate('#pause-characters');await choose('#character-role','小米');await keyTo('#character-name');await p.keyboard.press('Control+A');await p.keyboard.type('小安');await p.keyboard.press('Escape');await activate('#character-save');assert.equal(await p.evaluate(()=>meadowGame.identity.names['小米']),'小安');
   await p.keyboard.press('Escape');await p.keyboard.press('Escape');
-  await p.evaluate(()=>meadowGame.dialogue.show([{name:'小米',text:'媽媽，我們一起走回家吧。'}]));await p.waitForTimeout(210);assert.equal(await p.locator('#dialogue-name').textContent(),'小安');await talk();
+  const renamed=await p.evaluate(async()=>{
+    const g=meadowGame,frame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
+    // A rename must already be applied on the first frame, including rapid pages.
+    g.identity.update();
+    g.dialogue.show([{name:'小米',text:'媽媽，小米來了。'},{name:'媽媽',text:'小米，我們一起走回家吧。'}]);
+    await frame();
+    const first=[document.getElementById('dialogue-name').textContent,document.getElementById('dialogue-text').textContent];
+    g.dialogue.next();await frame();
+    const second=document.getElementById('dialogue-text').textContent;
+    g.toast('小米找到了線索');await frame();
+    const toast=document.getElementById('toast').textContent;
+    return {first,second,toast,role:g.dialogue.lines[0].name};
+  });
+  assert.deepEqual(renamed,{first:['小安','媽媽，小安來了。'],second:'小安，我們一起走回家吧。',toast:'小安找到了線索',role:'小米'});await talk();
   await p.reload();await p.waitForFunction(()=>window.meadowGame);assert.equal(await p.evaluate(()=>meadowGame.identity.names['小米']),'小安');pass('all-role name editor with primary keys, renamed dialogue and persistence');
   await seed(1);await p.evaluate(()=>{const l=meadowGame.living;l.reset();l.enabled=true;l.cooldown=.03;});await p.waitForFunction(()=>meadowGame.living.event);await p.evaluate(()=>{meadowGame.living.reset();meadowGame.living.start('mosquito');});
   await p.waitForTimeout(250);const before=await p.evaluate(()=>meadowGame.living.event.elapsed);await p.keyboard.press('Escape');await p.waitForTimeout(250);assert.equal(await p.evaluate(()=>meadowGame.living.event.elapsed),before);await p.keyboard.press('Escape');
