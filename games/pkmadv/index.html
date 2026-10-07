@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>花花草原快跑 · 遊戲小花園</title>
+  <!-- 引入可愛的 Fredoka 與 Outfit 字型，適合兒童遊戲與現代 UI -->
+  <link rel="stylesheet" href="style.css">
+<meta name="description" content="在三條草原走道間閃躲樹木與木箱，收集 20 朵花。小心便便會扣分！">
+<link rel="stylesheet" href="../shared/game.css">
+</head>
+<body class="game-page game-wide" data-game="pkmadv">
+  <div class="game-container">
+    <header class="game-header">
+      <div class="title-row" style="position: relative;">
+        <a href="../../index.html" class="home-btn" style="position: absolute; left: 0; text-decoration: none; font-size: 1.2rem; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(56,142,60,0.3); color: var(--text-dark); box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.2s;">🏠 返回</a>
+        <h1>花花草原快跑</h1>
+      </div>
+      <p class="subtitle">避開木箱與樹木，在陽光草原上收集花朵！</p>
+    </header>
+
+    <div class="canvas-wrapper">
+      <canvas id="gameCanvas" width="800" height="450"></canvas>
+    </div>
+
+    <footer class="game-footer">
+      <div class="controls-guide">
+        <span class="key-badge">▲</span>
+        <span class="key-badge">▼</span>
+        <span>控制主角上下切換走道</span>
+      </div>
+      <div class="rules-guide">
+        <span class="rule-item">🌸 +1 分</span>
+        <span class="rule-item">💩 -1 分</span>
+        <span class="rule-item">🌳 / 📦 遊戲結束</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="../shared/catalog.js"></script>
+<script src="../shared/audio.js"></script>
+<script src="../shared/shell.js"></script>
+<script src="config.js"></script>
+  <script src="game.js?v=4"></script>
+</body>
+</html>
