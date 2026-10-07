@@ -3,47 +3,50 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#090d20">
-  <meta name="description" content="霓光快遞：極速夜航。穿越霓虹空中都市的 3D 即時角色扮演遊戲，自由左右移動、跳躍、衝刺，在限時內把城市的期待送達。">
-  <title>霓光快遞：極速夜航 · NEON COURIER</title>
+  <meta name="theme-color" content="#e1f2ef">
+  <meta name="description" content="霓光快遞：晴空出發。穿越陽光空中都市的 3D 即時角色扮演遊戲，自由左右移動、跳躍、衝刺，在限時內把城市的期待送達。">
+  <title>霓光快遞：晴空出發 · NEON COURIER</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23090d20'/%3E%3Cpath d='M37 6 14 36h17l-4 22 24-32H34z' fill='%23d9ff6b'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=8">
   <script src="three.min.js" defer></script>
-  <script src="model.js?v=7" defer></script>
-  <script src="world.js?v=7" defer></script>
-  <script src="audio.js?v=5" defer></script>
+  <script src="model.js?v=8" defer></script>
+  <script src="world.js?v=8" defer></script>
+  <script src="audio.js?v=8" defer></script>
   <script src="controls.js?v=5" defer></script>
-  <script src="game.js?v=7" defer></script>
+  <script src="game.js?v=8" defer></script>
 </head>
 <body data-mode="cover">
-  <canvas id="world" aria-label="霓虹城市的立體航道"></canvas>
+  <canvas id="world" aria-label="晴空城市的立體航道"></canvas>
   <div class="screen-shade" aria-hidden="true"></div>
   <header class="masthead">
-    <a class="brand" href="../index.html" aria-label="回遊戲首頁"><span class="brand-mark">ϟ</span><span>NEON<span class="brand-light">COURIER</span><small>霓光快遞 · 極速夜航</small></span></a>
-    <div class="header-actions"><span class="live-label"><i></i> NIGHT SHIFT / 24:00</span><button id="sound" class="icon-button" aria-label="開啟音樂" aria-pressed="false">♪</button><button id="pause" class="icon-button" aria-label="暫停遊戲" hidden>Ⅱ</button></div>
+    <a class="brand" href="../index.html" aria-label="回遊戲首頁"><span class="brand-mark">ϟ</span><span>NEON<span class="brand-light">COURIER</span><small>霓光快遞 · 晴空出發</small></span></a>
+    <div class="header-actions"><span class="live-label"><i></i> DAY SHIFT / 09:00</span><button id="sound" class="icon-button" aria-label="開啟音樂" aria-pressed="false">♪</button><button id="pause" class="icon-button" aria-label="暫停遊戲" hidden>Ⅱ</button></div>
   </header>
 
   <main id="cover" class="cover">
     <div class="cover-copy">
-      <p class="eyebrow"><span>01 / CITY AFTER DARK</span><i></i> 今晚，全城等你</p>
-      <h1>把夜色<br>甩在<span>身後。</span></h1>
-      <p class="intro">你是城市的最後一棒。踩上浮板，穿過光流，<br class="wide-only">把每一份期待，準時送達。</p>
+      <p class="eyebrow"><span>01 / A BRIGHT NEW DAY</span><i></i> 今天，為希望出發</p>
+      <h1>迎著光，<br>一起<span>出發。</span></h1>
+      <p class="intro">和夥伴一起踩上浮板，穿過晴空，<br class="wide-only">把每一份期待，準時送達。</p>
       <div class="pilot-line"><label for="pilot-name">你的代號</label><input id="pilot-name" maxlength="12" autocomplete="off" spellcheck="false" value="夜行者"><span id="career-badge">LV.01 新晉快遞員</span></div>
-      <div class="role-picker" role="group" aria-label="選擇角色專長">
+      <div class="role-selection"><div class="role-tabs" role="group" aria-label="角色種類"><button data-family="human" aria-pressed="true">快遞員 · 3</button><button data-family="pikmin" aria-pressed="false">皮克敏 · 3</button></div><div class="role-picker" role="group" aria-label="選擇角色">
         <button data-role="velocity" aria-pressed="true"><span>↗</span><strong>疾風</strong><small>極速衝刺</small></button>
         <button data-role="aerial" aria-pressed="false"><span>⌁</span><strong>躍動</strong><small>空中二段跳</small></button>
         <button data-role="resonance" aria-pressed="false"><span>◎</span><strong>共鳴</strong><small>遠距收集</small></button>
-      </div>
-      <div class="contract-row"><div><span class="tiny-label">本次委託</span><strong id="contract-name">屋頂派對</strong><span id="contract-detail">標準 · 2.7 km · 100 秒</span></div><button id="contract-next" class="round-button" aria-label="切換委託">↗</button></div>
+        <button data-role="pikmin_red" aria-pressed="false" hidden><span><svg viewBox="0 0 48 56" aria-hidden="true"><path d="M24 20V9" stroke="#e94c43" stroke-width="4"/><path d="M24 11C12 12 11 2 10 2C23 0 30 5 24 11Z" fill="#499f43"/><ellipse cx="24" cy="32" rx="16" ry="19" fill="#e94c43"/><ellipse cx="18" cy="28" rx="5" ry="7" fill="#fff"/><ellipse cx="31" cy="28" rx="5" ry="7" fill="#fff"/><ellipse cx="18" cy="29" rx="2" ry="4" fill="#214451"/><ellipse cx="31" cy="29" rx="2" ry="4" fill="#214451"/><path d="M23 34L24 45L29 34Z" fill="#bd3936"/></svg></span><strong>紅皮克敏</strong><small>極速衝刺</small></button>
+        <button data-role="pikmin_yellow" aria-pressed="false" hidden><span><svg viewBox="0 0 48 56" aria-hidden="true"><path d="M24 20V9" stroke="#f9ce48" stroke-width="4"/><path d="M24 11C12 12 11 2 10 2C23 0 30 5 24 11Z" fill="#499f43"/><path d="M12 26L2 17L4 34L14 35M36 26L46 17L44 34L34 35" fill="#f9ce48"/><ellipse cx="24" cy="32" rx="16" ry="19" fill="#f9ce48"/><ellipse cx="18" cy="28" rx="5" ry="7" fill="#fff"/><ellipse cx="31" cy="28" rx="5" ry="7" fill="#fff"/><ellipse cx="18" cy="29" rx="2" ry="4" fill="#214451"/><ellipse cx="31" cy="29" rx="2" ry="4" fill="#214451"/></svg></span><strong>黃皮克敏</strong><small>空中二段跳</small></button>
+        <button data-role="pikmin_blue" aria-pressed="false" hidden><span><svg viewBox="0 0 48 56" aria-hidden="true"><path d="M24 20V9" stroke="#459de9" stroke-width="4"/><path d="M24 11C12 12 11 2 10 2C23 0 30 5 24 11Z" fill="#499f43"/><ellipse cx="24" cy="32" rx="16" ry="19" fill="#459de9"/><ellipse cx="18" cy="28" rx="5" ry="7" fill="#fff"/><ellipse cx="31" cy="28" rx="5" ry="7" fill="#fff"/><ellipse cx="18" cy="29" rx="2" ry="4" fill="#214451"/><ellipse cx="31" cy="29" rx="2" ry="4" fill="#214451"/><ellipse cx="25" cy="40" rx="6" ry="3" fill="#245075"/></svg></span><strong>藍皮克敏</strong><small>遠距收集</small></button>
+      </div></div>
+      <div class="contract-row"><div><span class="tiny-label">本次委託</span><strong id="contract-name">屋頂派對</strong><span id="contract-detail">標準 · 5.4 km · 170 秒</span></div><button id="contract-next" class="round-button" aria-label="切換委託">↗</button></div>
       <button id="launch" class="launch">接單，出發 <span>↗</span><small>SPACE</small></button>
-      <div class="cover-links"><button id="open-career">角色成長 <span id="skill-count"></span></button><button id="open-help">怎麼玩 ↗</button><span id="best-label">首次夜航，寫下你的紀錄</span></div>
+      <div class="cover-links"><button id="open-career">角色成長 <span id="skill-count"></span></button><button id="open-help">怎麼玩 ↗</button><span id="best-label">首次出發，寫下你的紀錄</span></div>
     </div>
     <div class="cover-stamp" aria-hidden="true"><span>AIRWAY 07</span><strong>CHASE<br>THE LIGHT.</strong><div>3D / REAL-TIME / NO COMBAT</div></div>
-    <div class="cover-footer"><span>浮板已充滿。城市還醒著。</span><span>方向鍵移動 · 空白鍵跳躍 · ESC 暫停</span><span>01 — 03 DISTRICTS</span></div>
+    <div class="cover-footer"><span>浮板已充滿。今天，有好事發生。</span><span>方向鍵移動 · 空白鍵跳躍 · ESC 暫停</span><span>01 — 03 DISTRICTS</span></div>
   </main>
 
   <section id="hud" aria-label="即時任務資訊" hidden>
-    <div class="mission-card"><span class="tiny-label" id="district-label">01 / 霓虹街區</span><strong id="mission">前往第一個交付點</strong><span id="target-hint">進入亮起的交付光門</span></div>
+    <div class="mission-card"><span class="tiny-label" id="district-label">01 / 晴空街區</span><strong id="mission">前往第一個交付點</strong><span id="target-hint">進入亮起的交付光門</span></div>
     <div class="route-progress"><div class="route-line"><i id="route-fill"></i></div><span data-stop="0">1</span><span data-stop="1">2</span><span data-stop="2">3</span></div>
     <div class="clock-card"><span class="tiny-label">剩餘時間</span><strong id="timer">100<span>.0</span></strong><span id="delivery-count">0 / 3 已送達</span></div>
     <div id="event" class="event-chip" hidden><i></i><span></span></div>
@@ -60,11 +63,11 @@
     <div class="touch-moves"><button data-action="boost" aria-label="點一下衝刺，持續直到能量耗盡" aria-pressed="false"><span>ϟ</span><small>衝刺</small></button><button data-action="jump" aria-label="跳躍"><span>↑</span><small>跳躍</small></button></div>
   </div>
 
-  <section id="pause-panel" class="overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="panel pause-panel"><p class="eyebrow">TAKE A BREATH</p><h2 id="pause-title">城市等你一下。</h2><p>航程與倒數已暫停。</p><button id="resume" class="launch">繼續夜航 <span>↗</span></button><div class="pause-grid"><button id="pause-help" class="secondary">操作說明</button><button id="restart" class="secondary">重新接單</button></div><button id="return-cover" class="text-button">回到出發站</button></div></section>
+  <section id="pause-panel" class="overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="panel pause-panel"><p class="eyebrow">TAKE A BREATH</p><h2 id="pause-title">城市等你一下。</h2><p>航程與倒數已暫停。</p><button id="resume" class="launch">繼續配送 <span>↗</span></button><div class="pause-grid"><button id="pause-help" class="secondary">操作說明</button><button id="restart" class="secondary">重新接單</button></div><button id="return-cover" class="text-button">回到出發站</button></div></section>
 
   <section id="result" class="overlay" role="dialog" aria-modal="true" aria-labelledby="result-title" hidden><div class="panel result-panel"><p class="eyebrow" id="result-eyebrow">SHIFT COMPLETE</p><div class="result-heading"><div><h2 id="result-title">把光送到了。</h2><p id="result-caption"></p></div><span id="grade" class="grade">A</span></div><div class="result-grid"><div><span>本次積分</span><strong id="result-score"></strong></div><div><span>交付</span><strong id="result-deliveries"></strong></div><div><span>最長連段</span><strong id="result-combo"></strong></div><div><span>角色經驗</span><strong id="result-xp"></strong></div></div><p id="result-growth" class="growth-note"></p><button id="again" class="launch">再跑一單 <span>↗</span><small>SPACE</small></button><button id="result-home" class="text-button">角色成長與委託選擇</button></div></section>
 
-  <section id="info-panel" class="overlay" role="dialog" aria-modal="true" aria-labelledby="info-title" hidden><div class="panel info-panel"><div class="panel-heading"><div><p class="eyebrow" id="info-kicker">FIELD MANUAL</p><h2 id="info-title">夜航指南</h2></div><button id="close-info" class="icon-button" aria-label="關閉視窗">×</button></div><div id="info-content"></div></div></section>
+  <section id="info-panel" class="overlay" role="dialog" aria-modal="true" aria-labelledby="info-title" hidden><div class="panel info-panel"><div class="panel-heading"><div><p class="eyebrow" id="info-kicker">FIELD MANUAL</p><h2 id="info-title">晴空指南</h2></div><button id="close-info" class="icon-button" aria-label="關閉視窗">×</button></div><div id="info-content"></div></div></section>
   <section id="error" class="overlay" role="alert" hidden><div class="panel"><h2>航道暫時無法開啟</h2><p id="error-text">請使用支援 WebGL 的瀏覽器，或重新整理再試一次。</p><button class="launch" onclick="location.reload()">重新整理 ↗</button><a class="text-button" href="../index.html">回遊戲首頁</a></div></section>
   <noscript>請啟用 JavaScript，才能進入霓光城市。</noscript>
 </body>

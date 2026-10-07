@@ -8,7 +8,7 @@ module.exports=function targetX(r,choices=0){
     if(goal)return r.aimX(goal);
     return r.aimX({distance:active.end,x:0});
   }
-  const next=r.stops.find(s=>!s.done);if(next&&next.distance-r.distance<100)return r.aimX(next);
+  const next=r.stops.find(s=>!s.done);if(next&&next.distance-r.distance<200)return r.aimX(next);
   const hazard=r.items.find(o=>r.itemActive(o)&&!o.done&&['tower','barrier','vent'].includes(o.type)&&o.distance>r.distance&&o.distance-r.distance<200);
   if(hazard){
     const blocked=r.items.filter(o=>r.itemActive(o)&&o.distance===hazard.distance&&['tower','barrier','vent'].includes(o.type));

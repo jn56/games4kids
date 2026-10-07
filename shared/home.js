@@ -1,5 +1,5 @@
 (() => {
-  const catalog = [...GameCatalog, {id:'neon_courier',name:'霓光快遞：極速夜航',icon:'🌃',category:'立體冒險',color:'#5450a5',tint:'#e8e5ff',description:'搖桿駕馭高速浮板，在分岔選路、飛越跳台、衝刺穿環！限時配送與角色成長，無打鬥的 3D 即時冒險。',preserved:true}, {id:'find_mom_3d_v2',name:'找媽媽 V2：回家的四盞燈',icon:'🌲',category:'立體冒險',color:'#23594c',tint:'#e2eee1',description:'方向鍵與空白鍵展開四章冒險，躲蚊子、追猴子！角色可改名，也能親自配音。',preserved:true}, {id:'find_mom_3d',name:'找媽媽（原版）',icon:'🏡',category:'立體冒險',color:'#8b795c',tint:'#f0eadc',description:'走進立體世界，出發尋找媽媽。',preserved:true}];
+  const catalog = [...GameCatalog, {id:'neon_courier',name:'霓光快遞：晴空出發',icon:'☀️',category:'立體冒險',color:'#247c76',tint:'#e0f1df',description:'選擇快遞員或紅、黃、藍皮克敏，在陽光城市駕馭浮板！雙倍跑道、分岔挑戰與夥伴擦撞，3D 即時配送冒險。',preserved:true}, {id:'find_mom_3d_v2',name:'找媽媽 V2：回家的四盞燈',icon:'🌲',category:'立體冒險',color:'#23594c',tint:'#e2eee1',description:'方向鍵與空白鍵展開四章冒險，躲蚊子、追猴子！角色可改名，也能親自配音。',preserved:true}, {id:'find_mom_3d',name:'找媽媽（原版）',icon:'🏡',category:'立體冒險',color:'#8b795c',tint:'#f0eadc',description:'走進立體世界，出發尋找媽媽。',preserved:true}];
   let filter='全部', query='', selected=-1;
   const grid=document.getElementById('game-grid');
   function render() {

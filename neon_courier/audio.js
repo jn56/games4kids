@@ -9,14 +9,14 @@ NC.Audio=class {
     g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(volume,now+.008);g.gain.exponentialRampToValueAtTime(.001,now+length);
     o.connect(g);g.connect(this.master);o.start();o.stop(now+length+.03);this.nodes.add(o);o.onended=()=>{o.disconnect();g.disconnect();this.nodes.delete(o);};
   }
-  effect(kind){const notes={signal:[880,.08,'sine',.16,1320],jump:[220,.15,'triangle',.18,550],clear:[660,.15,'sine',.22,990],charge:[440,.24,'triangle',.2,880],delivery:[523,.28,'triangle',.22,1046],bump:[125,.07,'sine',.10,85],stumble:[165,.12,'sine',.18,110],start:[660,.2,'triangle',.2,880],finish:[784,.45,'triangle',.2,1568]};if(notes[kind])this.note(...notes[kind]);}
+  effect(kind){const notes={signal:[880,.08,'sine',.16,1320],jump:[220,.15,'triangle',.18,550],clear:[660,.15,'sine',.22,990],charge:[440,.24,'triangle',.2,880],delivery:[523,.28,'triangle',.22,1046],bump:[155,.09,'triangle',.15,95],stumble:[165,.12,'sine',.18,110],start:[660,.2,'triangle',.2,880],finish:[784,.45,'triangle',.2,1568]};if(notes[kind])this.note(...notes[kind]);}
   quiet(){for(const node of this.nodes)try{node.stop();}catch{}this.nodes.clear();this.clock=0;this.active=false;}
   update(dt,active,boost){
     if(!active){if(this.active)this.quiet();this.active=false;return;}this.active=true;if(!this.enabled)return;
     this.clock-=dt;if(this.clock>0)return;this.clock=.25;const n=this.beat++%16;
     if(n%2===0)this.note(95,.13,'sine',.35,42);
     if(n%4===2)this.note(175,.045,'triangle',.09,130);
-    const progression=[130.81,155.56,174.61,116.54],root=progression[Math.floor(this.beat/16)%4];
-    this.note(root*[1,2,1.5,2.5,2,1.5,3,2][n%8]*(boost?2:1),.14,'triangle',.055);
+    const progression=[130.81,174.61,196,164.81],root=progression[Math.floor(this.beat/16)%4];
+    this.note(root*[1,1.25,1.5,2,1.5,1.25,3,2][n%8]*(boost?2:1),.14,'triangle',.055);
   }
 };

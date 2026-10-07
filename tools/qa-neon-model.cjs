@@ -5,7 +5,18 @@ const bad=N.profile({name:'<script>演員</script>',role:'constructor',xp:-5,con
 const veteran=N.profile({xp:220*4,skills:{battery:3,magnet:3,clock:3}});assert.deepEqual(veteran.skills,{battery:3,magnet:1,clock:0});assert.equal(N.points(veteran),0);
 console.log('PASS profile validation, safe role IDs and skill-point accounting');
 {
- const r=run();r.phase='countdown';tick(r,2.3,{boost:true});assert.equal(r.distance,0);assert.equal(r.remaining,100);tick(r,.3);assert.equal(r.phase,'running');
+ assert.equal(Object.keys(N.roles).length,6);assert.deepEqual(N.contracts.map(c=>c.length),[4800,5400,6000]);
+ for(const [pikmin,human] of [['pikmin_red','velocity'],['pikmin_yellow','aerial'],['pikmin_blue','resonance']]){
+  const p=N.profile({...N.freshProfile(),role:pikmin});assert.equal(p.role,pikmin);assert.equal(N.roles[pikmin].species,'pikmin');
+  for(const ability of ['speed','drain','regen','jumps','magnet'])assert.equal(N.roles[pikmin][ability],N.roles[human][ability]);
+ }
+ const r=run('pikmin_blue');r.x=-N.moveLimit+.1;r.speed=70;r.chain=6;r.energy=60;r.bump('courier',1);
+ assert.equal(r.x,-N.moveLimit,'Peer contact cannot push a rider through a wall');assert.equal(r.speed,66.5);assert.equal(r.hits,0);assert.equal(r.chain,6);assert.equal(r.energy,60);
+ const before=r.worldX();r.bump('courier',1);assert.equal(r.worldX(),before,'Sustained contact is throttled');assert.equal(r.contacts,1);
+}
+console.log('PASS six saved roles, Pikmin abilities, doubled routes and bounded harmless courier separation');
+{
+ const r=run();r.phase='countdown';tick(r,2.3,{boost:true});assert.equal(r.distance,0);assert.equal(r.remaining,r.contract.time);tick(r,.3);assert.equal(r.phase,'running');
  r.phase='paused';const before=JSON.stringify(r);tick(r,8,{boost:true});assert.equal(JSON.stringify(r),before);
 }
 console.log('PASS countdown and pause freeze simulation timers, events and inputs');
@@ -62,7 +73,7 @@ console.log('PASS fork selection/locking, unchosen-road collision isolation, pau
  for(const side of [-1,1]){
   const r=new N.Run(N.freshProfile(),17,{traffic:false}),f=r.forks[0];r.phase='running';r.items=[];r.speed=r.role.speed;r.distance=f.start+5;r.x=-side*3;
   tick(r,.65,{steer:side});assert.equal(f.choice,null);assert.equal(Math.sign(r.x),side,'Can switch sides after entering the joined junction');tick(r,.2);
-  while(r.distance<f.end+1){const before=r.lateralPosition();r.step(1/90);assert(Math.abs(r.lateralPosition()-before)<.4,'No sideways teleport at selection or rejoining');}
+  while(r.distance<f.end+1){const before=r.lateralPosition();r.step(1/90,{steer:f.choice===null?side:0});assert(Math.abs(r.lateralPosition()-before)<.4,'No sideways teleport at selection or rejoining');}
   assert.equal(f.choice,side>0?1:0);assert(r.contacts>0,'Straight travel eventually scrapes the curved fork wall');
   r.distance=f.start+(f.end-f.start)*.88;r.x=0;r.vx=0;r.contacts=0;r.impactCooldown=0;tick(r,.35,{steer:side===1?-1:1});assert.equal(r.contacts,0,'No invisible central wall on the merged deck');
   r.distance=(f.start+f.end)/2;r.x=side>0?-N.moveLimit:N.moveLimit;r.vx=0;tick(r,.15,{steer:-side});assert.equal(r.contacts,1,'Inner fork wall gives one gentle contact');assert.equal(r.hits,0);assert.equal(r.energy,r.capacity);const contacts=r.contacts;tick(r,.2,{steer:-side});assert.equal(r.contacts,contacts,'Sustained contact is throttled');
@@ -89,7 +100,7 @@ console.log('PASS late junction side changes, continuous selection/merge, smooth
    assert(clearSteps>2,'Rider goes straight in free space before contact');assert(wallSteps>0&&rider.contacts>0,'Untouched rider really scrapes the fork wall');assert.equal(rider.hits,0);
   }
  }
- const escape=new N.Run(N.freshProfile(),17,{traffic:false}),f=escape.forks[0];escape.phase='running';escape.items=[];f.choice=1;escape.distance=f.start+(f.end-f.start)*.88;escape.x=N.moveLimit;escape.speed=escape.role.speed+22;escape.vx=-12;escape.step(1/90,{steer:-1});assert(escape.contacts>0);assert(escape.vx< -10,'A wall does not erase steering away from it');
+ const escape=new N.Run(N.freshProfile(),17,{traffic:false}),f=escape.forks[0];escape.phase='running';escape.items=[];f.choice=1;escape.distance=f.start+(f.end-f.start)*.88;escape.x=N.moveLimit;escape.speed=escape.role.speed+22;escape.vx=-1;escape.step(1/90,{steer:-1});assert(escape.contacts>0);assert(escape.vx< -1,'A wall does not erase steering away from it');
 }
 console.log('PASS all roles: untouched main/fork travel stays straight, sideways correction occurs only at real wall contact, and steering away from a wall remains responsive');
 {
@@ -114,7 +125,7 @@ console.log('PASS automatic launch ramps, high-star altitude, boost-only gates a
 let total=0;const kinds=new Set();
 for(let seed=1;seed<=4;seed++)for(let contract=0;contract<3;contract++)for(const role of Object.keys(N.roles))for(let choices=0;choices<8;choices++){
  const p=N.freshProfile();p.role=role;p.contract=contract;const r=new N.Run(p,seed,{traffic:false});
- const groups=new Map();for(const item of r.items)if(['tower','barrier','vent'].includes(item.type)){const key=[item.distance,item.fork,item.branch].join(':');if(!groups.has(key))groups.set(key,new Set());groups.get(key).add(item.x);assert(r.stops.every(s=>Math.abs(s.distance-item.distance)>=100));if(item.fork===undefined)assert(r.forks.every(f=>item.distance<f.start-125||item.distance>f.end+45));}
+ const groups=new Map();for(const item of r.items)if(['tower','barrier','vent'].includes(item.type)){const key=[item.distance,item.fork,item.branch].join(':');if(!groups.has(key))groups.set(key,new Set());groups.get(key).add(item.x);assert(r.stops.every(s=>Math.abs(s.distance-item.distance)>=200));if(item.fork===undefined)assert(r.forks.every(f=>item.distance<f.start-125||item.distance>f.end+45));}
  assert([...groups.values()].every(g=>g.size<=2));assert(r.items.every(o=>Number.isFinite(o.x)&&Math.abs(o.x)<=N.moveLimit));assert(new Set(r.items.map(o=>o.x)).size>12,"Objects are not constrained to three positions");
  for(let i=0;i<90*160&&!r.result;i++){const steer=N.clamp((targetX(r,choices)-r.x)*8/N.strafeSpeed,-1,1);r.step(1/90,{boost:true,steer});r.notices.length=0;}
  const label=`seed ${seed} / ${contract} / ${role} / branches ${choices}`;

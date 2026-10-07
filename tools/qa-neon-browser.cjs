@@ -33,6 +33,7 @@ async function fit(p,label){
  // One entire run uses the rendered game's real clock and actual key presses.
  await p.keyboard.press('Escape');await p.locator('#restart').click();await p.waitForFunction(()=>neonGame.mode==='running');
  await p.addScriptTag({content:'window.neonTestPilot='+targetX.toString()});
+ await p.evaluate(()=>{const r=neonGame.run,original=r.emit.bind(r);r.testEvents=[];r.emit=(type,data)=>{if(['gateMiss','stumble','ramp','star','delivery','fork','challenge'].includes(type))r.testEvents.push({type,data,d:r.distance,x:r.x});original(type,data);};});
  await p.keyboard.down('ArrowUp');const started=Date.now();let previous=-1,steerKey=null;
  while(await p.evaluate(()=>neonGame.mode!=='result')){
   assert(Date.now()-started<180000,'Real-time run must finish');
@@ -43,7 +44,7 @@ async function fit(p,label){
   if(state.stop!==previous){previous=state.stop;console.log('LIVE '+state.stop+'/3 delivery gates passed');}
   await p.waitForTimeout(40);
  }
- await p.keyboard.up('ArrowUp');if(steerKey)await p.keyboard.up(steerKey);assert.equal(await p.evaluate(()=>neonGame.run.result.delivered),3);assert.equal(await p.evaluate(()=>neonGame.run.result.complete),true);assert.equal(await p.evaluate(()=>neonGame.run.challenges),3);assert.deepEqual(await p.evaluate(()=>neonGame.run.forks.map(f=>f.choice)),[1,0,1]);assert(await p.evaluate(()=>neonGame.profile.xp>=220));assert.equal(await p.evaluate(()=>neonGame.profile.runs),1);
+ await p.keyboard.up('ArrowUp');if(steerKey)await p.keyboard.up(steerKey);fs.writeFileSync(path.join(out,'live-run.json'),JSON.stringify(await p.evaluate(()=>({result:neonGame.run.result,forks:neonGame.run.forks,events:neonGame.run.testEvents})),null,2));assert.equal(await p.evaluate(()=>neonGame.run.result.delivered),3);assert.equal(await p.evaluate(()=>neonGame.run.result.complete),true);assert.equal(await p.evaluate(()=>neonGame.run.challenges),3);assert.deepEqual(await p.evaluate(()=>neonGame.run.forks.map(f=>f.choice)),[1,0,1]);assert(await p.evaluate(()=>neonGame.profile.xp>=220));assert.equal(await p.evaluate(()=>neonGame.profile.runs),1);
  await fit(p,'result');await p.screenshot({path:path.join(out,'result-desktop.png')});const score=await p.evaluate(()=>neonGame.profile.best);await p.waitForTimeout(150);assert.equal(await p.evaluate(()=>neonGame.profile.runs),1);
  pass('complete real-time run using actual arrow keys: right/left/right forks, three challenges, three deliveries, result, XP and one-time save');
  await p.locator('#result-home').click();await p.locator('#open-career').click();const points=await p.evaluate(()=>NC.points(neonGame.profile));assert(points>0);await p.locator('[data-skill="battery"]').click();assert.equal(await p.evaluate(()=>neonGame.profile.skills.battery),1);assert.equal(await p.evaluate(()=>NC.points(neonGame.profile)),points-1);

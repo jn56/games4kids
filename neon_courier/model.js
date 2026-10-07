@@ -5,19 +5,22 @@ const NC = {
   roles: {
     velocity: {name:'疾風', color:0xdcff78, speed:65.625, drain:18, regen:10, jumps:1, magnet:1.8, description:'基礎速度較快，衝刺耗能較低。'},
     aerial: {name:'躍動', color:0xb89aff, speed:61.875, drain:22, regen:12, jumps:2, magnet:1.8, description:'可在空中再跳一次，越過連續維修平台。'},
-    resonance: {name:'共鳴', color:0x75efff, speed:61.875, drain:20, regen:13, jumps:1, magnet:3.5, description:'更遠收集光能，回充較快，容易保持連段。'}
+    resonance: {name:'共鳴', color:0x75efff, speed:61.875, drain:20, regen:13, jumps:1, magnet:3.5, description:'更遠收集光能，回充較快，容易保持連段。'},
+    pikmin_red: {name:'紅皮克敏', species:'pikmin', variant:'red', color:0xe94c43, speed:65.625, drain:18, regen:10, jumps:1, magnet:1.8, description:'尖鼻子的紅色夥伴，擅長高速衝刺。'},
+    pikmin_yellow: {name:'黃皮克敏', species:'pikmin', variant:'yellow', color:0xf9ce48, speed:61.875, drain:22, regen:12, jumps:2, magnet:1.8, description:'大耳朵的黃色夥伴，可以空中二段跳。'},
+    pikmin_blue: {name:'藍皮克敏', species:'pikmin', variant:'blue', color:0x459de9, speed:61.875, drain:20, regen:13, jumps:1, magnet:3.5, description:'有小嘴巴的藍色夥伴，擅長遠距收集。'}
   },
   contracts: [
-    {name:'夜市補給',label:'暖身',length:2400,time:108,spacing:88,clients:['阿森 / 屋頂溫室','露可 / 夜市食堂','阿澄 / 星光書店'],parcels:['夜光種子','派對冰茶','首版詩集'],deliveryX:[.8,-5.8,5.3],messages:['種子要趕上午夜的第一場雨。拜託你了！','冰茶還冰著！大家剛好都到了。','詩集收到了。今晚的朗讀會，有你一份。']},
-    {name:'屋頂派對',label:'標準',length:2700,time:100,spacing:74,clients:['零 / 天台音樂社','米拉 / 光影展台','伊洛 / 雲上觀測站'],parcels:['演出音軌','全息投影片','流星觀測鏡'],deliveryX:[6.4,-4.6,1.2],messages:['主場還差這段音軌。用你的節奏，把它送來。','投影片已收到。這座城市今晚會亮得不一樣。','觀測鏡到站！流星雨還沒開始，剛剛好。']},
-    {name:'星港首映',label:'進階',length:3000,time:98,spacing:62,clients:['伊恩 / 雲端影廳','湊 / 高空舞台','夏凜 / 星港首映'],parcels:['電影母帶','演出耳機','首映邀請函'],deliveryX:[-6.1,4.9,-1.4],messages:['倒數已經開始。這份母帶，交給你了。','耳機到了。謝啦，等會兒記得抬頭看舞台。','最後一份邀請函。你的名字，也在上面。']}
+    {name:'晨光補給',label:'暖身',length:4800,time:180,spacing:88,clients:['阿森 / 屋頂溫室','露可 / 陽光食堂','阿澄 / 晨曦書店'],parcels:['向陽種子','派對冰茶','首版詩集'],deliveryX:[.8,-5.8,5.3],messages:['種子要趕上清晨的第一道陽光。拜託你了！','冰茶還冰著！大家剛好都到了。','詩集收到了。午後的朗讀會，有你一份。']},
+    {name:'屋頂派對',label:'標準',length:5400,time:170,spacing:74,clients:['零 / 天台音樂社','米拉 / 光影展台','伊洛 / 雲上觀測站'],parcels:['演出音軌','全息投影片','太陽觀測鏡'],deliveryX:[6.4,-4.6,1.2],messages:['主場還差這段音軌。用你的節奏，把它送來。','投影片已收到。這座城市今天會亮得不一樣。','觀測鏡到站！陽光正好，剛剛好。']},
+    {name:'星港首映',label:'進階',length:6000,time:160,spacing:62,clients:['伊恩 / 雲端影廳','湊 / 高空舞台','夏凜 / 星港首映'],parcels:['電影母帶','演出耳機','首映邀請函'],deliveryX:[-6.1,4.9,-1.4],messages:['倒數已經開始。這份母帶，交給你了。','耳機到了。謝啦，等會兒記得抬頭看舞台。','最後一份邀請函。你的名字，也在上面。']}
   ],
-  districts: ['霓虹街區','雲端花園','星港天際'],
+  districts: ['晴空街區','雲端花園','向陽星港'],
   routes: {
-    sprint:{name:'極速環道',hint:'衝刺穿過 3 道光門',short:'速度 +6 · 衝刺門',need:3,color:'#dcff78'},
-    sky:{name:'空中躍台',hint:'踩跳台，接住 3 顆高空星',short:'自動彈跳 · 高空星',need:3,color:'#b89aff'},
-    slalom:{name:'節奏曲線',hint:'左右穿過 4 道精準環',short:'左右穿環 · 連段',need:4,color:'#ffbdad'},
-    charge:{name:'磁力花園',hint:'收集 6 顆光環',short:'遠距吸取 · 回充',need:6,color:'#75efff'}
+    sprint:{name:'極速環道',hint:'衝刺穿過 3 道光門',short:'速度 +6 · 衝刺門',need:3,color:'#34823b'},
+    sky:{name:'空中躍台',hint:'踩跳台，接住 3 顆高空星',short:'自動彈跳 · 高空星',need:3,color:'#8060bd'},
+    slalom:{name:'節奏曲線',hint:'左右穿過 4 道精準環',short:'左右穿環 · 連段',need:4,color:'#c86b39'},
+    charge:{name:'磁力花園',hint:'收集 6 顆光環',short:'遠距吸取 · 回充',need:6,color:'#098fa5'}
   },
   // The same continuous fork geometry positions roads, riders and interactables.
   curve(distance){return Math.sin(distance*.0032)*13+Math.sin(distance*.0011)*16;},
@@ -39,7 +42,7 @@ const NC = {
     return p;
   },
   points(p){return Math.max(0,Math.min(9,Math.floor(p.xp/220))-Object.values(p.skills).reduce((a,b)=>a+b,0));},
-  rank(p){const lv=Math.floor(p.xp/220)+1;return {lv,title:lv<3?'新晉快遞員':lv<6?'夜航專家':lv<10?'城市傳奇':'光速信使'};}
+  rank(p){const lv=Math.floor(p.xp/220)+1;return {lv,title:lv<3?'新晉快遞員':lv<6?'晴空專家':lv<10?'城市傳奇':'光速信使'};}
 };
 
 NC.Run=class {
@@ -47,7 +50,7 @@ NC.Run=class {
     this.profile=NC.profile(profile);this.role=NC.roles[this.profile.role];this.contract=NC.contracts[this.profile.contract];this.random=NC.random(seed);
     this.phase='countdown';this.countdown=2.4;this.distance=0;this.elapsed=0;this.remaining=this.contract.time+this.profile.skills.clock*3;
     this.x=0;this.vx=0;this.steering=0;this.y=0;this.vy=0;this.jumps=0;this.jumpBuffer=0;this.speed=0;this.boosting=false;this.boostLocked=false;
-    this.impact=0;this.impactSide=0;this.impactCooldown=0;this.contacts=0;
+    this.impact=0;this.impactSide=0;this.impactKind=null;this.impactCooldown=0;this.contacts=0;
     this.capacity=100+12*this.profile.skills.battery;this.energy=this.capacity;this.stumble=0;this.invincible=0;this.autoBoost=false;
     this.score=0;this.chain=0;this.maxChain=0;this.chainLife=0;this.delivered=0;this.hits=0;this.signals=0;this.completed=0;this.notices=[];
     this.event=null;this.eventTimer=0;this.nextEvent=17;this.eventIndex=Math.floor(this.random()*3);this.jumpCooldown=0;
@@ -59,11 +62,19 @@ NC.Run=class {
   }
   emit(type,data={}){this.notices.push({type,...data});}
   buildRoute(){
-    const spacing=this.contract.spacing;
+    const spacing=this.contract.spacing;let previousCorridor=null;
     for(let d=160,index=0;d<this.contract.length-90;d+=spacing,index++){
-      if(this.stops.some(s=>Math.abs(s.distance-d)<100)||this.forks.some(f=>d>=f.start-125&&d<=f.end+45))continue;
+      if(this.stops.some(s=>Math.abs(s.distance-d)<200)||this.forks.some(f=>d>=f.start-125&&d<=f.end+45))continue;
       // Place objects across the full deck, leaving a clear corridor around safeX.
-      const safeX=this.random()*12-6,blocked=[],count=index>2&&this.random()>.48?2:1;
+      let safeX=this.random()*12-6;
+      // Adjacent rows must remain reachable at maximum boost speed. Compare
+      // world coordinates so a bend cannot secretly add an impossible sidestep.
+      if(previousCorridor&&d-previousCorridor.distance<250){
+        const reach=NC.strafeSpeed*(d-previousCorridor.distance)/100*.55,center=previousCorridor.x+NC.curve(previousCorridor.distance)-NC.curve(d);
+        safeX=NC.clamp(safeX,Math.max(-6,center-reach),Math.min(6,center+reach));
+      }
+      previousCorridor={distance:d,x:safeX};
+      const blocked=[],count=index>2&&this.random()>.48?2:1;
       for(let attempt=0;attempt<40&&blocked.length<count;attempt++){const x=this.random()*16.6-8.3;if(Math.abs(x-safeX)>4.9&&blocked.every(b=>Math.abs(b-x)>5))blocked.push(x);}
       for(const x of blocked){
         const type=['barrier','vent','tower'][Math.floor(this.random()*3)];
@@ -117,7 +128,15 @@ NC.Run=class {
   jump(){if(this.phase==='running')this.jumpBuffer=.16;}
   startBoost(){if(!['running','countdown'].includes(this.phase)||this.energy<=0||this.autoBoost)return false;this.autoBoost=true;this.boostLocked=false;return true;}
   racePosition(){return 1+this.couriers.filter(c=>c.run.distance>this.distance).length;}
-  bump(kind,side){if(this.impactCooldown>0)return;this.contacts++;this.impact=.28;this.impactSide=side||1;this.impactCooldown=.65;this.speed*=.97;this.emit('bump',{kind,side:this.impactSide});}
+  bump(kind,side){
+    if(this.impactCooldown>0)return;
+    this.contacts++;this.impact=.28;this.impactSide=side||1;this.impactKind=kind;this.impactCooldown=.65;
+    if(kind==='courier'){
+      // A small, bounded separation makes contact tangible without taking over steering.
+      const bounds=this.lateralBounds();this.x=NC.clamp(this.x-this.impactSide*.24,bounds.min,bounds.max);
+    }
+    this.speed*=kind==='courier'?.95:.97;this.emit('bump',{kind,side:this.impactSide});
+  }
   addChain(points){this.chain++;this.maxChain=Math.max(this.maxChain,this.chain);this.chainLife=5.5;this.score+=Math.round(points*(1+Math.min(4,Math.floor(this.chain/5)))*(this.event==='flow'?2:1));}
   hit(){
     if(this.invincible>0)return;
@@ -209,7 +228,7 @@ NC.Courier=class {
     const r=this.run,pending=r.forks.find(f=>f.choice===null&&r.distance<f.end&&f.start-r.distance<140);
     if(pending){const branch=(this.choices>>pending.index)&1,goal=r.items.find(o=>o.fork===pending.index&&o.branch===branch&&(o.goal||o.type==='ramp'));return goal?r.aimX(goal):(branch?4:-4);}
     const fork=r.forkAt();if(fork){const goal=r.items.find(o=>o.fork===fork.index&&r.itemActive(o)&&!o.done&&o.distance>r.distance&&['ramp','skyStar','speedGate','styleGate','signal'].includes(o.type));if(goal)return r.aimX(goal);return r.aimX({distance:fork.end,x:0});}
-    const stop=r.stops.find(s=>!s.done);if(stop&&stop.distance-r.distance<110)return r.aimX(stop);
+    const stop=r.stops.find(s=>!s.done);if(stop&&stop.distance-r.distance<200)return r.aimX(stop);
     const hazard=r.items.find(o=>r.itemActive(o)&&['tower','barrier','vent'].includes(o.type)&&o.distance>r.distance&&o.distance-r.distance<200);
     if(hazard){
       const group=r.items.filter(o=>r.itemActive(o)&&o.distance===hazard.distance&&['tower','barrier','vent'].includes(o.type));
