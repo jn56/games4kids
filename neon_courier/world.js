@@ -252,7 +252,7 @@ NC.World=class {
       this.instance(this.gardenLeaves,i,x,3.9,-ahead,1.7,2.1,1.7,i*.7);this.instance(this.districtLights,i,x,5.6,-ahead,.10,.1,.1);
     }for(const m of [this.gardenTrunks,this.gardenLeaves,this.gardenPots,this.districtLights])m.instanceMatrix.needsUpdate=true;}
   }
-  resize(){const width=innerWidth,height=innerHeight;this.renderer.setSize(width,height,false);this.camera.aspect=width/height;if(width<height&&height<650)this.camera.setViewOffset(width,height,0,height*.06,width,height);else this.camera.clearViewOffset();this.camera.updateProjectionMatrix();}
+  resize(){const width=this.canvas.clientWidth,height=this.canvas.clientHeight;this.renderer.setSize(width,height,false);this.camera.aspect=width/height;if(width<height&&height<650)this.camera.setViewOffset(width,height,0,height*.06,width,height);else this.camera.clearViewOffset();this.camera.updateProjectionMatrix();}
   setRole(role){
     const selected=NC.roles[role];this.materials.jacket.color.set(selected.color).convertSRGBToLinear();this.body.visible=selected.species!=='pikmin';
     for(const [id,g] of Object.entries(this.pikminForms))g.visible=id===role;
@@ -305,6 +305,7 @@ NC.World=class {
     this.shadow.position.x=x;this.shadow.material.opacity=Math.max(.2,1-y*.15);this.shadow.scale.setScalar(1+y*.08);
     for(let i=0;i<12;i++){const active=run?.boosting&&!cover&&!this.reduced;this.instance(this.trails,i,x+(i%2?1:-1)*(1+i*.3),.15+(i%4)*.6,2+i*.4,.025,.025,active?(1+Math.sin(t*18+i)*.4):0);}this.trails.instanceMatrix.needsUpdate=true;
     this.updateRideEffects(run,cover);
+    const innerWidth=this.canvas.clientWidth,innerHeight=this.canvas.clientHeight;
     const portrait=innerWidth<innerHeight;
     // Chase the physical rider position, never a blend of branch center and
     // branch-local x: that blend changes abruptly when the coordinate frame switches.

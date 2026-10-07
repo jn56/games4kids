@@ -1,12 +1,11 @@
 'use strict';
-// Browser fullscreen is optional; the landscape gate works without it.
+// Rotate the entire touch viewport when needed; no fullscreen permission is required.
 NC.Display=class {
-  constructor(onBlock){
-    this.onBlock=onBlock;this.blocked=false;this.busy=false;
-    this.gate=document.getElementById('rotate-screen');
+  constructor(onRotate){
+    this.onRotate=onRotate;this.busy=false;
+    this.stage=document.getElementById('game-stage');
     this.status=document.getElementById('display-status');
     this.buttons=[...document.querySelectorAll('[data-fullscreen]')];
-    this.surfaces=[...document.querySelectorAll('.masthead,#cover,#hud,#touch-controls,#pause-panel,#result,#info-panel')];
     this.coarse=matchMedia('(pointer: coarse)');
     this.buttons.forEach(button=>button.addEventListener('click',()=>this.toggleFullscreen()));
     window.addEventListener('resize',()=>this.update());
@@ -16,19 +15,11 @@ NC.Display=class {
     this.syncFullscreen();this.update();
   }
   update(){
-    const blocked=this.coarse.matches&&innerHeight>innerWidth;
-    if(blocked===this.blocked)return;
-    this.blocked=blocked;this.gate.hidden=!blocked;
-    if(blocked){
-      this.previousFocus=document.activeElement;this.onBlock();
-      this.surfaces.forEach(el=>el.inert=true);
-      this.gate.querySelector('button').focus({preventScroll:true});
-    }else{
-      this.surfaces.forEach(el=>el.inert=false);
-      const resume=document.getElementById('resume');
-      const target=resume.getClientRects().length?resume:this.previousFocus;
-      if(target?.getClientRects().length)target.focus({preventScroll:true});
-    }
+    const rotated=this.coarse.matches&&innerHeight>innerWidth;
+    if(this.rotated!==undefined&&rotated!==this.rotated)this.onRotate();
+    this.rotated=rotated;this.stage.dataset.rotated=String(rotated);
+    this.stage.style.width=(rotated?innerHeight:innerWidth)+'px';
+    this.stage.style.height=(rotated?innerWidth:innerHeight)+'px';
   }
   fullscreenElement(){return document.fullscreenElement||document.webkitFullscreenElement;}
   syncFullscreen(){
@@ -52,13 +43,13 @@ NC.Display=class {
         try{screen.orientation?.unlock?.();}catch{}
       }else{
         const root=document.documentElement,request=root.requestFullscreen||root.webkitRequestFullscreen;
-        if(!request){this.message('此瀏覽器不支援全螢幕，橫放手機即可遊玩。');return;}
+        if(!request){this.message('此瀏覽器不支援全螢幕，仍可直接遊玩。');return;}
         await request.call(root);
         if(this.coarse.matches&&this.fullscreenElement()){
-          try{await screen.orientation?.lock?.('landscape');}catch{/* Portrait gate remains available when locking is unsupported. */}
+          try{await screen.orientation?.lock?.('landscape');}catch{/* The rotated stage already supplies a landscape layout. */}
         }
       }
-    }catch{this.message('無法開啟或切換全螢幕，仍可橫放手機遊玩。');}
+    }catch{this.message('無法切換全螢幕，仍可直接遊玩。');}
     finally{this.busy=false;this.syncFullscreen();this.update();}
   }
 };

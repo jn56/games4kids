@@ -11,7 +11,7 @@ NC.TouchStick=class {
     for(const type of ['pointerup','pointercancel','lostpointercapture'])pad.addEventListener(type,e=>{if(e.pointerId===this.pointer)this.reset();});
   }
   move(e){
-    const r=this.pad.getBoundingClientRect(),radius=r.width*.34,dx=e.clientX-r.x-r.width/2,dy=e.clientY-r.y-r.height/2,length=Math.hypot(dx,dy),scale=length>radius?radius/length:1;
+    const r=this.pad.getBoundingClientRect(),radius=this.pad.offsetWidth*.34,sx=e.clientX-r.x-r.width/2,sy=e.clientY-r.y-r.height/2,rotated=this.pad.closest('[data-rotated=true]'),dx=rotated?sy:sx,dy=rotated?-sx:sy,length=Math.hypot(dx,dy),scale=length>radius?radius/length:1;
     this.x=dx*scale/radius;this.y=dy*scale/radius;this.knob.style.transform=`translate(${dx*scale}px,${dy*scale}px)`;
     // Hysteresis around the vertical axis prevents tiny finger jitter flipping sides.
     if(length<radius*.18||Math.abs(dx)<Math.max(1,radius*.04))this.direction=0;

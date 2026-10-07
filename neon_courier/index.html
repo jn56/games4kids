@@ -7,21 +7,22 @@
   <meta name="description" content="霓光快遞：晴空出發。穿越陽光空中都市的 3D 即時角色扮演遊戲，自由左右移動、跳躍、衝刺，在限時內把城市的期待送達。">
   <title>霓光快遞：晴空出發 · NEON COURIER</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23090d20'/%3E%3Cpath d='M37 6 14 36h17l-4 22 24-32H34z' fill='%23d9ff6b'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=13">
   <script src="three.min.js" defer></script>
   <script src="model.js?v=11" defer></script>
-  <script src="world.js?v=12" defer></script>
+  <script src="world.js?v=13" defer></script>
   <script src="audio.js?v=8" defer></script>
-  <script src="controls.js?v=5" defer></script>
-  <script src="display.js?v=1" defer></script>
-  <script src="game.js?v=12" defer></script>
+  <script src="controls.js?v=6" defer></script>
+  <script src="display.js?v=2" defer></script>
+  <script src="game.js?v=13" defer></script>
 </head>
 <body data-mode="cover">
+  <div id="game-stage">
   <canvas id="world" aria-label="晴空城市的立體航道"></canvas>
   <div class="screen-shade" aria-hidden="true"></div>
   <header class="masthead">
     <a class="brand" href="../index.html" aria-label="回遊戲首頁"><span class="brand-mark">ϟ</span><span>霓光快遞</span></a>
-    <div class="header-actions"><button id="fullscreen" class="icon-button" data-fullscreen aria-label="全螢幕" aria-pressed="false" title="全螢幕">⛶</button><button id="sound" class="icon-button" aria-label="開啟音樂" aria-pressed="false">♪</button><button id="pause" class="icon-button" aria-label="暫停遊戲" hidden>Ⅱ</button></div>
+    <div class="header-actions"><a id="home" class="icon-button home-button" href="../index.html" aria-label="返回遊戲首頁" title="返回首頁"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9"/></svg><small>首頁</small></a><button id="fullscreen" class="icon-button" data-fullscreen aria-label="全螢幕" aria-pressed="false" title="全螢幕">⛶</button><button id="sound" class="icon-button" aria-label="開啟音樂" aria-pressed="false">♪</button><button id="pause" class="icon-button" aria-label="暫停遊戲" hidden>Ⅱ</button></div>
   </header>
 
   <main id="cover" class="cover">
@@ -60,16 +61,14 @@
     <div class="touch-moves"><button data-action="boost" aria-label="點一下衝刺，持續直到能量耗盡" aria-pressed="false"><span>ϟ</span><small>衝刺</small></button><button data-action="jump" aria-label="跳躍"><span>↑</span><small>跳躍</small></button></div>
   </div>
 
-  <section id="pause-panel" class="overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="panel pause-panel"><h2 id="pause-title">暫停</h2><button id="resume" class="launch">繼續 <span>↗</span></button><div class="pause-grid"><button id="pause-help" class="secondary">操作說明</button><button id="restart" class="secondary">重新接單</button></div><button id="return-cover" class="text-button">回到出發站</button></div></section>
+  <section id="pause-panel" class="overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="panel pause-panel"><h2 id="pause-title">暫停</h2><button id="resume" class="launch">繼續 <span>↗</span></button><div class="pause-grid"><button id="pause-help" class="secondary">操作說明</button><button id="restart" class="secondary">重新接單</button></div><button id="return-cover" class="text-button">回到出發站</button><a class="pause-home text-button" href="../index.html">返回遊戲首頁</a></div></section>
 
   <section id="result" class="overlay" role="dialog" aria-modal="true" aria-labelledby="result-title" hidden><div class="panel result-panel"><p class="eyebrow" id="result-eyebrow">SHIFT COMPLETE</p><div class="result-heading"><div><h2 id="result-title">把光送到了。</h2><p id="result-caption"></p></div><span id="grade" class="grade">A</span></div><div class="result-grid"><div><span>本次積分</span><strong id="result-score"></strong></div><div><span>交付</span><strong id="result-deliveries"></strong></div><div><span>最長連段</span><strong id="result-combo"></strong></div><div><span>角色經驗</span><strong id="result-xp"></strong></div></div><p id="result-growth" class="growth-note"></p><button id="again" class="launch">再跑一單 <span>↗</span><small>SPACE</small></button><button id="result-home" class="text-button">角色成長與委託選擇</button></div></section>
 
   <section id="info-panel" class="overlay" role="dialog" aria-modal="true" aria-labelledby="info-title" hidden><div class="panel info-panel"><div class="panel-heading"><div><p class="eyebrow" id="info-kicker">FIELD MANUAL</p><h2 id="info-title">晴空指南</h2></div><button id="close-info" class="icon-button" aria-label="關閉視窗">×</button></div><div id="info-content"></div></div></section>
   <section id="error" class="overlay" role="alert" hidden><div class="panel"><h2>航道暫時無法開啟</h2><p id="error-text">請使用支援 WebGL 的瀏覽器，或重新整理再試一次。</p><button class="launch" onclick="location.reload()">重新整理 ↗</button><a class="text-button" href="../index.html">回遊戲首頁</a></div></section>
-  <section id="rotate-screen" role="dialog" aria-modal="true" aria-labelledby="rotate-title" hidden>
-    <div class="rotate-card"><svg viewBox="0 0 120 100" aria-hidden="true"><rect x="23" y="27" width="74" height="44" rx="9"/><path d="M32 38v22M88 47v4M18 20A48 48 0 0 1 107 44M18 20l1-15M18 20l16-1M102 80A48 48 0 0 1 13 56M102 80l-1 15M102 80l-16 1"/></svg><h2 id="rotate-title">橫放手機，準備出發</h2><p>直向時遊戲會暫停</p><button data-fullscreen class="launch" aria-pressed="false">全螢幕 ↗</button></div>
-  </section>
   <div id="display-status" role="status" hidden></div>
+  </div>
   <noscript>請啟用 JavaScript，才能進入霓光城市。</noscript>
 </body>
 </html>
