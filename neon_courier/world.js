@@ -260,7 +260,7 @@ NC.World=class {
     this.fliers.forEach((g,i)=>{const a=((i*70-d*.5-t*(i%2?6:-3))%560+560)%560-40;g.position.set(this.curve(d)+(i%2?1:-1)*(20+Math.sin(t*.3+i)*8),4+(i%4)*5+Math.sin(t+i)*.4,-a);});
     this.updateItems(run,d,cover);this.updateCouriers(run,dt,cover);
     const x=cover?bend+5:bend+(run?.x||0),y=cover?.10:run?.y||0;
-    const bump=this.reduced?0:Math.sin((.28-(run?.impact||0))*40)*(run?.impact||0)*.3*(run?.impactSide||1);
+    const bump=this.reduced?0:Math.sin((.28-(run?.impact||0))*40)*(run?.impact||0)*.3*(run?.impactSide??0);
     this.pilot.position.set(x+bump*.7,y+Math.sin(t*7)*.035,0);const yaw=cover?Math.PI+.35:-Math.atan((run?.vx||0)/Math.max(30,run?.speed||0));this.pilot.rotation.y+=(yaw-this.pilot.rotation.y)*(dt?1-Math.exp(-dt*14):1);this.pilot.rotation.z+=((cover?-.08:-(run?.vx||0)/NC.strafeSpeed*.15+bump)-this.pilot.rotation.z)*(dt?1-Math.exp(-dt*16):1);
     this.sun.position.set(x-38,65,-45);this.sun.target.position.set(x,0,-20);
     for(const g of Object.values(this.pikminForms))if(g.visible){g.rotation.x=run?.boosting?-.15:-.035;g.userData.stem.rotation.z=this.reduced?0:Math.sin(t*3)*.08-(run?.vx||0)*.008;}
