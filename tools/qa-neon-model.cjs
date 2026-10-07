@@ -106,8 +106,11 @@ console.log('PASS all roles: untouched main/fork travel stays straight, sideways
 {
  for(const role of Object.keys(N.roles)){
   const r=run(role);tick(r,3.5);assert.equal(r.x,0,'Opening straight cannot look like automatic left steering');assert.equal(r.worldX(),0);assert.equal(r.contacts,0);
-  // Isolate the main deck from deliberate fork choices and traffic.
-  while(!r.result){r.step(1/90);assert(Math.abs(r.worldX())<1e-7,'Main-road bends never move an untouched rider');assert(Math.abs(r.x)<N.moveLimit-3,'A centered rider has useful clearance on either side');assert.equal(r.contacts,0);r.notices.length=0;}
+  // Strong, visible bends need manual steering. Only an actual wall can
+  // displace an untouched rider, even over an entire main-road journey.
+  let clearSteps=0,wallSteps=0;
+  while(!r.result){const before=r.worldX();r.step(1/90);if(Math.abs(r.worldX()-before)<1e-7)clearSteps++;else{const b=r.lateralBounds();assert(Math.abs(r.x-b.min)<1e-7||Math.abs(r.x-b.max)<1e-7,'No invisible road-following in a stronger bend');wallSteps++;}assert.equal(r.steering,0);assert.equal(r.vx,0);r.notices.length=0;}
+  assert(clearSteps>100&&wallSteps>100&&r.contacts>0,'Visible bends retain real wall contacts');
  }
  for(const offset of [-.5,-.04,0,.04,.5]){
   const r=run(),other=run();r.distance=300;other.distance=301;r.speed=r.role.speed;
@@ -117,9 +120,10 @@ console.log('PASS all roles: untouched main/fork travel stays straight, sideways
   assert(Math.abs(r.worldX()-a-push)<1e-7,'Rear/front contact cannot create a biased sideways push');assert(Math.abs(other.worldX()-b+push)<1e-7,'Side contact separates both riders equally');
   assert.equal(r.impactSide,push===0?0:-Math.sign(push));assert.equal(r.hits,0);
  }
- for(let d=235;d<6000;d+=17){const numerical=(N.curve(d+.001)-N.curve(d-.001))/.002;assert(Math.abs(N.tangent(d)-numerical)<1e-7,'Rendered road tangent follows the same gentle curve as collisions');}
+ let left=0,right=0;for(let d=235;d<6000;d+=17){const numerical=(N.curve(d+.001)-N.curve(d-.001))/.002;assert(Math.abs(N.tangent(d)-numerical)<1e-7,'Rendered road tangent agrees with collisions');left=Math.min(left,N.curve(d));right=Math.max(right,N.curve(d));}
+ assert(left<-N.roadHalfWidth&&right>N.roadHalfWidth,'Both bend directions are wider than half a road and require steering');
 }
-console.log('PASS centered straight starts, full-length main-road clearance, symmetric side contacts and front/rear collisions without lateral drift');
+console.log('PASS centered straight starts, visible left/right bends without automatic steering, symmetric side contacts and aligned contact without drift');
 {
  const r=run();r.items=[{type:'ramp',distance:1,x:0,done:false}];tick(r,.2);assert(r.vy>12&&r.y>0,'Ramp launches without a jump button');tick(r,1.5);assert.equal(r.y,0);
  const g=run();g.items=[{type:'speedGate',distance:1,x:0,done:false}];tick(g,.2);assert.equal(g.score,0,'Speed gate needs boosting');const h=run();h.items=[{type:'speedGate',distance:1,x:0,done:false}];tick(h,.2,{boost:true});assert.equal(h.score,160);

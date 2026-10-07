@@ -49,12 +49,18 @@ NC.World=class {
   }
   makeRoad(){
     this.rails=this.batch(this.geometries.box,this.materials.edge,224);this.railGlow=this.batch(this.geometries.box,this.materials.white,224);this.seams=this.batch(this.geometries.box,this.glow(0x73dcea,.20),112);
+    this.edgePaint=this.batch(this.geometries.box,this.glow(0xffffff),224);this.edgeColors=[new THREE.Color(0x287b87).convertSRGBToLinear(),new THREE.Color(0xf7fff4).convertSRGBToLinear()];
     this.railGlow.material=this.glow(0xffffff);this.routeColors=Object.fromEntries(Object.entries(NC.routes).map(([k,v])=>[k,new THREE.Color(v.color).convertSRGBToLinear()]));this.routeColors.main=new THREE.Color(0x71eaff).convertSRGBToLinear();
     this.underRoad=this.batch(this.geometries.box,this.materials.edge,112);
     this.arches=[];for(let i=0;i<4;i++){const g=new THREE.Group();this.box(this.materials.edge,-12,7,0,.5,14,.6,g);this.box(this.materials.edge,12,7,0,.5,14,.6,g);this.box(this.materials.edge,0,14,0,24.5,.7,.6,g);this.box(this.materials.violet,0,13.6,.34,22,.10,.12,g);this.scene.add(g);this.arches.push(g);}
     // Soft reflected strips on the deck supply a restrained neon sheen without post-processing.
     this.reflections=this.batch(this.geometries.box,this.glow(0x4bd9ff,.09),224);
     this.forkSigns=Array.from({length:3},()=>{const g=new THREE.Group();g.userData.panels=[];for(const side of [-1,1]){const panel=this.mesh(new THREE.PlaneGeometry(9,4.5),new THREE.MeshBasicMaterial({map:this.sign('↖ ↗',''),toneMapped:false}),side*6,8,0,1,1,1,g);g.userData.panels.push(panel);}this.scene.add(g);g.visible=false;return g;});
+    // Low guardrail chevrons show the actual bend, with no extra HUD text.
+    const canvas=document.createElement('canvas');canvas.width=384;canvas.height=160;const ctx=canvas.getContext('2d');ctx.fillStyle='#195a68';ctx.fillRect(0,0,384,160);ctx.strokeStyle='#edfff4';ctx.lineWidth=5;ctx.strokeRect(4,4,376,152);
+    for(const x of [34,144,254]){ctx.beginPath();ctx.moveTo(x,24);ctx.lineTo(x+40,24);ctx.lineTo(x+86,80);ctx.lineTo(x+40,136);ctx.lineTo(x,136);ctx.lineTo(x+46,80);ctx.closePath();ctx.fillStyle='#edfff4';ctx.fill();}
+    const texture=new THREE.CanvasTexture(canvas);texture.encoding=THREE.sRGBEncoding;const material=new THREE.MeshBasicMaterial({map:texture,toneMapped:false,side:THREE.DoubleSide}),geometry=new THREE.PlaneGeometry(3.8,1.6);
+    this.bendSigns=Array.from({length:24},()=>{const g=new THREE.Group();this.box(this.materials.edge,0,.65,-.08,2.3,.18,.2,g);const panel=this.mesh(geometry,material,0,1.55,0,1,1,1,g);g.userData.panel=panel;g.visible=false;this.scene.add(g);return g;});
     // A continuous ribbon shares every segment boundary; rotated boxes leave
     // triangular cracks on the sharper fork curves.
     this.deckGeometry=new THREE.BufferGeometry();this.deckPositions=new Float32Array(112*18*3);this.deckNormals=new Float32Array(112*18*3);
@@ -245,12 +251,24 @@ NC.World=class {
         this.deckSection(roads,run,d,abs,branch);this.instance(this.seams,roads,c,.012,-ahead,22.5,.015,.07,angle);roads++;
         for(let side=0;side<2;side++){
           const inner=f&&!NC.separated(f,abs)&&(branch===0?side===1:side===0),x=side?11.8:-11.8;
-          if(!inner){this.instance(this.rails,rails,c+x,.28,-ahead,.35,.6,length,angle);this.instance(this.railGlow,rails,c+x,.62,-ahead,.10,.06,length,angle);this.railGlow.setColorAt(rails,this.routeColors[f?f.options[branch]:'main']);this.instance(this.reflections,rails,c+x*.89,.02,-ahead,1.7,.01,length,angle);rails++;}
+          if(!inner){this.instance(this.rails,rails,c+x,.28,-ahead,.35,.6,length,angle);this.instance(this.railGlow,rails,c+x,.62,-ahead,.10,.06,length,angle);this.railGlow.setColorAt(rails,this.routeColors[f?f.options[branch]:'main']);this.instance(this.reflections,rails,c+x*.89,.02,-ahead,1.7,.01,length,angle);this.instance(this.edgePaint,rails,c+x*.94,.035,-ahead,.55,.025,length,angle);this.edgePaint.setColorAt(rails,this.edgeColors[Math.abs(Math.round(abs/12))%2]);rails++;}
         }
         if(i%4===0)this.instance(this.underRoad,supports++,c,-7,-ahead,24,1.1,1);
       }
     }
-    for(const [m,count] of [[this.seams,roads],[this.rails,rails],[this.railGlow,rails],[this.reflections,rails],[this.underRoad,supports]]){m.count=count;m.instanceMatrix.needsUpdate=true;}this.railGlow.instanceColor.needsUpdate=true;
+    for(const [m,count] of [[this.seams,roads],[this.rails,rails],[this.railGlow,rails],[this.reflections,rails],[this.edgePaint,rails],[this.underRoad,supports]]){m.count=count;m.instanceMatrix.needsUpdate=true;}this.railGlow.instanceColor.needsUpdate=true;this.edgePaint.instanceColor.needsUpdate=true;
+    let signs=0;const firstSign=Math.floor(d/64)*64;
+    for(let i=0;i<9;i++){
+      const abs=firstSign+i*64,ahead=abs-d,f=run?.forkAt(abs);if(ahead<8||abs<280)continue;
+      for(const branch of f?[0,1]:[undefined]){
+        // Skip the shared fork entrance: its two separate direction panels
+        // already explain that choice. Show chevrons on each separated road.
+        if(f&&!NC.separated(f,abs))continue;
+        const slope=this.slope(run,abs,branch),nextSlope=this.slope(run,abs+30,branch);if(Math.abs(slope)<.026||Math.sign(slope)!==Math.sign(nextSlope))continue;
+        const direction=Math.sign(slope),g=this.bendSigns[signs++];g.visible=true;g.position.set(this.center(run,abs,branch)-direction*13.6,0,-ahead);g.rotation.y=-Math.atan(slope);g.userData.panel.scale.x=direction;g.userData.direction=direction;g.userData.distance=abs;
+      }
+    }
+    for(let i=signs;i<this.bendSigns.length;i++)this.bendSigns[i].visible=false;
     this.deckGeometry.setDrawRange(0,roads*18);this.deckGeometry.attributes.position.needsUpdate=true;this.deckGeometry.attributes.normal.needsUpdate=true;
     this.forkSigns.forEach((g,i)=>{const f=run?.forks[i],ahead=f?f.start-d:0;g.visible=!!f&&ahead>18&&ahead<360;if(!g.visible)return;g.position.set(this.curve(f.start),0,-ahead);const key=f.options.join('|');if(g.userData.key!==key){g.userData.key=key;g.userData.panels.forEach((p,side)=>{const route=NC.routes[f.options[side]],old=p.material.map;p.material.map=this.sign((side?'↗ ':'↖ ')+route.name,'',route.color);old.dispose();});}});
     this.cityData.forEach((b,i)=>{const ahead=((b.d-d)%600+600)%600-60,x=this.curve(d+ahead)+(b.x+this.spread(run,d+ahead))*b.side;

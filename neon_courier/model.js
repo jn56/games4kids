@@ -23,10 +23,10 @@ const NC = {
     charge:{name:'磁力花園',hint:'收集 6 顆光環',short:'遠距吸取 · 回充',need:6,color:'#098fa5'}
   },
   // The same continuous fork geometry positions roads, riders and interactables.
-  // Begin along the rider's actual forward heading. Gentle bends stay inside
-  // the wide main deck; sharp route choices belong to the visible forks.
-  curve(distance){const a=Math.max(0,distance-240)*.0024;return 4*Math.sin(a)**3;},
-  tangent(distance){const a=Math.max(0,distance-240)*.0024;return .0288*Math.sin(a)**2*Math.cos(a);},
+  // Keep a straight launch, then alternate broad, readable S-bends. Geometry
+  // and wall bounds share this curve; it never supplies steering input.
+  curve(distance){const a=Math.max(0,distance-240)*.0024;return 24*Math.sin(a)**3;},
+  tangent(distance){const a=Math.max(0,distance-240)*.0024;return .1728*Math.sin(a)**2*Math.cos(a);},
   forkOffset(fork,distance,side){const t=this.clamp((distance-fork.start)/(fork.end-fork.start),0,1),u=t<.22?t/.22:t>.8?(1-t)/.2:1;return (side===0?-1:1)*this.forkSpread*u*u*(3-2*u);},
   forkSlope(fork,distance,side){const length=fork.end-fork.start,t=this.clamp((distance-fork.start)/length,0,1);if(t>=.22&&t<=.8)return 0;const u=t<.22?t/.22:(1-t)/.2,du=t<.22?1/(.22*length):-1/(.2*length);return (side===0?-1:1)*this.forkSpread*6*u*(1-u)*du;},
   separated(fork,distance){return Math.abs(this.forkOffset(fork,distance,0))>=this.roadHalfWidth;},

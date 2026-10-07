@@ -30,12 +30,14 @@ let browser;const reports=[];
     r.step=(dt,input)=>{const before=r.worldX();original(dt,input);const bounds=r.lateralBounds();r.straightTrace.push({before,after:r.worldX(),x:r.x,vx:r.vx,steer:r.steering,min:bounds.min,max:bounds.max,contacts:r.contacts,wall:r.notices.some(n=>n.type==='bump'&&n.kind==='wall')});};
     neonGame.run=r;neonGame.world.update(r,0);
    },side);
-   await p.waitForFunction(()=>neonGame.run.contacts>0);await p.waitForTimeout(60);
+   // Capture the short contact flash while it is visible; freeze simulation
+   // through the real pause action before trace serialization can outlast it.
+   await p.waitForFunction(()=>neonGame.run.contacts>0&&neonGame.world.contactRing.visible);await p.keyboard.press('Escape');
    const trace=await p.evaluate(()=>neonGame.run.straightTrace);assert(trace.length>2);
    let straight=0,contact=0;
    for(const frame of trace){assert.equal(frame.steer,0);assert.equal(frame.vx,0);if(Math.abs(frame.after-frame.before)<1e-7)straight++;else{assert(Math.abs(frame.x-frame.min)<1e-7||Math.abs(frame.x-frame.max)<1e-7,'Only physical wall contact can move an untouched player sideways');contact++;}}
    assert(straight>1&&contact>0&&trace.some(t=>t.wall));assert(await p.evaluate(()=>neonGame.world.contactRing.visible&&neonGame.run.hits===0));
-   await p.screenshot({path:path.join(out,`manual-wall-${side}-${width}.png`)});walls.push({side,straightSteps:straight,wallSteps:contact});
+   await p.screenshot({path:path.join(out,`manual-wall-${side}-${width}.png`)});walls.push({side,straightSteps:straight,wallSteps:contact});await p.keyboard.press('Escape');
    // Native pointer steering away from the inner wall must remain available.
    const currentPad=await p.locator('#joystick').boundingBox();await p.mouse.move(currentPad.x+currentPad.width*(side?.80:.20),currentPad.y+currentPad.height/2);await p.mouse.down();await p.waitForTimeout(180);
    assert(await p.evaluate(side=>Math.sign(neonGame.run.vx)===(side?1:-1),side),'Wall contact does not erase input that steers away');await p.mouse.up();
