@@ -5,7 +5,7 @@ const pass=s=>{passes.push(s);console.log('PASS '+s);};
 async function open(ctx){const p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.message));await p.goto(base+'/neon_courier/');await p.waitForFunction(()=>window.neonGame);await p.locator('#launch').click();await p.waitForFunction(()=>neonGame.mode==='running');return p;}
 (async()=>{
  browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
- for(const [width,height] of [[390,844],[844,390]]){
+ for(const [width,height] of [[667,375],[844,390]]){
   const ctx=await browser.newContext({viewport:{width,height},hasTouch:true,isMobile:true}),p=await open(ctx);
   let pad=await p.locator('#joystick').boundingBox(),cx=pad.x+pad.width/2,cy=pad.y+pad.height/2;
   await p.mouse.move(cx+pad.width*.30,cy);await p.mouse.down();const pointer=await p.evaluate(()=>neonGame.stick.pointer);assert.notEqual(pointer,null);
@@ -25,7 +25,7 @@ async function open(ctx){const p=await ctx.newPage();p.on('pageerror',e=>errors.
   // Drive into the actual inner wall; feedback must come from simulation contact.
   await p.evaluate(()=>{const r=neonGame.run,f=r.forks[0];r.distance=(f.start+f.end)/2;r.x=-NC.moveLimit;r.vx=0;r.impactCooldown=0;r.contacts=0;r.chain=5;neonGame.world.update(r,0);});
   await p.keyboard.down('ArrowLeft');await p.waitForFunction(()=>neonGame.world.contactRing.visible);await p.keyboard.up('ArrowLeft');
-  assert(await p.evaluate(()=>neonGame.run.contacts===1&&neonGame.run.hits===0&&neonGame.run.chain===5));assert(await p.evaluate(()=>{const w=neonGame.world,v=w.pilot.position.clone().project(w.camera);return Math.abs(v.x)<.9&&Math.abs(v.y)<.9;}));await p.screenshot({path:path.join(out,`contact-${width}.png`)});await p.waitForTimeout(350);assert.equal(await p.evaluate(()=>neonGame.world.contactRing.visible),false);
+  assert(await p.evaluate(()=>neonGame.run.contacts===1&&neonGame.run.hits===0&&neonGame.run.chain===5));assert(await p.evaluate(()=>{const w=neonGame.world,v=w.pilot.position.clone().project(w.camera);return Math.abs(v.x)<.9&&Math.abs(v.y)<.9;}));await p.screenshot({path:path.join(out,`contact-${width}.png`)});await p.evaluate(()=>{neonGame.run.x=0;neonGame.run.vx=0;});await p.waitForFunction(()=>neonGame.run.impact===0);assert.equal(await p.evaluate(()=>neonGame.world.contactRing.visible),false);
   await p.evaluate(()=>{const r=neonGame.run;r.distance=0;r.x=0;r.vx=0;r.impactCooldown=0;r.contacts=0;r.couriers=new NC.Run(neonGame.profile,17).couriers;const c=r.couriers[0].run;c.distance=1;c.x=.5;c.speed=r.speed;neonGame.world.update(r,0);});
   await p.waitForFunction(()=>neonGame.run.contacts>0);assert(await p.evaluate(()=>neonGame.run.couriers[0].run.contacts>0&&neonGame.run.hits===0));
   // Exhaust uses real one-tap boost; no injected visual state.

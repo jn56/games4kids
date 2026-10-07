@@ -37,6 +37,7 @@
   function nameChanged(){game.profile.name=$('pilot-name').value.trim().slice(0,12)||'夜行者';$('pilot-name').value=game.profile.name;save();}
   function toast(text,seconds=1.8){$('toast').textContent=text;$('toast').hidden=false;game.toastTime=seconds;}
   function launch(){
+    if(game.display?.blocked)return;
     nameChanged();clearInput();audio.unlock();game.run=new NC.Run(game.profile);game.accumulator=0;game.lastStamp=performance.now();game.toastTime=game.radioTime=0;
     $('toast').hidden=$('radio').hidden=true;$('event').hidden=$('fork-card').hidden=true;$('countdown').hidden=false;
     document.querySelectorAll('[data-stop]').forEach(el=>el.className='');mode('countdown');document.activeElement?.blur();world.setRole(game.profile.role);world.update(game.run,0);hud();
@@ -45,7 +46,7 @@
     if(!['running','countdown'].includes(game.mode))return;
     game.resumePhase=game.run.phase;game.run.phase='paused';mode('paused');focus('resume');
   }
-  function resume(){if(game.mode!=='paused')return;game.run.phase=game.resumePhase;mode(game.resumePhase);game.lastStamp=performance.now();game.accumulator=0;document.activeElement?.blur();audio.unlock();}
+  function resume(){if(game.display?.blocked||game.mode!=='paused')return;game.run.phase=game.resumePhase;mode(game.resumePhase);game.lastStamp=performance.now();game.accumulator=0;document.activeElement?.blur();audio.unlock();}
   function cover(){game.run=null;mode('cover');syncCover();world.update(null,0,true);focus('launch');}
   function finish(result){
     const p=game.profile,before=NC.rank(p).lv;p.runs++;p.xp+=result.xp;const record=result.score>p.best;p.best=Math.max(p.best,result.score);save();
@@ -91,7 +92,7 @@
       else{const kind=fork.options[fork.choice],route=NC.routes[kind];$('fork-progress').textContent=`${actions[kind]} ${fork.progress}/${route.need}`;card.hidden=fork.won;}
     }
   }
-  const manual=`<div class="manual"><p>你是霓光城的晴空快遞員。角色會自動前進，一班約一至兩分鐘，依路線與操作節奏變化。把三件包裹送進跑道上的<strong>綠色光門</strong>，再衝過終點。</p><div class="key-row"><span>按住左右平順移動，放開快速停住</span><kbd>← / →</kbd></div><div class="key-row"><span>跳躍；躍動角色可再跳一次</span><kbd>SPACE</kbd></div><div class="key-row"><span>按住衝刺 / 按住緩行</span><kbd>↑ / ↓</kbd></div><div class="key-row"><span>暫停 / 返回</span><kbd>ESC</kbd></div><h3>看路線，也抓節奏</h3><ul><li>青色光環：補充能量，連續收集會提高倍率，最高 ×5。超過 5.5 秒沒接到連段會歸零。</li><li>橘色橫桿、通風口：跳過或從旁邊繞過。橘色警示箱：從旁邊繞過。</li><li>青色地面箭頭：經過就補充 25 點能量。</li><li>綠色交付光門：對準光門穿過即自動交付，獎勵 4 秒與能量。</li><li>失誤會短暫減速並中斷連段，包裹不會掉落。錯過交付點也能繼續完成航程。</li></ul><h3>分岔：選一條你的路</h3><p>每趟有三處分岔。接近路口時，站在跑道左半邊選左路、右半邊選右路；正中央預設左路。兩側還連在一起時可自由改選，等中央護欄真正分開才確定路線。不碰搖桿或方向鍵會直行，彎道要自行左右操控；碰到護欄才會擦撞。支線內仍可自由左右移動，末端重新連成寬跑道。</p><ul><li>極速環道：速度更快，啟動衝刺穿過三道光門。</li><li>空中躍台：踩紫色跳台會自動彈起，在空中接住三顆高空星。</li><li>節奏曲線：自由轉向，連續穿過四道精準環。</li><li>磁力花園：吸取範圍擴大，接住六顆光環。</li></ul><p>每完成一條支線挑戰，加 4 秒、積分、能量及 25 XP；磁力花園會充滿能量。挑戰沒完成也能繼續配送。</p><h3>成為你的那一種快遞員</h3><p>可選三位快遞員，或紅、黃、藍皮克敏。紅皮克敏與疾風擅長衝刺；黃皮克敏與躍動可二段跳；藍皮克敏與共鳴擅長遠距收集。三種皮克敏都有獨立 3D 造型，選好後會自動保存。完成委託累積經驗，每 220 XP 升一級並獲得技能點，最多 9 點，能永久提升能量、收集範圍或委託時間。</p><h3>五位同行外送員</h3><p>小嵐、阿澈、米洛、沐沐、星野由電腦控制，會自行選路、避開設施、踩跳台、衝刺並配送。近處以小色點辨識，各自有獨立能量和包裹；不會搶走你的光環，碰到同行者會輕微彈開、亮起接觸光圈並短暫減速；擦到護欄會輕晃和減速，不扣能量、不打斷連段。左下方顯示你在六位外送員中的即時順位。</p><h3>城市會跟著你變化</h3><p>順風航道提高速度；磁力潮汐擴大收集範圍；追光時刻讓積分加倍。每次路線配置會改變，每組障礙都保留足夠的通行空間。</p><p>手機搖桿可任意旋轉：偏左就向左、偏右就向右，純上下不改變速度，橫移會平順起步、快速停住，垂直附近設有防抖區。右側衝刺點一次就持續到能量耗盡，浮板會噴出青白色氮氣尾焰，放手仍會衝刺；耗盡後自動回充，再點一次可重新啟動。另一顆按鈕用來跳躍，可同時操作。暫停與說明期間倒數停止；切換分頁也會自動暫停。</p><p class="storage-note">角色與最高紀錄只儲存在目前瀏覽器。本遊戲不需要登入或連線，也沒有付費項目。</p></div>`;
+  const manual=`<div class="manual"><p>你是霓光城的晴空快遞員。角色會自動前進，一班約一至兩分鐘，依路線與操作節奏變化。把三件包裹送進跑道上的<strong>綠色光門</strong>，再衝過終點。</p><div class="key-row"><span>按住左右平順移動，放開快速停住</span><kbd>← / →</kbd></div><div class="key-row"><span>跳躍；躍動角色可再跳一次</span><kbd>SPACE</kbd></div><div class="key-row"><span>按住衝刺 / 按住緩行</span><kbd>↑ / ↓</kbd></div><div class="key-row"><span>暫停 / 返回</span><kbd>ESC</kbd></div><h3>看路線，也抓節奏</h3><ul><li>青色光環：補充能量，連續收集會提高倍率，最高 ×5。超過 5.5 秒沒接到連段會歸零。</li><li>橘色橫桿、通風口：跳過或從旁邊繞過。橘色警示箱：從旁邊繞過。</li><li>青色地面箭頭：經過就補充 25 點能量。</li><li>綠色交付光門：對準光門穿過即自動交付，獎勵 4 秒與能量。</li><li>失誤會短暫減速並中斷連段，包裹不會掉落。錯過交付點也能繼續完成航程。</li></ul><h3>分岔：選一條你的路</h3><p>每趟有三處分岔。接近路口時，站在跑道左半邊選左路、右半邊選右路；正中央預設左路。兩側還連在一起時可自由改選，等中央護欄真正分開才確定路線。不碰搖桿或方向鍵會直行，彎道要自行左右操控；碰到護欄才會擦撞。支線內仍可自由左右移動，末端重新連成寬跑道。</p><ul><li>極速環道：速度更快，啟動衝刺穿過三道光門。</li><li>空中躍台：踩紫色跳台會自動彈起，在空中接住三顆高空星。</li><li>節奏曲線：自由轉向，連續穿過四道精準環。</li><li>磁力花園：吸取範圍擴大，接住六顆光環。</li></ul><p>每完成一條支線挑戰，加 4 秒、積分、能量及 25 XP；磁力花園會充滿能量。挑戰沒完成也能繼續配送。</p><h3>成為你的那一種快遞員</h3><p>可選三位快遞員，或紅、黃、藍皮克敏。紅皮克敏與疾風擅長衝刺；黃皮克敏與躍動可二段跳；藍皮克敏與共鳴擅長遠距收集。三種皮克敏都有獨立 3D 造型，選好後會自動保存。完成委託累積經驗，每 220 XP 升一級並獲得技能點，最多 9 點，能永久提升能量、收集範圍或委託時間。</p><h3>五位同行外送員</h3><p>小嵐、阿澈、米洛、沐沐、星野由電腦控制，會自行選路、避開設施、踩跳台、衝刺並配送。近處以小色點辨識，各自有獨立能量和包裹；不會搶走你的光環，碰到同行者會輕微彈開、亮起接觸光圈並短暫減速；擦到護欄會輕晃和減速，不扣能量、不打斷連段。左下方顯示你在六位外送員中的即時順位。</p><h3>城市會跟著你變化</h3><p>順風航道提高速度；磁力潮汐擴大收集範圍；追光時刻讓積分加倍。每次路線配置會改變，每組障礙都保留足夠的通行空間。</p><p>手機需橫放遊玩，轉為直向會自動暫停；轉回橫向後按「繼續」。右上角可切換全螢幕，是否能隱藏瀏覽器介面依裝置支援而定。手機搖桿可任意旋轉：偏左就向左、偏右就向右，純上下不改變速度，橫移會平順起步、快速停住，垂直附近設有防抖區。右側衝刺點一次就持續到能量耗盡，浮板會噴出青白色氮氣尾焰，放手仍會衝刺；耗盡後自動回充，再點一次可重新啟動。另一顆按鈕用來跳躍，可同時操作。暫停與說明期間倒數停止；切換分頁也會自動暫停。</p><p class="storage-note">角色與最高紀錄只儲存在目前瀏覽器。本遊戲不需要登入或連線，也沒有付費項目。</p></div>`;
   function openInfo(kind){
     game.infoOrigin=game.mode==='paused'?'paused':'cover';game.infoFocus=document.activeElement;game.infoKind=kind;mode('info');
     $('info-kicker').textContent=kind==='career'?'RUNNER PROFILE':'FIELD MANUAL';$('info-title').textContent=kind==='career'?'把專長，練成風格。':'晴空指南';
@@ -125,13 +126,13 @@
   }
   function menuButtons(){const root=$({cover:'cover',paused:'pause-panel',result:'result',info:'info-panel'}[game.mode]);return root?[...root.querySelectorAll('button:not(:disabled),input,a')].filter(e=>e.getClientRects().length):[];}
   document.addEventListener('keydown',e=>{
-    if(game.ended)return;
+    if(game.ended||game.display?.blocked)return;
     if(e.ctrlKey||e.metaKey||e.altKey)return;
     if(e.target.matches('input,textarea,[contenteditable=true]')){if(e.code==='Escape'||e.code==='Enter'){e.preventDefault();nameChanged();focus('launch');}return;}
     if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space','Escape'].includes(e.code))return;
     e.preventDefault();audio.unlock();
     if(e.code==='Escape'&&!e.repeat){if(['running','countdown'].includes(game.mode))pause();else if(game.mode==='paused')resume();else if(game.mode==='info')closeInfo();else if(game.mode==='result')cover();return;}
-    if(['running','countdown'].includes(game.mode)){
+    if(['running','countdown'].includes(game.mode)&&!game.display?.blocked){
       if(e.code==='ArrowUp')held.boost=true;if(e.code==='ArrowDown')held.brake=true;if(e.code==='ArrowLeft')held.left=true;if(e.code==='ArrowRight')held.right=true;syncInput();
       if(!e.repeat&&e.code==='Space')game.run.jump();return;
     }
@@ -147,7 +148,7 @@
   // Fixed simulation steps prevent tunnelling at high speed and decouple physics from display refresh.
   function frame(now){
     if(game.ended)return;const dt=Math.min(.10,Math.max(0,(now-(game.lastStamp||now))/1000));game.lastStamp=now;
-    if(['running','countdown'].includes(game.mode)){
+    if(['running','countdown'].includes(game.mode)&&!game.display?.blocked){
       game.accumulator+=dt;while(game.accumulator>=1/90&&['running','countdown'].includes(game.mode)){game.run.step(1/90,game.input);game.accumulator-=1/90;notices();}
       game.toastTime=Math.max(0,game.toastTime-dt);game.radioTime=Math.max(0,game.radioTime-dt);if(!game.toastTime)$('toast').hidden=true;if(!game.radioTime)$('radio').hidden=true;hud();
     }
@@ -155,5 +156,7 @@
     requestAnimationFrame(frame);
   }
   game.launch=launch;game.pause=pause;game.resume=resume;game.cover=cover;game.openInfo=openInfo;
-  syncCover();syncSound();focus('launch');requestAnimationFrame(frame);
+  syncCover();syncSound();focus('launch');
+  game.display=new NC.Display(()=>{clearInput();pause();audio.quiet();});
+  requestAnimationFrame(frame);
 })();

@@ -7,20 +7,21 @@
   <meta name="description" content="霓光快遞：晴空出發。穿越陽光空中都市的 3D 即時角色扮演遊戲，自由左右移動、跳躍、衝刺，在限時內把城市的期待送達。">
   <title>霓光快遞：晴空出發 · NEON COURIER</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23090d20'/%3E%3Cpath d='M37 6 14 36h17l-4 22 24-32H34z' fill='%23d9ff6b'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=12">
   <script src="three.min.js" defer></script>
   <script src="model.js?v=11" defer></script>
-  <script src="world.js?v=11" defer></script>
+  <script src="world.js?v=12" defer></script>
   <script src="audio.js?v=8" defer></script>
   <script src="controls.js?v=5" defer></script>
-  <script src="game.js?v=9" defer></script>
+  <script src="display.js?v=1" defer></script>
+  <script src="game.js?v=12" defer></script>
 </head>
 <body data-mode="cover">
   <canvas id="world" aria-label="晴空城市的立體航道"></canvas>
   <div class="screen-shade" aria-hidden="true"></div>
   <header class="masthead">
     <a class="brand" href="../index.html" aria-label="回遊戲首頁"><span class="brand-mark">ϟ</span><span>霓光快遞</span></a>
-    <div class="header-actions"><button id="sound" class="icon-button" aria-label="開啟音樂" aria-pressed="false">♪</button><button id="pause" class="icon-button" aria-label="暫停遊戲" hidden>Ⅱ</button></div>
+    <div class="header-actions"><button id="fullscreen" class="icon-button" data-fullscreen aria-label="全螢幕" aria-pressed="false" title="全螢幕">⛶</button><button id="sound" class="icon-button" aria-label="開啟音樂" aria-pressed="false">♪</button><button id="pause" class="icon-button" aria-label="暫停遊戲" hidden>Ⅱ</button></div>
   </header>
 
   <main id="cover" class="cover">
@@ -65,6 +66,10 @@
 
   <section id="info-panel" class="overlay" role="dialog" aria-modal="true" aria-labelledby="info-title" hidden><div class="panel info-panel"><div class="panel-heading"><div><p class="eyebrow" id="info-kicker">FIELD MANUAL</p><h2 id="info-title">晴空指南</h2></div><button id="close-info" class="icon-button" aria-label="關閉視窗">×</button></div><div id="info-content"></div></div></section>
   <section id="error" class="overlay" role="alert" hidden><div class="panel"><h2>航道暫時無法開啟</h2><p id="error-text">請使用支援 WebGL 的瀏覽器，或重新整理再試一次。</p><button class="launch" onclick="location.reload()">重新整理 ↗</button><a class="text-button" href="../index.html">回遊戲首頁</a></div></section>
+  <section id="rotate-screen" role="dialog" aria-modal="true" aria-labelledby="rotate-title" hidden>
+    <div class="rotate-card"><svg viewBox="0 0 120 100" aria-hidden="true"><rect x="23" y="27" width="74" height="44" rx="9"/><path d="M32 38v22M88 47v4M18 20A48 48 0 0 1 107 44M18 20l1-15M18 20l16-1M102 80A48 48 0 0 1 13 56M102 80l-1 15M102 80l-16 1"/></svg><h2 id="rotate-title">橫放手機，準備出發</h2><p>直向時遊戲會暫停</p><button data-fullscreen class="launch" aria-pressed="false">全螢幕 ↗</button></div>
+  </section>
+  <div id="display-status" role="status" hidden></div>
   <noscript>請啟用 JavaScript，才能進入霓光城市。</noscript>
 </body>
 </html>

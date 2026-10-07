@@ -3,7 +3,7 @@ const base=process.env.GAME_BASE||'http://127.0.0.1:4174',out=path.resolve(__dir
 let browser;const reports=[];
 (async()=>{
  browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
- for(const [width,height] of [[1440,900],[390,844],[320,568],[844,390],[568,320]]){
+ for(const [width,height] of [[1440,900],[1024,768],[844,390],[667,375],[568,320]]){
   const context=await browser.newContext({viewport:{width,height},hasTouch:true,isMobile:width<900}),page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(e.message));await page.goto(base+'/neon_courier/');await page.waitForFunction(()=>window.neonGame);
   for(const family of ['human','pikmin']){

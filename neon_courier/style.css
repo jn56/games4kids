@@ -51,3 +51,35 @@ body:not([data-mode=cover]) .screen-shade{background:linear-gradient(180deg,#e5f
 @media(max-width:600px) and (orientation:portrait){.cover h1{font-size:43px;margin-bottom:18px}.mission-card{max-width:150px}.mission-card strong{font-size:15px}.clock-card>strong{font-size:32px}.clock-card strong>span{font-size:16px}.energy{width:95px}.fork-card,.fork-card.chosen{top:154px;width:240px}.fork-card.chosen{width:auto}.cover-copy{bottom:max(36px,env(safe-area-inset-bottom))}}
 @media(max-width:359px) and (orientation:portrait){.cover h1{font-size:35px;margin-bottom:12px}.cover-copy{bottom:max(25px,env(safe-area-inset-bottom))}.energy{width:82px}}
 @media(max-height:500px) and (orientation:landscape){.cover h1{font-size:38px;margin-bottom:0}.cover-links button{min-height:26px}.mission-card{top:61px;padding:6px 9px}.clock-card{top:60px}.clock-card>strong{font-size:30px}.fork-card,.fork-card.chosen{top:112px;width:min(270px,calc(100% - 280px));padding:6px 8px}.fork-card.chosen{width:auto;min-width:140px}#fork-options strong{font-size:10px}.energy{width:95px}#hud:has(#fork-card:not([hidden])) .toast{top:auto;bottom:14px}}
+
+/* Racing-inspired instrument glass keeps the sunny course unobstructed. */
+:root{--control-inset:56px}
+body:not([data-mode=cover]) .screen-shade{background:linear-gradient(180deg,#102d3918,transparent 22%,transparent 78%,#102d3926)}
+.masthead{left:max(var(--edge),calc(18px + env(safe-area-inset-left)));right:max(var(--edge),calc(18px + env(safe-area-inset-right)))}
+body:not([data-mode=cover]) .brand{color:#fff;text-shadow:0 2px 8px #122d46}
+.icon-button{background:#152d3bd4;color:#f4fbff;border:1px solid #ffffff40;backdrop-filter:blur(8px);min-width:44px;min-height:44px}
+.icon-button:hover{background:#245164}.brand-mark{background:#178d8b}
+.mission-card,.clock-card,.ride-stats,.energy,.fork-card,.fork-card.chosen{color:#fff;background:linear-gradient(135deg,#153340d9,#102431b8);border:1px solid #ffffff38;box-shadow:0 5px 20px #0b293522;backdrop-filter:blur(8px);border-radius:8px}
+.mission-card{border-left:3px solid #8ce8d9}.clock-card>strong{text-shadow:none;font-variant-numeric:tabular-nums}.clock-card strong>span,.clock-card>span:last-child,.speed>span,#fleet-status{color:#d0e3e9}.clock-card.urgent>strong{color:#ffbb81}
+.mission-card{left:max(var(--edge),calc(18px + env(safe-area-inset-left)))}.clock-card{right:max(var(--edge),calc(18px + env(safe-area-inset-right)))}
+.overlay{padding-left:max(22px,calc(16px + env(safe-area-inset-left)));padding-right:max(22px,calc(16px + env(safe-area-inset-right)))}
+.speed strong{letter-spacing:-3px}.score-stack>span{color:#b9f293}.energy>div:first-child{color:#bfeee6}.energy-track{background:#ffffff24}.energy-track i{background:linear-gradient(90deg,#30c9c5,#d4f5a4)}
+.fork-card>.tiny-label{color:#d8e7eb}#fork-options>div{background:#ffffff13;opacity:1}#fork-options>div.selected{background:#ffffff29;border-color:#baf1df}#fork-options strong,#fork-progress{color:#eafbf8}
+#joystick{left:calc(var(--control-inset) + env(safe-area-inset-left));bottom:calc(var(--control-inset) + env(safe-area-inset-bottom));background:#142f407a;border:1px solid #ffffff80;box-shadow:inset 0 0 0 8px #ffffff08,0 6px 18px #122c3322}
+.joystick-cross{color:#e4ffff40}#joystick-stick{background:linear-gradient(145deg,#e3fbf1eb,#8ec9c9d9);border-color:#f3fff5b3;box-shadow:0 3px 12px #061e3966}
+.touch-moves{right:calc(var(--control-inset) + env(safe-area-inset-right));bottom:calc(var(--control-inset) + env(safe-area-inset-bottom));gap:12px}
+#touch-controls button{background:#153340c9;border:1px solid #c6faf89e;color:#fff;box-shadow:0 5px 16px #122c3333}
+#touch-controls button[data-action=jump]{background:#e8f6d3d9;color:#274846;border-color:#f4ffdf}
+#touch-controls button.held{background:#137b7ed9;box-shadow:0 0 20px #63e1d57a}
+#rotate-screen{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:linear-gradient(155deg,#eafaf3f5,#b7dfebf5);padding:28px;backdrop-filter:blur(15px)}
+.rotate-card{width:min(320px,100%);text-align:center}.rotate-card svg{width:116px;height:98px;fill:none;stroke:#1b757d;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.rotate-card h2{font-size:23px;line-height:1.5;margin:18px 0 6px;letter-spacing:0}.rotate-card p{font-size:13px;color:#52747c;margin:0 0 28px}.rotate-card .launch{width:100%;justify-content:center}
+#display-status{position:fixed;z-index:110;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);width:max-content;max-width:calc(100% - 48px);padding:11px 18px;border-radius:12px;background:#163748ed;color:#fff;text-align:center;font-size:13px;line-height:1.6;pointer-events:none}
+@media(pointer:coarse){.ride-stats{left:calc(var(--control-inset) + env(safe-area-inset-left));bottom:calc(172px + env(safe-area-inset-bottom))}.energy{right:calc(var(--control-inset) + env(safe-area-inset-right));bottom:calc(172px + env(safe-area-inset-bottom))}}
+@media(max-height:500px) and (orientation:landscape){
+ .masthead{top:max(10px,env(safe-area-inset-top))}.header-actions{gap:8px}.icon-button{font-size:22px}
+ .mission-card{top:66px}.clock-card{top:66px}.fork-card,.fork-card.chosen{top:116px}
+ .cover-copy{left:max(24px,calc(18px + env(safe-area-inset-left)));width:min(70vw,570px)}
+ .ride-stats{bottom:calc(157px + env(safe-area-inset-bottom))}.energy{bottom:calc(158px + env(safe-area-inset-bottom))}
+}
+@media(max-width:680px) and (max-height:500px) and (orientation:landscape){.cover-copy{width:70vw;gap:10px 16px}.cover h1{font-size:30px;letter-spacing:-1px}.role-picker strong{font-size:9px}.role-picker small{font-size:7px}}
+@media(max-height:360px) and (orientation:landscape){.clock-card{padding:4px}.clock-card>strong{font-size:25px}.mission-card strong{font-size:14px}.ride-stats{padding:5px}.speed strong{font-size:27px}}

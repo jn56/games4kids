@@ -52,7 +52,7 @@ async function fit(p,label){
  assert.equal(await p.locator('#pilot-name').inputValue(),'澄 / 07');assert.equal(await p.evaluate(()=>neonGame.profile.skills.battery),1);assert.equal(await p.evaluate(()=>neonGame.profile.best),score);assert.equal(await p.evaluate(()=>neonGame.audio.enabled),false);
  await p.keyboard.press('Space');assert.equal(await p.evaluate(()=>neonGame.run.capacity),112);await p.keyboard.press('Escape');await p.locator('#return-cover').click();pass('skill spending, upgraded next run, renamed profile, score and sound persist after reload');await p.close();
  }
- if(suite!=='core')for(const [width,height] of [[1440,900],[390,844],[320,568],[844,390],[667,375],[568,320]]){
+ if(suite!=='core')for(const [width,height] of [[1440,900],[1024,768],[932,430],[844,390],[667,375],[568,320]]){
   const ctx=await browser.newContext({viewport:{width,height},hasTouch:true,isMobile:width<900,deviceScaleFactor:width<900?2:1});p=await open(ctx);await fit(p,`${width} cover`);await p.screenshot({path:path.join(out,`cover-${width}x${height}.png`)});
   await p.locator('#launch').click();await p.waitForFunction(()=>neonGame.mode==='running');await fit(p,`${width} running`);
   const mobile=await p.locator('#touch-controls').isVisible();assert(mobile);
@@ -94,7 +94,7 @@ async function fit(p,label){
   }
   await p.evaluate(()=>{const r=neonGame.run;r.distance=r.forks[0].end+.1;});await p.waitForTimeout(150);assert.equal(await p.locator('#fork-card').isVisible(),false);
   await p.mouse.move(cx,cy);await p.mouse.down();await p.mouse.move(cx,cy-pad.width*.32);await p.keyboard.press('Escape');assert.equal(await p.evaluate(()=>neonGame.stick.pointer),null);assert.equal(await p.evaluate(()=>neonGame.input.boost),false);await p.mouse.up();await fit(p,`${width} pause`);
-  await p.locator('#pause-help').click();await p.mouse.wheel(0,600);await p.keyboard.press('Escape');await p.setViewportSize({width:height,height:width});await p.waitForTimeout(150);await fit(p,`${width} rotated pause`);
+  await p.locator('#pause-help').click();await p.mouse.wheel(0,600);await p.keyboard.press('Escape');await p.setViewportSize({width:height,height:width});await p.waitForTimeout(150);await fit(p,`${width} rotated pause`);assert(await p.locator('#rotate-screen').isVisible());await p.setViewportSize({width,height});await p.waitForFunction(()=>!neonGame.display.blocked);
   await p.keyboard.press('Escape');await p.keyboard.down('ArrowUp');await p.evaluate(()=>window.dispatchEvent(new Event('blur')));assert.equal(await p.evaluate(()=>neonGame.mode),'paused');assert.equal(await p.evaluate(()=>neonGame.input.boost),false);await p.keyboard.up('ArrowUp');
   await p.locator('#return-cover').click();await p.setViewportSize({width,height});await p.locator('#launch').click();await p.waitForFunction(()=>neonGame.mode==='running');await p.evaluate(()=>neonGame.run.remaining=.01);await p.waitForFunction(()=>neonGame.mode==='result');await fit(p,`${width} timeout result`);
   await p.keyboard.press('Space');assert.equal(await p.evaluate(()=>neonGame.mode),'countdown');await p.keyboard.press('Escape');await p.locator('#return-cover').click();await p.locator('#open-career').click();await fit(p,`${width} career`);

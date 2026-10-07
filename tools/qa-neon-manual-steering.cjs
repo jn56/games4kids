@@ -3,7 +3,7 @@ const base=process.env.GAME_BASE||'http://127.0.0.1:4174',out=path.resolve(__dir
 let browser;const reports=[];
 (async()=>{
  browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
- for(const [width,height] of [[1440,900],[390,844],[844,390]]){
+ for(const [width,height] of [[1440,900],[667,375],[844,390]]){
   const ctx=await browser.newContext({viewport:{width,height},hasTouch:true,isMobile:width<900}),p=await ctx.newPage(),errors=[];
   p.on('pageerror',e=>errors.push(e.message));await p.goto(base+'/neon_courier/');await p.waitForFunction(()=>window.neonGame);await p.locator('#launch').click();await p.waitForFunction(()=>neonGame.mode==='running');
   await p.evaluate(()=>{const r=new NC.Run(neonGame.profile,17,{traffic:false});r.phase='running';r.items=[];r.forks=[];r.speed=r.role.speed;neonGame.run=r;neonGame.stick.reset();neonGame.world.update(r,0);});
